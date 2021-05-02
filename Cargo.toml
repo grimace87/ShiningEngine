@@ -1,0 +1,13 @@
+
+[workspace]
+members = [
+    "model",
+    "defs",
+    "renderer",
+    "engine",
+    "platform_windows",
+    "sample_app"
+]
+default-members = [
+    "sample_app"
+]
