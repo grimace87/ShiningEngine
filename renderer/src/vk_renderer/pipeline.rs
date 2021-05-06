@@ -6,7 +6,7 @@ use crate::vk_renderer::{
     images::ImageWrapper
 };
 
-use defs::{SceneDescription, VertexFormat};
+use defs::{DrawingPass, VertexFormat};
 
 use ash::{
     vk,
@@ -32,7 +32,7 @@ pub struct PipelineWrapper {
 
 impl PipelineWrapper {
 
-    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &SceneDescription) -> Result<PipelineWrapper, String> {
+    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass) -> Result<PipelineWrapper, String> {
         let mut wrapper = PipelineWrapper {
             vertex_shader_module: vk::ShaderModule::null(),
             fragment_shader_module: vk::ShaderModule::null(),
@@ -69,7 +69,7 @@ impl PipelineWrapper {
         }
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &SceneDescription) -> Result<(), String> {
+    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass) -> Result<(), String> {
 
         // Make shader modules
         let vertex_shader_create_info = vk::ShaderModuleCreateInfo::builder()

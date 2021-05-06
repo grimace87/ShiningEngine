@@ -1,5 +1,5 @@
 
-use defs::{SceneDescription, VertexFormat, PostStep};
+use defs::{DrawingDescription, DrawingPass, VertexFormat, PostStep};
 use platform_windows::PlatformWindows;
 use renderer::vk_renderer::VkRenderer;
 use engine::{
@@ -36,29 +36,31 @@ fn main() {
     };
     let scene_texture = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg).unwrap();
     let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
-    let descriptions = vec![
-        SceneDescription {
-            vertex_format: VertexFormat::PositionNormalTexture,
-            vertex_data: scene_model_data,
-            vertex_count: scene_vertex_count,
-            draw_indexed: false,
-            index_data: None,
-            texture: scene_texture,
-            depth_test: true,
-            post_step: PostStep::Nothing
-        },
-        SceneDescription {
-            vertex_format: VertexFormat::PositionNormalTexture,
-            vertex_data: face_model_data,
-            vertex_count: face_vertex_count,
-            draw_indexed: false,
-            index_data: None,
-            texture: font_texture,
-            depth_test: true,
-            post_step: PostStep::Nothing
-        }
-    ];
-    if let Err(e) = platform.run(engine, descriptions) {
+    let description = DrawingDescription {
+        passes: vec![
+            DrawingPass {
+                vertex_format: VertexFormat::PositionNormalTexture,
+                vertex_data: scene_model_data,
+                vertex_count: scene_vertex_count,
+                draw_indexed: false,
+                index_data: None,
+                texture: scene_texture,
+                depth_test: true
+            },
+            DrawingPass {
+                vertex_format: VertexFormat::PositionNormalTexture,
+                vertex_data: face_model_data,
+                vertex_count: face_vertex_count,
+                draw_indexed: false,
+                index_data: None,
+                texture: font_texture,
+                depth_test: true
+            }
+        ],
+        post_step: PostStep::Nothing
+    };
+
+    if let Err(e) = platform.run(engine, description) {
         println!("{}", e);
     }
 }

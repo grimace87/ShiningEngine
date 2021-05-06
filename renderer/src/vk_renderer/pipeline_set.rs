@@ -5,7 +5,7 @@ use crate::vk_renderer::{
     pipeline::PipelineWrapper
 };
 
-use defs::SceneDescription;
+use defs::DrawingDescription;
 
 use ash::{
     vk,
@@ -20,10 +20,10 @@ pub struct PipelineSet {
 
 impl PipelineSet {
 
-    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, descriptions: &Vec<SceneDescription>) -> Result<PipelineSet, String> {
+    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingDescription) -> Result<PipelineSet, String> {
 
-        let pipelines = descriptions
-            .into_iter()
+        let pipelines = description.passes
+            .iter()
             .map(|description| PipelineWrapper::new(render_core, renderpass_wrapper, description).unwrap())
             .collect();
 
@@ -31,7 +31,7 @@ impl PipelineSet {
             pipelines,
             command_buffers: vec![]
         };
-        unsafe { pipeline_set.create_resources(render_core, renderpass_wrapper, descriptions)?; }
+        unsafe { pipeline_set.create_resources(render_core, renderpass_wrapper, description)?; }
 
         Ok(pipeline_set)
     }
@@ -42,10 +42,10 @@ impl PipelineSet {
         }
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, descriptions: &Vec<SceneDescription>) -> Result<(), String> {
+    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingDescription) -> Result<(), String> {
 
         for (i, pipeline) in self.pipelines.iter_mut().enumerate() {
-            pipeline.create_resources(render_core, renderpass_wrapper, &descriptions[i])?;
+            pipeline.create_resources(render_core, renderpass_wrapper, &description.passes[i])?;
         }
 
         // Allocate and record command buffers
