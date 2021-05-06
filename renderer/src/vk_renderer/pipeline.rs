@@ -163,9 +163,9 @@ impl PipelineWrapper {
         // Load texture image
         let terrain_texture = ImageWrapper::new_initialised_texture_image_rgba(
             &render_core,
-            description.texture_width,
-            description.texture_height,
-            &description.texture_data)?;
+            description.texture.width,
+            description.texture.height,
+            &description.texture.data)?;
 
         // Sampler
         let sampler_info = vk::SamplerCreateInfo::builder()

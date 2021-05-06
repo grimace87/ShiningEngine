@@ -9,7 +9,6 @@ model = { path = "../model" }
 collada = { path = "../collada" }
 
 [dependencies]
-image = { version = "0.23.14", default-features = false, features = ["jpeg", "png"] }
 defs = { path = "../defs" }
 platform_windows = { path = "../platform_windows" }
 renderer = { path = "../renderer" }

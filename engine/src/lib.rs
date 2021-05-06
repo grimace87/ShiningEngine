@@ -2,6 +2,7 @@
 pub mod camera;
 pub mod control;
 pub mod timer;
+pub mod util;
 
 use self::{
     camera::{
