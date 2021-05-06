@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 raw-window-handle = "0.3.3"
 cgmath = "0.18.0"
+model = { path = "../model" }

@@ -3,7 +3,6 @@ pub mod buffers;
 pub mod images;
 mod render_core;
 mod renderpass;
-mod pipeline_config;
 mod pipeline;
 mod pipeline_set;
 
@@ -13,7 +12,7 @@ use self::{
     pipeline_set::PipelineSet
 };
 
-use defs::{RendererApi, PresentResult};
+use defs::{RendererApi, PresentResult, SceneDescription};
 
 use ash::Entry;
 use raw_window_handle::HasRawWindowHandle;
@@ -27,13 +26,20 @@ pub struct VkRenderer {
 }
 
 impl RendererApi for VkRenderer {
-    fn new(window_owner: &dyn HasRawWindowHandle) -> Result<Self, String> {
+
+    /// TODO:
+    /// Handle the following:
+    /// - SceneDescription.draw_indexed and SceneInitData.index_data
+    /// - SceneDescription.depth_test being false
+    /// - SceneDescription.post_step
+
+    fn new(window_owner: &dyn HasRawWindowHandle, descriptions: &Vec<SceneDescription>) -> Result<Self, String> {
         let entry = unsafe {
             Entry::new().map_err(|e| format!("Entry creation failed: {:?}", e))?
         };
         let render_core = RenderCore::new(&entry, window_owner)?;
         let renderpass = RenderpassWrapper::new(&render_core)?;
-        let pipelines = PipelineSet::new(&render_core, &renderpass)?;
+        let pipelines = PipelineSet::new(&render_core, &renderpass, descriptions)?;
 
         Ok(VkRenderer {
             function_loader: entry,
@@ -53,7 +59,7 @@ impl RendererApi for VkRenderer {
         }
     }
 
-    fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
+    fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle, descriptions: &Vec<SceneDescription>) -> Result<(), String> {
         self.render_core.wait_until_idle().unwrap();
         self.pipelines.destroy_resources(&self.render_core);
         self.renderpass.destroy_resources(&self.render_core);
@@ -61,7 +67,7 @@ impl RendererApi for VkRenderer {
             self.render_core.destroy_swapchain();
             self.render_core.create_swapchain(&self.function_loader, window_owner)?;
             self.renderpass.create_resources(&self.render_core)?;
-            self.pipelines.create_resources(&self.render_core, &self.renderpass)?;
+            self.pipelines.create_resources(&self.render_core, &self.renderpass, descriptions)?;
         }
         Ok(())
     }

@@ -16,7 +16,7 @@ use self::{
     },
     timer::global::GlobalTimer
 };
-use defs::{RendererApi, PresentResult};
+use defs::{RendererApi, PresentResult, SceneDescription};
 
 use cgmath::{SquareMatrix, Matrix4};
 use raw_window_handle::HasRawWindowHandle;
@@ -25,7 +25,8 @@ pub struct Engine<R> where R : RendererApi {
     renderer: Option<R>,
     camera: Option<PlayerCamera>,
     controller: Option<UserControl>,
-    timer: Option<GlobalTimer>
+    timer: Option<GlobalTimer>,
+    scene_descriptions: Vec<SceneDescription>
 }
 
 impl<R> Engine<R> where R : RendererApi {
@@ -35,19 +36,21 @@ impl<R> Engine<R> where R : RendererApi {
             renderer: None,
             camera: None,
             controller: None,
-            timer: None
+            timer: None,
+            scene_descriptions: vec![]
         }
     }
 
-    pub fn initialise(&mut self, window_owner: &dyn HasRawWindowHandle) {
+    pub fn initialise(&mut self, window_owner: &dyn HasRawWindowHandle, descriptions: Vec<SceneDescription>) {
 
-        let renderer = R::new(window_owner).unwrap();
+        let renderer = R::new(window_owner, &descriptions).unwrap();
         let aspect_ratio = renderer.get_aspect_ratio();
 
         self.renderer = Some(renderer);
         self.camera = Some(camera::new_camera(aspect_ratio));
         self.controller = Some(control::new_control());
         self.timer = Some(GlobalTimer::new());
+        self.scene_descriptions = descriptions;
     }
 
     pub fn process_keyboard_event(&mut self, keycode: KeyCode, state: InputState) {
@@ -93,7 +96,7 @@ impl<R> Engine<R> where R : RendererApi {
         let aspect_ratio: f32;
 
         if let Some(renderer) = &mut self.renderer {
-            renderer.recreate_swapchain(window_owner)?;
+            renderer.recreate_swapchain(window_owner, &self.scene_descriptions)?;
             aspect_ratio = renderer.get_aspect_ratio();
         } else {
             return Err(String::from("Recreating swapchain without a renderer set"));
@@ -112,7 +115,7 @@ impl<R> Engine<R> where R : RendererApi {
             match renderer.draw_next_frame(camera_matrix) {
                 Ok(PresentResult::Ok) => return Ok(()),
                 Ok(PresentResult::SwapchainOutOfDate) => {
-                    renderer.recreate_swapchain(window_owner).unwrap();
+                    renderer.recreate_swapchain(window_owner, &self.scene_descriptions).unwrap();
                     aspect_ratio = renderer.get_aspect_ratio();
                 },
                 Err(e) => return Err(format!("{}", e))

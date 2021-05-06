@@ -319,6 +319,7 @@ name = "defs"
 version = "0.1.0"
 dependencies = [
  "cgmath",
+ "model",
  "raw-window-handle",
 ]
 
@@ -898,10 +899,7 @@ dependencies = [
  "ash",
  "ash-window",
  "cgmath",
- "collada",
  "defs",
- "image",
- "model",
  "raw-window-handle",
  "vk-mem",
  "vk-shader-macros",
@@ -930,10 +928,12 @@ dependencies = [
 name = "sample_app"
 version = "0.1.0"
 dependencies = [
+ "collada",
  "defs",
  "engine",
+ "image",
+ "model",
  "platform_windows",
- "raw-window-handle",
  "renderer",
 ]
 

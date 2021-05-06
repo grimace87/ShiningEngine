@@ -5,7 +5,7 @@ use self::{
     control_translations::{translate_code, translate_state}
 };
 
-use defs::{RendererApi, PresentResult};
+use defs::{RendererApi, SceneDescription};
 use engine::Engine;
 
 use winit::{
@@ -46,9 +46,9 @@ impl PlatformWindows {
         })
     }
 
-    pub fn run<R>(&mut self, mut engine: Engine<R>) -> Result<(), String> where R : RendererApi {
+    pub fn run<R>(&mut self, mut engine: Engine<R>, descriptions: Vec<SceneDescription>) -> Result<(), String> where R : RendererApi {
 
-        engine.initialise(self);
+        engine.initialise(self, descriptions);
 
         // Loop
         let mut event_loop = self.event_loop.take().unwrap();
@@ -75,7 +75,7 @@ impl PlatformWindows {
                             }
                         },
                         WindowEvent::Resized(_) => {
-                            engine.recreate_swapchain(&self.window);
+                            engine.recreate_swapchain(&self.window).unwrap();
                         }
                         _ => {}
                     }

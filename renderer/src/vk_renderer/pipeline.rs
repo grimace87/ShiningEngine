@@ -3,34 +3,19 @@ use crate::vk_renderer::{
     RenderCore,
     buffers::BufferWrapper,
     renderpass::RenderpassWrapper,
-    images::ImageWrapper,
-    pipeline_config
+    images::ImageWrapper
 };
 
-use model::factory::{Model, StaticVertex, VERTEX_SIZE_BYTES};
+use defs::{SceneDescription, VertexFormat};
 
 use ash::{
     vk,
     version::DeviceV1_0
 };
-use image::{
-    DynamicImage,
-    codecs::jpeg::JpegDecoder,
-    codecs::png::PngDecoder
-};
-use std::{
-    ffi::CString,
-    io::Cursor
-};
+use std::ffi::CString;
 use cgmath::Matrix4;
 
-const MENU_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\MenuScene.mdl"));
-const FACES_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\Grimace.mdl"));
-const TERRAIN_TEXTURE_BYTES: &[u8] = include_bytes!("../../../resources/textures/simple_outdoor_texture.jpg");
-const MUSICA_FONT_BYTES: &[u8] = include_bytes!("../../../resources/textures/Musica.png");
-
 pub struct PipelineWrapper {
-    config: pipeline_config::PipelineConfig,
     vertex_shader_module: vk::ShaderModule,
     fragment_shader_module: vk::ShaderModule,
     vertex_buffer: BufferWrapper,
@@ -47,9 +32,8 @@ pub struct PipelineWrapper {
 
 impl PipelineWrapper {
 
-    pub fn new(config: pipeline_config::PipelineConfig, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper) -> Result<PipelineWrapper, String> {
+    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &SceneDescription) -> Result<PipelineWrapper, String> {
         let mut wrapper = PipelineWrapper {
-            config,
             vertex_shader_module: vk::ShaderModule::null(),
             fragment_shader_module: vk::ShaderModule::null(),
             vertex_buffer: BufferWrapper::empty(),
@@ -64,7 +48,7 @@ impl PipelineWrapper {
             vertex_count: 0
         };
         unsafe {
-            wrapper.create_resources(render_core, renderpass_wrapper)?;
+            wrapper.create_resources(render_core, renderpass_wrapper, description)?;
         }
         Ok(wrapper)
     }
@@ -85,7 +69,7 @@ impl PipelineWrapper {
         }
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper) -> Result<(), String> {
+    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &SceneDescription) -> Result<(), String> {
 
         // Make shader modules
         let vertex_shader_create_info = vk::ShaderModuleCreateInfo::builder()
@@ -114,20 +98,16 @@ impl PipelineWrapper {
         let shader_stages = vec![vertex_shader_stage.build(), fragment_shader_stage.build()];
 
         // Vertex buffer
+        let vertex_size_bytes: usize = match description.vertex_format {
+            VertexFormat::PositionNormalTexture => 32
+        };
         let (vertex_buffer, vertex_count) = {
-            let model_source = match self.config.model {
-                pipeline_config::Model::MenuScene => MENU_MODEL_BYTES,
-                pipeline_config::Model::Grimace => FACES_MODEL_BYTES
-            };
-            let faces_model = Model::new_from_bytes(model_source).unwrap();
-            let vertex_count = faces_model.vertices.len();
-            let some_data = faces_model.vertices;
             let allocator = render_core.get_mem_allocator();
             let mut buffer = BufferWrapper::new_vertex_buffer(
                 allocator,
-                some_data.len() * VERTEX_SIZE_BYTES)?;
-            buffer.update_from_vec::<StaticVertex>(allocator, &some_data)?;
-            (buffer, vertex_count)
+                description.vertex_count * vertex_size_bytes)?;
+            buffer.update_from_vec(allocator, &description.vertex_data)?;
+            (buffer, description.vertex_count)
         };
 
         // Vertex input configuration
@@ -154,7 +134,7 @@ impl PipelineWrapper {
         let vertex_binding_descriptions = [
             vk::VertexInputBindingDescription {
                 binding: 0,
-                stride: VERTEX_SIZE_BYTES as u32,
+                stride: vertex_size_bytes as u32,
                 input_rate: vk::VertexInputRate::VERTEX
             }
         ];
@@ -181,42 +161,11 @@ impl PipelineWrapper {
         };
 
         // Load texture image
-        let terrain_texture = match &self.config.texture {
-            pipeline_config::Texture::Jpeg(source) => {
-                let image_file_bytes = match source {
-                    pipeline_config::TextureSource::Terrain => TERRAIN_TEXTURE_BYTES,
-                    _ => panic!("Supplied TextureSource not a known JPEG source")
-                };
-                let src_cursor = Cursor::new(image_file_bytes.to_vec());
-                let decoder = JpegDecoder::new(src_cursor).unwrap();
-                let terrain_image_pixel_data = DynamicImage::from_decoder(decoder)
-                    .map_err(|e| format!("Error opening decoding an image: {:?}", e))?;
-                assert_eq!(crate::vk_renderer::images::PROJ_VK_TEXTURE_FORMAT, vk::Format::R8G8B8A8_UNORM);
-                let image_data_rgba = terrain_image_pixel_data.to_rgba8();
-                ImageWrapper::new_initialised_texture_image_rgba(
-                    &render_core,
-                    image_data_rgba.width(),
-                    image_data_rgba.height(),
-                    &image_data_rgba.to_vec())?
-            },
-            pipeline_config::Texture::Png(source) => {
-                let image_file_bytes = match source {
-                    pipeline_config::TextureSource::MusicaFont => MUSICA_FONT_BYTES,
-                    _ => panic!("Supplied TextureSource not a known JPEG source")
-                };
-                let src_cursor = Cursor::new(image_file_bytes.to_vec());
-                let decoder = PngDecoder::new(src_cursor).unwrap();
-                let terrain_image_pixel_data = DynamicImage::from_decoder(decoder)
-                    .map_err(|e| format!("Error opening decoding an image: {:?}", e))?;
-                assert_eq!(crate::vk_renderer::images::PROJ_VK_TEXTURE_FORMAT, vk::Format::R8G8B8A8_UNORM);
-                let image_data_rgba = terrain_image_pixel_data.to_rgba8();
-                ImageWrapper::new_initialised_texture_image_rgba(
-                    &render_core,
-                    image_data_rgba.width(),
-                    image_data_rgba.height(),
-                    &image_data_rgba.to_vec())?
-            }
-        };
+        let terrain_texture = ImageWrapper::new_initialised_texture_image_rgba(
+            &render_core,
+            description.texture_width,
+            description.texture_height,
+            &description.texture_data)?;
 
         // Sampler
         let sampler_info = vk::SamplerCreateInfo::builder()

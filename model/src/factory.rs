@@ -18,8 +18,7 @@ pub struct StaticVertex {
     pub v: f32
 }
 
-pub const VERTEX_SIZE_BYTES: usize = 32;
-pub const VERTEX_FLOAT_COUNT: usize = 8;
+const VERTEX_SIZE_BYTES: usize = 32;
 
 impl StaticVertex {
     pub fn from_components(x: f32, y: f32, z: f32, nx: f32, ny: f32, nz: f32, u: f32, v: f32) -> StaticVertex {

@@ -2,9 +2,10 @@
 use crate::vk_renderer::{
     RenderCore,
     renderpass::RenderpassWrapper,
-    pipeline::PipelineWrapper,
-    pipeline_config
+    pipeline::PipelineWrapper
 };
+
+use defs::SceneDescription;
 
 use ash::{
     vk,
@@ -19,30 +20,18 @@ pub struct PipelineSet {
 
 impl PipelineSet {
 
-    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper) -> Result<PipelineSet, String> {
+    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, descriptions: &Vec<SceneDescription>) -> Result<PipelineSet, String> {
 
-        let configs = vec![
-            pipeline_config::PipelineConfig {
-                shader: pipeline_config::Shader::TextureFlat,
-                model: pipeline_config::Model::MenuScene,
-                texture: pipeline_config::Texture::Jpeg(pipeline_config::TextureSource::Terrain)
-            },
-            pipeline_config::PipelineConfig {
-                shader: pipeline_config::Shader::TextureFlat,
-                model: pipeline_config::Model::Grimace,
-                texture: pipeline_config::Texture::Png(pipeline_config::TextureSource::MusicaFont)
-            }
-        ];
-        let pipelines = configs
+        let pipelines = descriptions
             .into_iter()
-            .map(|config| PipelineWrapper::new(config, render_core, renderpass_wrapper).unwrap())
+            .map(|description| PipelineWrapper::new(render_core, renderpass_wrapper, description).unwrap())
             .collect();
 
         let mut pipeline_set = PipelineSet {
             pipelines,
             command_buffers: vec![]
         };
-        unsafe { pipeline_set.create_resources(render_core, renderpass_wrapper)?; }
+        unsafe { pipeline_set.create_resources(render_core, renderpass_wrapper, descriptions)?; }
 
         Ok(pipeline_set)
     }
@@ -53,10 +42,10 @@ impl PipelineSet {
         }
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper) -> Result<(), String> {
+    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, descriptions: &Vec<SceneDescription>) -> Result<(), String> {
 
-        for pipeline in self.pipelines.iter_mut() {
-            pipeline.create_resources(render_core, renderpass_wrapper)?;
+        for (i, pipeline) in self.pipelines.iter_mut().enumerate() {
+            pipeline.create_resources(render_core, renderpass_wrapper, &descriptions[i])?;
         }
 
         // Allocate and record command buffers
