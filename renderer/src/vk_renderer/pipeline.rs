@@ -74,14 +74,14 @@ impl PipelineWrapper {
         // Make shader modules
         let vertex_shader_create_info = vk::ShaderModuleCreateInfo::builder()
             .code(
-                vk_shader_macros::include_glsl!("../resources/shaders/triangle.vert")
+                vk_shader_macros::include_glsl!("shaders/vk/triangle.vert")
             );
         let vertex_shader_module = render_core.device
             .create_shader_module(&vertex_shader_create_info, None)
             .map_err(|e| format!("{:?}", e))?;
         let fragment_shader_create_info = vk::ShaderModuleCreateInfo::builder()
             .code(
-                vk_shader_macros::include_glsl!("../resources/shaders/triangle.frag")
+                vk_shader_macros::include_glsl!("shaders/vk/triangle.frag")
             );
         let fragment_shader_module = render_core.device
             .create_shader_module(&fragment_shader_create_info, None)

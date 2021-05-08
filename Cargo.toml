@@ -6,8 +6,8 @@ members = [
     "renderer",
     "engine",
     "platform_windows",
-    "sample_app"
+    "examples/scenery"
 ]
 default-members = [
-    "sample_app"
+    "examples/scenery"
 ]
