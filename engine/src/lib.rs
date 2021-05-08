@@ -116,10 +116,7 @@ impl<R> Engine<R> where R : RendererApi {
         let updated_aspect_ratio: f32;
 
         if let Some(renderer) = &mut self.renderer {
-            let (data_ptr, data_size) = unsafe {
-                (*self.scene_info).get_ubo_data_ptr_and_size(0)
-            };
-            match renderer.draw_next_frame::<u8>(data_ptr, data_size) {
+            match renderer.draw_next_frame(self.scene_info.as_ref()) {
                 Ok(PresentResult::Ok) => return Ok(()),
                 Ok(PresentResult::SwapchainOutOfDate) => {
                     renderer.recreate_swapchain(window_owner, &self.drawing_description).unwrap();

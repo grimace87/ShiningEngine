@@ -348,7 +348,7 @@ impl PipelineWrapper {
         Ok(())
     }
 
-    pub unsafe fn update_uniform_buffer<T: Sized>(&mut self, render_core: &mut RenderCore, data_ptr: *const T, element_count: usize) -> Result<(), String> {
-        self.uniform_buffer.update::<T>(render_core.get_mem_allocator(), data_ptr, element_count)
+    pub unsafe fn update_uniform_buffer(&mut self, render_core: &mut RenderCore, data_ptr: *const u8, size_bytes: usize) -> Result<(), String> {
+        self.uniform_buffer.update::<u8>(render_core.get_mem_allocator(), data_ptr, size_bytes)
     }
 }

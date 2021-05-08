@@ -5,7 +5,7 @@ use crate::vk_renderer::{
     pipeline::PipelineWrapper
 };
 
-use defs::DrawingDescription;
+use defs::{DrawingDescription, SceneInfo};
 
 use ash::{
     vk,
@@ -103,9 +103,10 @@ impl PipelineSet {
         self.command_buffers[image_index]
     }
 
-    pub unsafe fn update_uniform_buffer<T: Sized>(&mut self, render_core: &mut RenderCore, data_ptr: *const T, element_count: usize) -> Result<(), String> {
-        for pipeline in self.pipelines.iter_mut() {
-            pipeline.update_uniform_buffer::<T>(render_core, data_ptr, element_count)?;
+    pub unsafe fn update_uniform_buffer(&mut self, render_core: &mut RenderCore, scene_info: &dyn SceneInfo) -> Result<(), String> {
+        for (i, pipeline) in self.pipelines.iter_mut().enumerate() {
+            let (data_ptr, size_bytes) = scene_info.get_ubo_data_ptr_and_size(i);
+            pipeline.update_uniform_buffer(render_core, data_ptr, size_bytes)?;
         }
         Ok(())
     }

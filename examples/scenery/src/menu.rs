@@ -62,7 +62,7 @@ impl SceneInfo for MenuScene {
                     depth_test: true
                 },
                 DrawingPass {
-                    shader: Shader::PlainPnt,
+                    shader: Shader::Text,
                     vertex_format: VertexFormat::PositionNormalTexture,
                     vertex_data: face_model_data,
                     vertex_count: face_vertex_count,

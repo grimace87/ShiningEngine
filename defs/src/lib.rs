@@ -34,7 +34,7 @@ impl Default for PostStep {
 
 pub trait RendererApi {
     fn new(window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<Self, String> where Self : Sized;
-    fn draw_next_frame<T: Sized>(&mut self, uniform_buffer_data: *const T, element_count: usize) -> Result<PresentResult, String>;
+    fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, String>;
     fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String>;
     fn get_aspect_ratio(&self) -> f32;
 }
