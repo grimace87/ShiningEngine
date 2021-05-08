@@ -13,7 +13,6 @@ use ash::{
     version::DeviceV1_0
 };
 use std::ffi::CString;
-use cgmath::Matrix4;
 
 pub struct PipelineWrapper {
     vertex_shader_module: vk::ShaderModule,
@@ -349,9 +348,7 @@ impl PipelineWrapper {
         Ok(())
     }
 
-    // TODO - Make flexible for any UBO size
-    pub unsafe fn update_camera_matrix(&mut self, render_core: &mut RenderCore, camera_matrix: Matrix4<f32>) -> Result<(), String> {
-        let floats: &[f32; 16] = camera_matrix.as_ref();
-        self.uniform_buffer.update::<f32>(render_core.get_mem_allocator(), floats as *const f32, 16)
+    pub unsafe fn update_uniform_buffer<T: Sized>(&mut self, render_core: &mut RenderCore, data_ptr: *const T, element_count: usize) -> Result<(), String> {
+        self.uniform_buffer.update::<T>(render_core.get_mem_allocator(), data_ptr, element_count)
     }
 }

@@ -11,7 +11,6 @@ use ash::{
     vk,
     version::DeviceV1_0
 };
-use cgmath::Matrix4;
 
 pub struct PipelineSet {
     pipelines: Vec<PipelineWrapper>,
@@ -104,9 +103,9 @@ impl PipelineSet {
         self.command_buffers[image_index]
     }
 
-    pub unsafe fn update_camera_matrix(&mut self, render_core: &mut RenderCore, camera_matrix: Matrix4<f32>) -> Result<(), String> {
+    pub unsafe fn update_uniform_buffer<T: Sized>(&mut self, render_core: &mut RenderCore, data_ptr: *const T, element_count: usize) -> Result<(), String> {
         for pipeline in self.pipelines.iter_mut() {
-            pipeline.update_camera_matrix(render_core, camera_matrix)?;
+            pipeline.update_uniform_buffer::<T>(render_core, data_ptr, element_count)?;
         }
         Ok(())
     }

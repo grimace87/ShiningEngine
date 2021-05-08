@@ -16,7 +16,6 @@ use defs::{RendererApi, PresentResult, DrawingDescription};
 
 use ash::Entry;
 use raw_window_handle::HasRawWindowHandle;
-use cgmath::Matrix4;
 
 pub struct VkRenderer {
     function_loader: Entry,
@@ -49,10 +48,10 @@ impl RendererApi for VkRenderer {
         })
     }
 
-    fn draw_next_frame(&mut self, camera_matrix: Matrix4<f32>) -> Result<PresentResult, String> {
+    fn draw_next_frame<T: Sized>(&mut self, uniform_buffer_data: *const T, element_count: usize) -> Result<PresentResult, String> {
         unsafe {
             let image_index = self.render_core.acquire_next_image()?;
-            self.pipelines.update_camera_matrix(&mut self.render_core, camera_matrix).unwrap();
+            self.pipelines.update_uniform_buffer::<T>(&mut self.render_core, uniform_buffer_data, element_count).unwrap();
             let command_buffer = self.pipelines.get_command_buffer(image_index);
             self.render_core.submit_command_buffer(command_buffer)?;
             return self.render_core.present_image();

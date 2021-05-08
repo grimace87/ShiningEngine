@@ -110,22 +110,23 @@ impl<R> Engine<R> where R : RendererApi {
     pub fn draw_next_frame(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
 
         let camera_matrix = self.get_camera_matrix();
-        let aspect_ratio: f32;
+        let updated_aspect_ratio: f32;
 
         if let Some(renderer) = &mut self.renderer {
-            match renderer.draw_next_frame(camera_matrix) {
+            let floats: &[f32; 16] = camera_matrix.as_ref();
+            match renderer.draw_next_frame::<f32>(floats as *const f32, 16) {
                 Ok(PresentResult::Ok) => return Ok(()),
                 Ok(PresentResult::SwapchainOutOfDate) => {
                     renderer.recreate_swapchain(window_owner, &self.drawing_description).unwrap();
-                    aspect_ratio = renderer.get_aspect_ratio();
+                    updated_aspect_ratio = renderer.get_aspect_ratio();
                 },
                 Err(e) => return Err(format!("{}", e))
             };
         } else {
-            return Err(String::from("Drawing frame witthout a renderer set"))
+            return Err(String::from("Drawing frame without a renderer set"))
         }
 
-        self.update_aspect(aspect_ratio);
+        self.update_aspect(updated_aspect_ratio);
         Ok(())
     }
 }
