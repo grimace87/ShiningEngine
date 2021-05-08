@@ -53,12 +53,22 @@ impl SceneInfo for MenuScene {
     fn make_description(&self) -> DrawingDescription {
 
         let (scene_model_data, scene_vertex_count) = decode_model(MENU_MODEL_BYTES);
-        let (face_model_data, face_vertex_count) = decode_model(FACES_MODEL_BYTES);
+
+        // TODO - Something?
+        let (_face_model_data, _face_vertex_count) = decode_model(FACES_MODEL_BYTES);
 
         let scene_texture = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg).unwrap();
         let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
 
-        let hud_data = self.text_generator.generate_vertex_buffer("Ey, mate", -1.0, -0.5, 2.0, 2.0, 0.5, TextAlignment::Centre, TextAlignment::Centre);
+        let hud_data = self.text_generator.generate_vertex_buffer(
+            "Ey, mate",
+            -1.0,
+            -1.0,
+            2.0,
+            1.0,
+            0.125,
+            TextAlignment::Start,
+            TextAlignment::Start);
         let hud_data_size = hud_data.len();
 
         DrawingDescription {
@@ -89,8 +99,10 @@ impl SceneInfo for MenuScene {
     }
 
     fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) {
+        let red = 0.5 + 0.5 * matrix.x.x;
         self.camera_ubo.camera_matrix = matrix.clone();
-        self.text_paint_ubo.camera_matrix = matrix.clone();
+        self.text_paint_ubo.paint_color.x = red;
+        self.text_paint_ubo.paint_color.z = 1.0 - red;
     }
 
     unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize) -> (*const u8, usize) {
