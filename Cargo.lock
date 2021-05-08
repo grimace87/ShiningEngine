@@ -928,6 +928,7 @@ dependencies = [
 name = "sample_app"
 version = "0.1.0"
 dependencies = [
+ "cgmath",
  "collada",
  "defs",
  "engine",

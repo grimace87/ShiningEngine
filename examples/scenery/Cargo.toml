@@ -9,6 +9,7 @@ model = { path = "../../model" }
 collada = { path = "../../collada" }
 
 [dependencies]
+cgmath = "0.18.0"
 defs = { path = "../../defs" }
 platform_windows = { path = "../../platform_windows" }
 renderer = { path = "../../renderer" }

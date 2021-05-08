@@ -17,12 +17,13 @@ use self::{
     },
     timer::global::GlobalTimer
 };
-use defs::{RendererApi, PresentResult, DrawingDescription};
+use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo};
 
 use cgmath::{SquareMatrix, Matrix4};
 use raw_window_handle::HasRawWindowHandle;
 
 pub struct Engine<R> where R : RendererApi {
+    scene_info: Box<dyn SceneInfo>,
     renderer: Option<R>,
     camera: Option<PlayerCamera>,
     controller: Option<UserControl>,
@@ -32,8 +33,9 @@ pub struct Engine<R> where R : RendererApi {
 
 impl<R> Engine<R> where R : RendererApi {
 
-    pub fn new_uninitialised() -> Engine<R> {
+    pub fn new_uninitialised(scene_info: Box<dyn SceneInfo>) -> Engine<R> {
         Engine {
+            scene_info: scene_info,
             renderer: None,
             camera: None,
             controller: None,
@@ -42,8 +44,9 @@ impl<R> Engine<R> where R : RendererApi {
         }
     }
 
-    pub fn initialise(&mut self, window_owner: &dyn HasRawWindowHandle, description: DrawingDescription) {
+    pub fn initialise(&mut self, window_owner: &dyn HasRawWindowHandle) {
 
+        let description = (*self.scene_info).make_description();
         let renderer = R::new(window_owner, &description).unwrap();
         let aspect_ratio = renderer.get_aspect_ratio();
 
@@ -109,12 +112,14 @@ impl<R> Engine<R> where R : RendererApi {
 
     pub fn draw_next_frame(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
 
-        let camera_matrix = self.get_camera_matrix();
+        (*self.scene_info).on_camera_updated(&self.get_camera_matrix());
         let updated_aspect_ratio: f32;
 
         if let Some(renderer) = &mut self.renderer {
-            let floats: &[f32; 16] = camera_matrix.as_ref();
-            match renderer.draw_next_frame::<f32>(floats as *const f32, 16) {
+            let (data_ptr, data_size) = unsafe {
+                (*self.scene_info).get_ubo_data_ptr_and_size(0)
+            };
+            match renderer.draw_next_frame::<u8>(data_ptr, data_size) {
                 Ok(PresentResult::Ok) => return Ok(()),
                 Ok(PresentResult::SwapchainOutOfDate) => {
                     renderer.recreate_swapchain(window_owner, &self.drawing_description).unwrap();

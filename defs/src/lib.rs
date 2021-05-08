@@ -2,6 +2,7 @@
 use model::factory::StaticVertex;
 
 use raw_window_handle::HasRawWindowHandle;
+use cgmath::Matrix4;
 
 pub enum PresentResult {
     Ok,
@@ -60,4 +61,10 @@ pub struct DrawingPass {
 pub struct DrawingDescription {
     pub passes: Vec<DrawingPass>,
     pub post_step: PostStep
+}
+
+pub trait SceneInfo {
+    fn make_description(&self) -> DrawingDescription;
+    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>);
+    unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize) -> (*const u8, usize);
 }

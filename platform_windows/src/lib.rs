@@ -5,7 +5,7 @@ use self::{
     control_translations::{translate_code, translate_state}
 };
 
-use defs::{RendererApi, DrawingDescription};
+use defs::RendererApi;
 use engine::Engine;
 
 use winit::{
@@ -46,9 +46,9 @@ impl PlatformWindows {
         })
     }
 
-    pub fn run<R>(&mut self, mut engine: Engine<R>, description: DrawingDescription) -> Result<(), String> where R : RendererApi {
+    pub fn run<R>(&mut self, mut engine: Engine<R>) -> Result<(), String> where R : RendererApi {
 
-        engine.initialise(self, description);
+        engine.initialise(self);
 
         // Loop
         let mut event_loop = self.event_loop.take().unwrap();
