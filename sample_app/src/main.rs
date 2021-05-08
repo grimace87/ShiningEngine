@@ -17,7 +17,11 @@ const MUSICA_FONT_BYTES: &[u8] = include_bytes!("../../resources/textures/Musica
 
 fn main() {
 
-    let mut platform = PlatformWindows::new_window(APP_TITLE).unwrap();
+    let mut platform = PlatformWindows::new_window(APP_TITLE)
+        .unwrap_or_else(|e| {
+            println!("Error creating window: {}", e);
+            std::process::exit(1);
+        });
     let engine: Engine<VkRenderer> = Engine::new_uninitialised();
 
     let (scene_model_data, scene_vertex_count) = {
@@ -60,7 +64,9 @@ fn main() {
         post_step: PostStep::Nothing
     };
 
-    if let Err(e) = platform.run(engine, description) {
-        println!("{}", e);
-    }
+    platform.run(engine, description)
+        .unwrap_or_else(|e| {
+            println!("Error while running: {}", e);
+            std::process::exit(1);
+        });
 }
