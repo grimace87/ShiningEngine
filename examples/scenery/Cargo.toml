@@ -14,4 +14,3 @@ defs = { path = "../../defs" }
 platform_windows = { path = "../../platform_windows" }
 renderer = { path = "../../renderer" }
 engine = { path = "../../engine" }
-model = { path = "../../model" }

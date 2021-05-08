@@ -1,5 +1,6 @@
 
 use defs::{TexturePixelFormat, DecodedTexture};
+use model::factory::{Model, StaticVertex};
 
 use image::{
     DynamicImage,
@@ -39,4 +40,12 @@ pub fn decode_texture(image_file_bytes: &[u8], codec: TextureCodec) -> Result<De
         height,
         format: TexturePixelFormat::RGBA
     })
+}
+
+pub fn decode_model(model_file_bytes: &[u8]) -> (Vec<StaticVertex>, usize) {
+    let model = unsafe {
+        Model::new_from_bytes(model_file_bytes).unwrap()
+    };
+    let vertex_count: usize = model.vertices.len();
+    (model.vertices, vertex_count)
 }

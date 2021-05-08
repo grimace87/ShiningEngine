@@ -1,7 +1,6 @@
 
 use defs::{SceneInfo, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep};
-use model::factory::Model;
-use engine::util::{TextureCodec, decode_texture};
+use engine::util::{TextureCodec, decode_texture, decode_model};
 
 use cgmath::{Matrix4, Vector4, SquareMatrix};
 
@@ -43,20 +42,10 @@ impl MenuScene {
 impl SceneInfo for MenuScene {
 
     fn make_description(&self) -> DrawingDescription {
-        let (scene_model_data, scene_vertex_count) = {
-            let scene_model = unsafe {
-                Model::new_from_bytes(MENU_MODEL_BYTES).unwrap()
-            };
-            let vertex_count: usize = scene_model.vertices.len();
-            (scene_model.vertices, vertex_count)
-        };
-        let (face_model_data, face_vertex_count) = {
-            let faces_model = unsafe {
-                Model::new_from_bytes(FACES_MODEL_BYTES).unwrap()
-            };
-            let vertex_count: usize = faces_model.vertices.len();
-            (faces_model.vertices, vertex_count)
-        };
+
+        let (scene_model_data, scene_vertex_count) = decode_model(MENU_MODEL_BYTES);
+        let (face_model_data, face_vertex_count) = decode_model(FACES_MODEL_BYTES);
+
         let scene_texture = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg).unwrap();
         let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
 

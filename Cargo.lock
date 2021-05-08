@@ -362,6 +362,7 @@ dependencies = [
  "cgmath",
  "defs",
  "image",
+ "model",
  "raw-window-handle",
 ]
 
