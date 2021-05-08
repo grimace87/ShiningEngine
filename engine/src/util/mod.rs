@@ -1,4 +1,6 @@
 
+pub mod textbuffer;
+
 use defs::{TexturePixelFormat, DecodedTexture};
 use model::factory::{Model, StaticVertex};
 

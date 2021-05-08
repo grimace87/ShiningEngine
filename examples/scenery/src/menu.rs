@@ -1,6 +1,11 @@
 
 use defs::{SceneInfo, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep};
-use engine::util::{TextureCodec, decode_texture, decode_model};
+use engine::util::{
+    TextureCodec,
+    decode_texture,
+    decode_model,
+    textbuffer::{TextGenerator, TextAlignment}
+};
 
 use cgmath::{Matrix4, Vector4, SquareMatrix};
 
@@ -21,6 +26,7 @@ struct TextPaintUbo {
 }
 
 pub struct MenuScene {
+    text_generator: TextGenerator,
     camera_ubo: CameraUbo,
     text_paint_ubo: TextPaintUbo
 }
@@ -28,6 +34,9 @@ pub struct MenuScene {
 impl MenuScene {
     pub fn new() -> MenuScene {
         MenuScene {
+            text_generator: TextGenerator::from_resource(
+                include_str!("../../resources/font/Musica.fnt")
+            ),
             camera_ubo: CameraUbo {
                 camera_matrix: Matrix4::identity()
             },
@@ -49,6 +58,9 @@ impl SceneInfo for MenuScene {
         let scene_texture = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg).unwrap();
         let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
 
+        let hud_data = self.text_generator.generate_vertex_buffer("Ey, mate", -1.0, -0.5, 2.0, 2.0, 0.5, TextAlignment::Centre, TextAlignment::Centre);
+        let hud_data_size = hud_data.len();
+
         DrawingDescription {
             passes: vec![
                 DrawingPass {
@@ -64,8 +76,8 @@ impl SceneInfo for MenuScene {
                 DrawingPass {
                     shader: Shader::Text,
                     vertex_format: VertexFormat::PositionNormalTexture,
-                    vertex_data: face_model_data,
-                    vertex_count: face_vertex_count,
+                    vertex_data: hud_data,
+                    vertex_count: hud_data_size,
                     draw_indexed: false,
                     index_data: None,
                     texture: font_texture,
