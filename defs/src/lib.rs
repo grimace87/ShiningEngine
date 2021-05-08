@@ -9,6 +9,11 @@ pub enum PresentResult {
     SwapchainOutOfDate
 }
 
+pub enum Shader {
+    PlainPnt, // Position-Normal-Texture, R8G8B8A8 texture, no lighting
+    Text,     // Position-Normal-Texture, R8 texture, no lighting
+}
+
 pub enum TexturePixelFormat {
     RGBA
 }
@@ -42,6 +47,7 @@ pub struct DecodedTexture {
 }
 
 pub struct DrawingPass {
+    pub shader: Shader,
     pub vertex_format: VertexFormat,
     pub vertex_data: Vec<StaticVertex>,
     pub vertex_count: usize,

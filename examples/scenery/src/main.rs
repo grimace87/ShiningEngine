@@ -1,5 +1,5 @@
 
-use defs::{DrawingDescription, DrawingPass, VertexFormat, PostStep};
+use defs::{DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep};
 use platform_windows::PlatformWindows;
 use renderer::vk_renderer::VkRenderer;
 use engine::{
@@ -43,6 +43,7 @@ fn main() {
     let description = DrawingDescription {
         passes: vec![
             DrawingPass {
+                shader: Shader::PlainPnt,
                 vertex_format: VertexFormat::PositionNormalTexture,
                 vertex_data: scene_model_data,
                 vertex_count: scene_vertex_count,
@@ -52,6 +53,7 @@ fn main() {
                 depth_test: true
             },
             DrawingPass {
+                shader: Shader::PlainPnt,
                 vertex_format: VertexFormat::PositionNormalTexture,
                 vertex_data: face_model_data,
                 vertex_count: face_vertex_count,

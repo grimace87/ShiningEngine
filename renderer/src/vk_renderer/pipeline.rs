@@ -6,7 +6,7 @@ use crate::vk_renderer::{
     images::ImageWrapper
 };
 
-use defs::{DrawingPass, VertexFormat};
+use defs::{DrawingPass, Shader, VertexFormat};
 
 use ash::{
     vk,
@@ -73,16 +73,18 @@ impl PipelineWrapper {
 
         // Make shader modules
         let vertex_shader_create_info = vk::ShaderModuleCreateInfo::builder()
-            .code(
-                vk_shader_macros::include_glsl!("shaders/vk/triangle.vert")
-            );
+            .code(match description.shader {
+                Shader::PlainPnt => vk_shader_macros::include_glsl!("shaders/vk/triangle.vert"),
+                Shader::Text => vk_shader_macros::include_glsl!("shaders/vk/text.vert")
+            });
         let vertex_shader_module = render_core.device
             .create_shader_module(&vertex_shader_create_info, None)
             .map_err(|e| format!("{:?}", e))?;
         let fragment_shader_create_info = vk::ShaderModuleCreateInfo::builder()
-            .code(
-                vk_shader_macros::include_glsl!("shaders/vk/triangle.frag")
-            );
+            .code(match description.shader {
+                Shader::PlainPnt => vk_shader_macros::include_glsl!("shaders/vk/triangle.frag"),
+                Shader::Text => vk_shader_macros::include_glsl!("shaders/vk/text.frag")
+            });
         let fragment_shader_module = render_core.device
             .create_shader_module(&fragment_shader_create_info, None)
             .map_err(|e| format!("{:?}", e))?;
@@ -145,17 +147,16 @@ impl PipelineWrapper {
             .topology(vk::PrimitiveTopology::TRIANGLE_LIST);
 
         // Create uniform buffer
+        let ubo_size_bytes: usize = match description.shader {
+            Shader::PlainPnt => 4 * 16,
+            Shader::Text => 4 * 20
+        };
         let uniform_buffer = {
-            let uniform_buffer_data: Vec<f32> = vec![
-                1.0, 0.0, 0.0, 0.0,
-                0.0, 1.0, 0.0, 0.0,
-                0.0, 0.0, 1.0, 0.0,
-                0.0, 0.0, 0.0, 1.0
-            ];
+            let uniform_buffer_data: Vec<f32> = vec![0.0; ubo_size_bytes];
             let allocator = render_core.get_mem_allocator();
             let mut buffer = BufferWrapper::new_uniform_buffer(
                 allocator,
-                64)?;
+                ubo_size_bytes)?;
             buffer.update_from_vec::<f32>(allocator, &uniform_buffer_data)?;
             buffer
         };
@@ -176,12 +177,16 @@ impl PipelineWrapper {
             .map_err(|e| format!("Error creating sampler: {:?}", e))?;
 
         // All the stuff around descriptors
+        let ubo_stage_flags = match description.shader {
+            Shader::PlainPnt => vk::ShaderStageFlags::VERTEX,
+            Shader::Text => vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT
+        };
         let descriptor_set_layout_binding_infos = [
             vk::DescriptorSetLayoutBinding::builder()
                 .binding(0)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                 .descriptor_count(1)
-                .stage_flags(vk::ShaderStageFlags::VERTEX)
+                .stage_flags(ubo_stage_flags)
                 .build(),
             vk::DescriptorSetLayoutBinding::builder()
                 .binding(1)
@@ -224,7 +229,7 @@ impl PipelineWrapper {
             let buffer_infos = [vk::DescriptorBufferInfo {
                 buffer: uniform_buffer.buffer(),
                 offset: 0,
-                range: 64
+                range: ubo_size_bytes as u64
             }];
             let image_infos = [vk::DescriptorImageInfo {
                 image_view: terrain_texture.image_view,
@@ -344,6 +349,7 @@ impl PipelineWrapper {
         Ok(())
     }
 
+    // TODO - Make flexible for any UBO size
     pub unsafe fn update_camera_matrix(&mut self, render_core: &mut RenderCore, camera_matrix: Matrix4<f32>) -> Result<(), String> {
         let floats: &[f32; 16] = camera_matrix.as_ref();
         self.uniform_buffer.update::<f32>(render_core.get_mem_allocator(), floats as *const f32, 16)
