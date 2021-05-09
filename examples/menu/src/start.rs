@@ -3,15 +3,13 @@ use defs::{SceneInfo, DrawingDescription, DrawingPass, Shader, VertexFormat, Pos
 use engine::util::{
     TextureCodec,
     decode_texture,
-    decode_model,
+    map_ui_rects,
     textbuffer::{TextGenerator, TextAlignment}
 };
 
 use cgmath::{Matrix4, Vector4, SquareMatrix};
 
-const MENU_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\MenuScene.mdl"));
-const FACES_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\Grimace.mdl"));
-const TERRAIN_TEXTURE_BYTES: &[u8] = include_bytes!("../../resources/textures/simple_outdoor_texture.jpg");
+const MENU_TEXTURE_BYTES: &[u8] = include_bytes!("../../resources/textures/menu_texture.png");
 const MUSICA_FONT_BYTES: &[u8] = include_bytes!("../../resources/textures/Musica.png");
 
 #[repr(C)]
@@ -25,15 +23,15 @@ struct TextPaintUbo {
     paint_color: Vector4<f32>
 }
 
-pub struct MenuScene {
+pub struct StartMenuScene {
     text_generator: TextGenerator,
     camera_ubo: CameraUbo,
     text_paint_ubo: TextPaintUbo
 }
 
-impl MenuScene {
-    pub fn new() -> MenuScene {
-        MenuScene {
+impl StartMenuScene {
+    pub fn new() -> StartMenuScene {
+        StartMenuScene {
             text_generator: TextGenerator::from_resource(
                 include_str!("../../resources/font/Musica.fnt")
             ),
@@ -48,16 +46,20 @@ impl MenuScene {
     }
 }
 
-impl SceneInfo for MenuScene {
+impl SceneInfo for StartMenuScene {
 
     fn make_description(&self) -> DrawingDescription {
 
-        let (scene_model_data, scene_vertex_count) = decode_model(MENU_MODEL_BYTES);
+        let (menu_model_data, menu_vertex_count) = {
+            let float_data = map_ui_rects(vec![
+                [-1.0, -1.0, 1.0, -0.5, 0.0, 0.0, 1.0, 0.25],
+                [-1.0, 0.5, 1.0, 1.0, 0.0, 0.25, 1.0, 0.0]
+            ]);
+            let vertex_count = float_data.len();
+            (float_data, vertex_count)
+        };
 
-        // TODO - Something?
-        let (_face_model_data, _face_vertex_count) = decode_model(FACES_MODEL_BYTES);
-
-        let scene_texture = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg).unwrap();
+        let menu_texture = decode_texture(MENU_TEXTURE_BYTES, TextureCodec::Png).unwrap();
         let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
 
         let hud_data = self.text_generator.generate_vertex_buffer(
@@ -76,11 +78,11 @@ impl SceneInfo for MenuScene {
                 DrawingPass {
                     shader: Shader::PlainPnt,
                     vertex_format: VertexFormat::PositionNormalTexture,
-                    vertex_data: scene_model_data,
-                    vertex_count: scene_vertex_count,
+                    vertex_data: menu_model_data,
+                    vertex_count: menu_vertex_count,
                     draw_indexed: false,
                     index_data: None,
-                    texture: scene_texture,
+                    texture: menu_texture,
                     depth_test: true
                 },
                 DrawingPass {
@@ -100,7 +102,6 @@ impl SceneInfo for MenuScene {
 
     fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) {
         let red = 0.5 + 0.5 * matrix.x.x;
-        self.camera_ubo.camera_matrix = matrix.clone();
         self.text_paint_ubo.paint_color.x = red;
         self.text_paint_ubo.paint_color.z = 1.0 - red;
     }
@@ -109,7 +110,7 @@ impl SceneInfo for MenuScene {
         match pass_index {
             0 => (&self.camera_ubo as *const CameraUbo as *const u8, std::mem::size_of::<CameraUbo>()),
             1 => (&self.text_paint_ubo as *const TextPaintUbo as *const u8, std::mem::size_of::<TextPaintUbo>()),
-            _ => panic!("Cannot get UBO for MenuScene")
+            _ => panic!("Cannot get UBO for StartMenuScene")
         }
     }
 }

@@ -1,13 +1,13 @@
 
-mod scene;
+mod start;
 
-use scene::SceneryScene;
+use start::StartMenuScene;
 
 use platform_windows::PlatformWindows;
 use renderer::vk_renderer::VkRenderer;
 use engine::Engine;
 
-const APP_TITLE: &str = "Scenery Example";
+const APP_TITLE: &str = "Menu Example";
 
 fn main() {
 
@@ -17,7 +17,7 @@ fn main() {
             std::process::exit(1);
         });
 
-    let engine: Engine<VkRenderer> = Engine::new_uninitialised(Box::from(SceneryScene::new()));
+    let engine: Engine<VkRenderer> = Engine::new_uninitialised(Box::from(StartMenuScene::new()));
 
     platform.run(engine)
         .unwrap_or_else(|e| {

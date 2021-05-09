@@ -51,3 +51,23 @@ pub fn decode_model(model_file_bytes: &[u8]) -> (Vec<StaticVertex>, usize) {
     let vertex_count: usize = model.vertices.len();
     (model.vertices, vertex_count)
 }
+
+/// Maps sets of floats into a vector of StaticVertex structs.
+/// z value will always be zero, and normal pointing along -z.
+/// Source floats are:
+///   Position [left, top, right, bottom] then texture [left, top, right, bottom]
+pub fn map_ui_rects(source: Vec<[f32; 8]>) -> Vec<StaticVertex> {
+    let mut all_rects: Vec<StaticVertex> = vec![];
+    for s in source {
+        let set = [
+            StaticVertex::from_components(s[0], s[1], 0.0, 0.0, -1.0, 0.0, s[4], s[5]),
+            StaticVertex::from_components(s[0], s[3], 0.0, 0.0, -1.0, 0.0, s[4], s[7]),
+            StaticVertex::from_components(s[2], s[3], 0.0, 0.0, -1.0, 0.0, s[6], s[7]),
+            StaticVertex::from_components(s[2], s[3], 0.0, 0.0, -1.0, 0.0, s[6], s[7]),
+            StaticVertex::from_components(s[2], s[1], 0.0, 0.0, -1.0, 0.0, s[6], s[5]),
+            StaticVertex::from_components(s[0], s[1], 0.0, 0.0, -1.0, 0.0, s[4], s[5])
+        ];
+        all_rects.extend_from_slice(&set);
+    }
+    all_rects
+}
