@@ -1,7 +1,9 @@
 
 mod start;
+mod submenu;
 
 use start::StartMenuScene;
+use submenu::SubMenuScene;
 
 use platform_windows::PlatformWindows;
 use renderer::vk_renderer::VkRenderer;
@@ -17,7 +19,7 @@ fn main() {
             std::process::exit(1);
         });
 
-    let engine: Engine<VkRenderer> = Engine::new_uninitialised(Box::from(StartMenuScene::new()));
+    let engine: Engine<VkRenderer> = Engine::new_uninitialised(Box::from(SubMenuScene::new()));
 
     platform.run(engine)
         .unwrap_or_else(|e| {
