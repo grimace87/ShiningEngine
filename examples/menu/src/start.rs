@@ -1,5 +1,7 @@
 
-use defs::{SceneInfo, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep};
+use crate::submenu::SubMenuScene;
+
+use defs::{SceneInfo, SceneManager, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep};
 use engine::util::{
     TextureCodec,
     decode_texture,
@@ -8,6 +10,7 @@ use engine::util::{
 };
 
 use cgmath::{Matrix4, Vector4, SquareMatrix};
+use engine::Engine;
 
 const MENU_TEXTURE_BYTES: &[u8] = include_bytes!("../../resources/textures/menu_texture.png");
 const MUSICA_FONT_BYTES: &[u8] = include_bytes!("../../resources/textures/Musica.png");
@@ -26,7 +29,8 @@ struct TextPaintUbo {
 pub struct StartMenuScene {
     text_generator: TextGenerator,
     camera_ubo: CameraUbo,
-    text_paint_ubo: TextPaintUbo
+    text_paint_ubo: TextPaintUbo,
+    frame_counter: usize
 }
 
 impl StartMenuScene {
@@ -41,7 +45,8 @@ impl StartMenuScene {
             text_paint_ubo: TextPaintUbo {
                 camera_matrix: Matrix4::identity(),
                 paint_color: Vector4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 }
-            }
+            },
+            frame_counter: 0
         }
     }
 }
@@ -100,10 +105,17 @@ impl SceneInfo for StartMenuScene {
         }
     }
 
-    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) {
+    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) -> Option<Box<dyn SceneInfo>> {
         let red = 0.5 + 0.5 * matrix.x.x;
         self.text_paint_ubo.paint_color.x = red;
         self.text_paint_ubo.paint_color.z = 1.0 - red;
+
+        self.frame_counter += 1;
+        if self.frame_counter == 60 {
+            Some(Box::new(SubMenuScene::new()))
+        } else {
+            None
+        }
     }
 
     unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize) -> (*const u8, usize) {

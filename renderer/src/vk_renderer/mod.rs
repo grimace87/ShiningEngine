@@ -71,6 +71,17 @@ impl RendererApi for VkRenderer {
         Ok(())
     }
 
+    fn recreate_scene_resources(&mut self, description: &DrawingDescription) -> Result<(), String> {
+        self.render_core.wait_until_idle().unwrap();
+        self.pipelines.destroy_resources(&self.render_core);
+        self.renderpass.destroy_resources(&self.render_core);
+        unsafe {
+            self.renderpass.create_resources(&self.render_core)?;
+            self.pipelines.create_resources(&self.render_core, &self.renderpass, description)?;
+        }
+        Ok(())
+    }
+
     fn get_aspect_ratio(&self) -> f32 {
         if let Ok(extent) = self.render_core.get_extent() {
             extent.width as f32 / extent.height as f32

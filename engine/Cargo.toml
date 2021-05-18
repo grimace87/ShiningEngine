@@ -8,5 +8,6 @@ edition = "2018"
 cgmath = "0.18.0"
 raw-window-handle = "0.3.3"
 image = { version = "0.23.14", default-features = false, features = ["jpeg", "png"] }
+lockfree = "0.5.1"
 defs = { path = "../defs" }
 model = { path = "../model" }

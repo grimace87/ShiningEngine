@@ -1,5 +1,5 @@
 
-use defs::{SceneInfo, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep};
+use defs::{SceneInfo, SceneManager, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep};
 use engine::util::{
     TextureCodec,
     decode_texture,
@@ -100,8 +100,8 @@ impl SceneInfo for SubMenuScene {
         }
     }
 
-    fn on_camera_updated(&mut self, _matrix: &Matrix4<f32>) {
-
+    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) -> Option<Box<dyn SceneInfo>> {
+        None
     }
 
     unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize) -> (*const u8, usize) {

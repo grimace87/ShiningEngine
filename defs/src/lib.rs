@@ -36,6 +36,7 @@ pub trait RendererApi {
     fn new(window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<Self, String> where Self : Sized;
     fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, String>;
     fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String>;
+    fn recreate_scene_resources(&mut self, description: &DrawingDescription) -> Result<(), String>;
     fn get_aspect_ratio(&self) -> f32;
 }
 
@@ -63,8 +64,12 @@ pub struct DrawingDescription {
     pub post_step: PostStep
 }
 
+pub trait SceneManager {
+    fn queue_scene(&self, new_scene: Box<dyn SceneInfo>);
+}
+
 pub trait SceneInfo {
     fn make_description(&self) -> DrawingDescription;
-    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>);
+    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) -> Option<Box<dyn SceneInfo>>;
     unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize) -> (*const u8, usize);
 }

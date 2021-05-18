@@ -98,11 +98,12 @@ impl SceneInfo for SceneryScene {
         }
     }
 
-    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) {
+    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) -> Option<Box<dyn SceneInfo>> {
         let red = 0.5 + 0.5 * matrix.x.x;
         self.camera_ubo.camera_matrix = matrix.clone();
         self.text_paint_ubo.paint_color.x = red;
         self.text_paint_ubo.paint_color.z = 1.0 - red;
+        None
     }
 
     unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize) -> (*const u8, usize) {

@@ -17,10 +17,12 @@ use self::{
     },
     timer::global::GlobalTimer
 };
-use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo};
+use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, SceneManager};
 
 use cgmath::{SquareMatrix, Matrix4};
 use raw_window_handle::HasRawWindowHandle;
+use lockfree::queue::Queue;
+use std::mem::MaybeUninit;
 
 pub struct Engine<R> where R : RendererApi {
     scene_info: Box<dyn SceneInfo>,
@@ -28,7 +30,8 @@ pub struct Engine<R> where R : RendererApi {
     camera: Option<PlayerCamera>,
     controller: Option<UserControl>,
     timer: Option<GlobalTimer>,
-    drawing_description: DrawingDescription
+    drawing_description: DrawingDescription,
+    scene_queue: Queue<MaybeUninit<Box<dyn SceneInfo>>>
 }
 
 impl<R> Engine<R> where R : RendererApi {
@@ -40,7 +43,8 @@ impl<R> Engine<R> where R : RendererApi {
             camera: None,
             controller: None,
             timer: None,
-            drawing_description: DrawingDescription::default()
+            drawing_description: DrawingDescription::default(),
+            scene_queue: Queue::new()
         }
     }
 
@@ -112,8 +116,17 @@ impl<R> Engine<R> where R : RendererApi {
 
     pub fn draw_next_frame(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
 
-        (*self.scene_info).on_camera_updated(&self.get_camera_matrix());
+        if let Some(new_scene) = (*self.scene_info).on_camera_updated(&self.get_camera_matrix()) {
+            self.scene_queue.push(MaybeUninit::new(new_scene));
+        }
+
         let updated_aspect_ratio: f32;
+        while let Some(new_scene) = self.scene_queue.next() {
+            if let Some(renderer) = &mut self.renderer {
+                let description = unsafe { new_scene.assume_init().as_ref().make_description() };
+                renderer.recreate_scene_resources(&description).unwrap();
+            }
+        }
 
         if let Some(renderer) = &mut self.renderer {
             match renderer.draw_next_frame(self.scene_info.as_ref()) {
@@ -130,5 +143,11 @@ impl<R> Engine<R> where R : RendererApi {
 
         self.update_aspect(updated_aspect_ratio);
         Ok(())
+    }
+}
+
+impl<R> SceneManager for Engine<R> where R: RendererApi {
+    fn queue_scene(&self, new_scene: Box<dyn SceneInfo>) {
+        self.scene_queue.push(MaybeUninit::new(new_scene));
     }
 }
