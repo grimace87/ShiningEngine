@@ -5,7 +5,7 @@ authors = ["Thomas <thomasr1987@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-winit = "0.24.0"
+winit = "0.25.0"
 raw-window-handle = "0.3.3"
 engine = { path = "../engine" }
 defs = { path = "../defs" }
