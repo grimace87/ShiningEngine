@@ -84,12 +84,12 @@ impl PlatformWindows {
                     let time_passed_millis = engine.pull_time_step_millis();
 
                     // Update controls and camera
-                    engine.update(time_passed_millis);
+                    engine.update_before_render(time_passed_millis);
 
                     self.window.request_redraw();
                 },
                 Event::RedrawRequested(_) => {
-                    engine.draw_next_frame(self).unwrap();
+                    engine.render_frame(self).unwrap();
                 },
                 _ => ()
             }

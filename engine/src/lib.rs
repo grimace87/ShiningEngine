@@ -89,16 +89,6 @@ impl<R> Engine<R> where R : RendererApi {
         }
     }
 
-    pub fn update(&mut self, time_step_millis: u64) {
-        if let Some(controller) = &mut self.controller {
-            controller.update();
-            match &mut self.camera {
-                Some(camera) => camera.advance(time_step_millis, controller),
-                _ => {}
-            };
-        }
-    }
-
     pub fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
 
         let aspect_ratio: f32;
@@ -114,20 +104,30 @@ impl<R> Engine<R> where R : RendererApi {
         Ok(())
     }
 
-    pub fn draw_next_frame(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
+    pub fn update_before_render(&mut self, time_step_millis: u64) {
+        if let Some(controller) = &mut self.controller {
+            controller.update();
+            match &mut self.camera {
+                Some(camera) => camera.advance(time_step_millis, controller),
+                _ => {}
+            };
+        }
 
         if let Some(new_scene) = (*self.scene_info).on_camera_updated(&self.get_camera_matrix()) {
             self.scene_queue.push(MaybeUninit::new(new_scene));
         }
 
-        let updated_aspect_ratio: f32;
         while let Some(new_scene) = self.scene_queue.next() {
             if let Some(renderer) = &mut self.renderer {
                 let description = unsafe { new_scene.assume_init().as_ref().make_description() };
                 renderer.recreate_scene_resources(&description).unwrap();
             }
         }
+    }
 
+    pub fn render_frame(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
+
+        let updated_aspect_ratio: f32;
         if let Some(renderer) = &mut self.renderer {
             match renderer.draw_next_frame(self.scene_info.as_ref()) {
                 Ok(PresentResult::Ok) => return Ok(()),
