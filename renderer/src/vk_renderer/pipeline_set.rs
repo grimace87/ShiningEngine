@@ -23,7 +23,7 @@ impl PipelineSet {
 
         let pipelines = description.passes
             .iter()
-            .map(|description| PipelineWrapper::new(render_core, renderpass_wrapper, description).unwrap())
+            .map(|_description| PipelineWrapper::new().unwrap())
             .collect();
 
         let mut pipeline_set = PipelineSet {

@@ -31,8 +31,8 @@ pub struct PipelineWrapper {
 
 impl PipelineWrapper {
 
-    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass) -> Result<PipelineWrapper, String> {
-        let mut wrapper = PipelineWrapper {
+    pub fn new() -> Result<PipelineWrapper, String> {
+        Ok(PipelineWrapper {
             vertex_shader_module: vk::ShaderModule::null(),
             fragment_shader_module: vk::ShaderModule::null(),
             vertex_buffer: BufferWrapper::empty(),
@@ -45,11 +45,7 @@ impl PipelineWrapper {
             pipeline_layout: vk::PipelineLayout::null(),
             pipeline: vk::Pipeline::null(),
             vertex_count: 0
-        };
-        unsafe {
-            wrapper.create_resources(render_core, renderpass_wrapper, description)?;
-        }
-        Ok(wrapper)
+        })
     }
 
     pub fn destroy_resources(&self, render_core: &RenderCore) {
