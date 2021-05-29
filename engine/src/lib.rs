@@ -7,15 +7,21 @@ pub mod util;
 use self::{
     camera::{
         Camera,
+        null::NullCamera,
         player::PlayerCamera
     },
     control::{
         Control,
         KeyCode,
         InputState,
+        null::NullControl,
         user::UserControl
     },
-    timer::global::GlobalTimer
+    timer::{
+        Timer,
+        null::NullTimer,
+        global::GlobalTimer
+    }
 };
 use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, SceneManager};
 
@@ -27,9 +33,9 @@ use std::mem::MaybeUninit;
 pub struct Engine<R> where R : RendererApi {
     scene_info: Box<dyn SceneInfo>,
     renderer: Option<R>,
-    camera: Option<PlayerCamera>,
-    controller: Option<UserControl>,
-    timer: Option<GlobalTimer>,
+    camera: Box<dyn Camera>,
+    controller: Box<dyn Control>,
+    timer: Box<dyn Timer>,
     drawing_description: DrawingDescription,
     scene_queue: Queue<MaybeUninit<Box<dyn SceneInfo>>>
 }
@@ -40,9 +46,9 @@ impl<R> Engine<R> where R : RendererApi {
         Engine {
             scene_info: scene_info,
             renderer: None,
-            camera: None,
-            controller: None,
-            timer: None,
+            camera: Box::new(NullCamera::new()),
+            controller: Box::new(NullControl::new()),
+            timer: Box::new(NullTimer::new()),
             drawing_description: DrawingDescription::default(),
             scene_queue: Queue::new()
         }
@@ -55,38 +61,26 @@ impl<R> Engine<R> where R : RendererApi {
         let aspect_ratio = renderer.get_aspect_ratio();
 
         self.renderer = Some(renderer);
-        self.camera = Some(camera::new_camera(aspect_ratio));
-        self.controller = Some(control::new_control());
-        self.timer = Some(GlobalTimer::new());
+        self.camera = Box::new(PlayerCamera::new(aspect_ratio));
+        self.controller = Box::new(UserControl::new());
+        self.timer = Box::new(GlobalTimer::new());
         self.drawing_description = description;
     }
 
     pub fn process_keyboard_event(&mut self, keycode: KeyCode, state: InputState) {
-        match &mut self.controller {
-            Some(c) => c.process_keyboard_event(keycode, state),
-            _ => {}
-        };
+        self.controller.process_keyboard_event(keycode, state);
     }
 
     pub fn update_aspect(&mut self, aspect_ratio: f32) {
-        match &mut self.camera {
-            Some(c) => c.update_aspect(aspect_ratio),
-            _ => {}
-        };
+        self.camera.update_aspect(aspect_ratio);
     }
 
     pub fn pull_time_step_millis(&mut self) -> u64 {
-        match &mut self.timer {
-            Some(t) => t.pull_time_step_millis(),
-            _ => 0
-        }
+        self.timer.pull_time_step_millis()
     }
 
     pub fn get_camera_matrix(&self) -> Matrix4<f32> {
-        match &self.camera {
-            Some(c) => c.get_matrix(),
-            _ => Matrix4::identity()
-        }
+        self.camera.get_matrix()
     }
 
     pub fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
@@ -105,13 +99,9 @@ impl<R> Engine<R> where R : RendererApi {
     }
 
     pub fn update_before_render(&mut self, time_step_millis: u64) {
-        if let Some(controller) = &mut self.controller {
-            controller.update();
-            match &mut self.camera {
-                Some(camera) => camera.advance(time_step_millis, controller),
-                _ => {}
-            };
-        }
+
+        self.controller.update();
+        self.camera.advance(time_step_millis, self.controller.as_ref());
 
         if let Some(new_scene) = (*self.scene_info).on_camera_updated(&self.get_camera_matrix()) {
             self.scene_queue.push(MaybeUninit::new(new_scene));

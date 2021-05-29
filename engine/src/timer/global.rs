@@ -1,4 +1,5 @@
 
+use crate::timer::Timer;
 use std::time::Instant;
 
 pub struct GlobalTimer {
@@ -11,8 +12,10 @@ impl GlobalTimer {
             last_update_time: Instant::now()
         }
     }
+}
 
-    pub fn pull_time_step_millis(&mut self) -> u64 {
+impl Timer for GlobalTimer {
+    fn pull_time_step_millis(&mut self) -> u64 {
         let now = Instant::now();
         let elapsed = now.duration_since(self.last_update_time);
         self.last_update_time = now;

@@ -1,10 +1,7 @@
 
 use crate::{
     camera::Camera,
-    control::{
-        Control,
-        user::UserControl
-    }
+    control::Control
 };
 
 use cgmath::{Matrix4, Rad, Vector3};
@@ -48,12 +45,12 @@ impl PlayerCamera {
     }
 }
 
-impl Camera<UserControl> for PlayerCamera {
+impl Camera for PlayerCamera {
     fn update_aspect(&mut self, aspect_ratio: f32) {
         self.perspective_projection = Self::make_vulkan_perspective_matrix(aspect_ratio,Self::PROJ_VK_NEAR_PLANE, Self::PROJ_VK_FAR_PLANE);
     }
 
-    fn advance(&mut self, time_step_millis: u64, controller: &UserControl) {
+    fn advance(&mut self, time_step_millis: u64, controller: &dyn Control) {
 
         let time_step_secs: f32 = 0.001 * time_step_millis as f32;
 

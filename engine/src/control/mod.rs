@@ -1,7 +1,6 @@
 
+pub mod null;
 pub mod user;
-
-use self::user::UserControl;
 
 pub enum KeyCode {
     Unknown,
@@ -21,8 +20,4 @@ pub trait Control {
     fn process_keyboard_event(&mut self, keycode: KeyCode, state: InputState);
     fn get_dx(&self) -> f32;
     fn get_dy(&self) -> f32;
-}
-
-pub fn new_control() -> UserControl {
-    UserControl::new()
 }
