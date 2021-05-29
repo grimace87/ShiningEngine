@@ -50,7 +50,7 @@ impl Camera for PlayerCamera {
         self.perspective_projection = Self::make_vulkan_perspective_matrix(aspect_ratio,Self::PROJ_VK_NEAR_PLANE, Self::PROJ_VK_FAR_PLANE);
     }
 
-    fn advance(&mut self, time_step_millis: u64, controller: &dyn Control) {
+    fn update(&mut self, time_step_millis: u64, controller: &dyn Control) {
 
         let time_step_secs: f32 = 0.001 * time_step_millis as f32;
 

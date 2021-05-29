@@ -25,7 +25,7 @@ use self::{
 };
 use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, SceneManager};
 
-use cgmath::{SquareMatrix, Matrix4};
+use cgmath::Matrix4;
 use raw_window_handle::HasRawWindowHandle;
 use lockfree::queue::Queue;
 use std::mem::MaybeUninit;
@@ -98,10 +98,10 @@ impl<R> Engine<R> where R : RendererApi {
         Ok(())
     }
 
-    pub fn update_before_render(&mut self, time_step_millis: u64) {
+    pub fn update(&mut self, time_step_millis: u64) {
 
         self.controller.update();
-        self.camera.advance(time_step_millis, self.controller.as_ref());
+        self.camera.update(time_step_millis, self.controller.as_ref());
 
         if let Some(new_scene) = (*self.scene_info).on_camera_updated(&self.get_camera_matrix()) {
             self.scene_queue.push(MaybeUninit::new(new_scene));
@@ -115,7 +115,7 @@ impl<R> Engine<R> where R : RendererApi {
         }
     }
 
-    pub fn render_frame(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
+    pub fn render(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
 
         let updated_aspect_ratio: f32;
         if let Some(renderer) = &mut self.renderer {
