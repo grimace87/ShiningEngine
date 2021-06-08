@@ -46,7 +46,7 @@ impl PlatformWindows {
         })
     }
 
-    pub fn run<R>(&mut self, mut engine: Engine<R>) -> Result<(), String> where R : RendererApi {
+    pub fn run<R: 'static>(&mut self, mut engine: Engine<R>) -> Result<(), String> where R : RendererApi {
 
         engine.initialise(self);
 

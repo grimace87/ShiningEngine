@@ -434,6 +434,7 @@ dependencies = [
  "lockfree",
  "model",
  "raw-window-handle",
+ "renderer",
 ]
 
 [[package]]

@@ -11,3 +11,4 @@ image = { version = "0.23.14", default-features = false, features = ["jpeg", "pn
 lockfree = "0.5.1"
 defs = { path = "../defs" }
 model = { path = "../model" }
+renderer = { path = "../renderer" }

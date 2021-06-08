@@ -24,15 +24,18 @@ use self::{
     }
 };
 use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, SceneManager};
+use renderer::null::NullRenderer;
 
 use cgmath::Matrix4;
 use raw_window_handle::HasRawWindowHandle;
 use lockfree::queue::Queue;
 use std::mem::MaybeUninit;
+use std::marker::PhantomData;
 
 pub struct Engine<R> where R : RendererApi {
     scene_info: Box<dyn SceneInfo>,
-    renderer: Option<R>,
+    phantom_renderer: PhantomData<R>,
+    renderer: Box<dyn RendererApi>,
     camera: Box<dyn Camera>,
     controller: Box<dyn Control>,
     timer: Box<dyn Timer>,
@@ -40,12 +43,13 @@ pub struct Engine<R> where R : RendererApi {
     scene_queue: Queue<MaybeUninit<Box<dyn SceneInfo>>>
 }
 
-impl<R> Engine<R> where R : RendererApi {
+impl<R: 'static> Engine<R> where R : RendererApi {
 
     pub fn new_uninitialised(scene_info: Box<dyn SceneInfo>) -> Engine<R> {
         Engine {
-            scene_info: scene_info,
-            renderer: None,
+            scene_info,
+            phantom_renderer: PhantomData::default(),
+            renderer: Box::new(NullRenderer::new()),
             camera: Box::new(NullCamera::new()),
             controller: Box::new(NullControl::new()),
             timer: Box::new(NullTimer::new()),
@@ -60,7 +64,7 @@ impl<R> Engine<R> where R : RendererApi {
         let renderer = R::new(window_owner, &description).unwrap();
         let aspect_ratio = renderer.get_aspect_ratio();
 
-        self.renderer = Some(renderer);
+        self.renderer = Box::new(renderer);
         self.camera = Box::new(PlayerCamera::new(aspect_ratio));
         self.controller = Box::new(UserControl::new());
         self.timer = Box::new(GlobalTimer::new());
@@ -87,12 +91,8 @@ impl<R> Engine<R> where R : RendererApi {
 
         let aspect_ratio: f32;
 
-        if let Some(renderer) = &mut self.renderer {
-            renderer.recreate_swapchain(window_owner, &self.drawing_description)?;
-            aspect_ratio = renderer.get_aspect_ratio();
-        } else {
-            return Err(String::from("Recreating swapchain without a renderer set"));
-        }
+        self.renderer.recreate_swapchain(window_owner, &self.drawing_description)?;
+        aspect_ratio = self.renderer.get_aspect_ratio();
 
         self.update_aspect(aspect_ratio);
         Ok(())
@@ -108,28 +108,22 @@ impl<R> Engine<R> where R : RendererApi {
         }
 
         while let Some(new_scene) = self.scene_queue.next() {
-            if let Some(renderer) = &mut self.renderer {
-                let description = unsafe { new_scene.assume_init().as_ref().make_description() };
-                renderer.recreate_scene_resources(&description).unwrap();
-            }
+            let description = unsafe { new_scene.assume_init().as_ref().make_description() };
+            self.renderer.recreate_scene_resources(&description).unwrap();
         }
     }
 
     pub fn render(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
 
         let updated_aspect_ratio: f32;
-        if let Some(renderer) = &mut self.renderer {
-            match renderer.draw_next_frame(self.scene_info.as_ref()) {
-                Ok(PresentResult::Ok) => return Ok(()),
-                Ok(PresentResult::SwapchainOutOfDate) => {
-                    renderer.recreate_swapchain(window_owner, &self.drawing_description).unwrap();
-                    updated_aspect_ratio = renderer.get_aspect_ratio();
-                },
-                Err(e) => return Err(format!("{}", e))
-            };
-        } else {
-            return Err(String::from("Drawing frame without a renderer set"))
-        }
+        match self.renderer.draw_next_frame(self.scene_info.as_ref()) {
+            Ok(PresentResult::Ok) => return Ok(()),
+            Ok(PresentResult::SwapchainOutOfDate) => {
+                self.renderer.recreate_swapchain(window_owner, &self.drawing_description).unwrap();
+                updated_aspect_ratio = self.renderer.get_aspect_ratio();
+            },
+            Err(e) => return Err(format!("{}", e))
+        };
 
         self.update_aspect(updated_aspect_ratio);
         Ok(())
