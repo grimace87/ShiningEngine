@@ -3,6 +3,7 @@ pub mod camera;
 pub mod control;
 pub mod timer;
 pub mod util;
+pub mod scene;
 
 use self::{
     camera::{
@@ -28,39 +29,36 @@ use renderer::null::NullRenderer;
 
 use cgmath::Matrix4;
 use raw_window_handle::HasRawWindowHandle;
-use lockfree::queue::Queue;
-use std::mem::MaybeUninit;
 use std::marker::PhantomData;
+use crate::scene::SceneHost;
 
 pub struct Engine<R> where R : RendererApi {
-    scene_info: Box<dyn SceneInfo>,
+    scene_host: SceneHost,
     phantom_renderer: PhantomData<R>,
     renderer: Box<dyn RendererApi>,
     camera: Box<dyn Camera>,
     controller: Box<dyn Control>,
     timer: Box<dyn Timer>,
     drawing_description: DrawingDescription,
-    scene_queue: Queue<MaybeUninit<Box<dyn SceneInfo>>>
 }
 
 impl<R: 'static> Engine<R> where R : RendererApi {
 
     pub fn new_uninitialised(scene_info: Box<dyn SceneInfo>) -> Engine<R> {
         Engine {
-            scene_info,
+            scene_host: SceneHost::new(scene_info),
             phantom_renderer: PhantomData::default(),
             renderer: Box::new(NullRenderer::new()),
             camera: Box::new(NullCamera::new()),
             controller: Box::new(NullControl::new()),
             timer: Box::new(NullTimer::new()),
             drawing_description: DrawingDescription::default(),
-            scene_queue: Queue::new()
         }
     }
 
     pub fn initialise(&mut self, window_owner: &dyn HasRawWindowHandle) {
 
-        let description = (*self.scene_info).make_description();
+        let description = self.scene_host.get_current().make_description();
         let renderer = R::new(window_owner, &description).unwrap();
         let aspect_ratio = renderer.get_aspect_ratio();
 
@@ -103,12 +101,12 @@ impl<R: 'static> Engine<R> where R : RendererApi {
         self.controller.update();
         self.camera.update(time_step_millis, self.controller.as_ref());
 
-        if let Some(new_scene) = (*self.scene_info).on_camera_updated(&self.get_camera_matrix()) {
-            self.scene_queue.push(MaybeUninit::new(new_scene));
+        if let Some(new_scene) = self.scene_host.update_current(&self.get_camera_matrix()) {
+            self.scene_host.queue_scene(new_scene);
         }
 
-        while let Some(new_scene) = self.scene_queue.next() {
-            let description = unsafe { new_scene.assume_init().as_ref().make_description() };
+        if self.scene_host.drain_queue() {
+            let description = self.scene_host.get_current().make_description();
             self.renderer.recreate_scene_resources(&description).unwrap();
         }
     }
@@ -116,7 +114,7 @@ impl<R: 'static> Engine<R> where R : RendererApi {
     pub fn render(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
 
         let updated_aspect_ratio: f32;
-        match self.renderer.draw_next_frame(self.scene_info.as_ref()) {
+        match self.renderer.draw_next_frame(self.scene_host.get_current()) {
             Ok(PresentResult::Ok) => return Ok(()),
             Ok(PresentResult::SwapchainOutOfDate) => {
                 self.renderer.recreate_swapchain(window_owner, &self.drawing_description).unwrap();
@@ -127,11 +125,5 @@ impl<R: 'static> Engine<R> where R : RendererApi {
 
         self.update_aspect(updated_aspect_ratio);
         Ok(())
-    }
-}
-
-impl<R> SceneManager for Engine<R> where R: RendererApi {
-    fn queue_scene(&self, new_scene: Box<dyn SceneInfo>) {
-        self.scene_queue.push(MaybeUninit::new(new_scene));
     }
 }
