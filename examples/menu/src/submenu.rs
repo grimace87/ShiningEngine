@@ -1,10 +1,13 @@
 
-use defs::{SceneInfo, SceneManager, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep};
-use engine::util::{
-    TextureCodec,
-    decode_texture,
-    map_ui_rects,
-    textbuffer::{TextGenerator, TextAlignment}
+use defs::{Camera, SceneInfo, SceneManager, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep, Control};
+use engine::{
+    camera::null::NullCamera,
+    util::{
+        TextureCodec,
+        decode_texture,
+        map_ui_rects,
+        textbuffer::{TextGenerator, TextAlignment}
+    }
 };
 
 use cgmath::{Matrix4, Vector4, SquareMatrix};
@@ -24,6 +27,7 @@ struct TextPaintUbo {
 }
 
 pub struct SubMenuScene {
+    camera: NullCamera,
     text_generator: TextGenerator,
     camera_ubo: CameraUbo,
     text_paint_ubo: TextPaintUbo
@@ -32,6 +36,7 @@ pub struct SubMenuScene {
 impl SubMenuScene {
     pub fn new() -> SubMenuScene {
         SubMenuScene {
+            camera: NullCamera::new(),
             text_generator: TextGenerator::from_resource(
                 include_str!("../../resources/font/Musica.fnt")
             ),
@@ -100,7 +105,11 @@ impl SceneInfo for SubMenuScene {
         }
     }
 
-    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) -> Option<Box<dyn SceneInfo>> {
+    fn update_aspect_ratio(&mut self, aspect_ratio: f32) {
+        self.camera.update_aspect(aspect_ratio);
+    }
+
+    fn update_camera(&mut self, _time_step_millis: u64, _controller: &dyn Control) -> Option<Box<dyn SceneInfo>> {
         None
     }
 

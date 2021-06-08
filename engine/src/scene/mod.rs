@@ -1,7 +1,6 @@
 
-use defs::{SceneInfo, SceneManager};
+use defs::{SceneInfo, SceneManager, Control};
 use lockfree::queue::Queue;
-use cgmath::Matrix4;
 use std::mem::MaybeUninit;
 
 pub struct SceneHost {
@@ -21,8 +20,12 @@ impl SceneHost {
         self.scene_info.as_ref()
     }
 
-    pub fn update_current(&mut self, camera_matrix: &Matrix4<f32>) -> Option<Box<dyn SceneInfo>> {
-        self.scene_info.on_camera_updated(camera_matrix)
+    pub fn update_aspect_ratio(&mut self, aspect_ratio: f32) {
+        self.scene_info.update_aspect_ratio(aspect_ratio);
+    }
+
+    pub fn update_current(&mut self, time_step_millis: u64, controller: &dyn Control) -> Option<Box<dyn SceneInfo>> {
+        self.scene_info.update_camera(time_step_millis, controller)
     }
 
     pub fn drain_queue(&mut self) -> bool {

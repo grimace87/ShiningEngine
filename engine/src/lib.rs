@@ -5,16 +5,8 @@ pub mod timer;
 pub mod util;
 pub mod scene;
 
-use self::{
-    camera::{
-        Camera,
-        null::NullCamera,
-        player::PlayerCamera
-    },
+use crate::{
     control::{
-        Control,
-        KeyCode,
-        InputState,
         null::NullControl,
         user::UserControl
     },
@@ -24,10 +16,9 @@ use self::{
         global::GlobalTimer
     }
 };
-use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, SceneManager};
+use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, SceneManager, Control, KeyCode, InputState};
 use renderer::null::NullRenderer;
 
-use cgmath::Matrix4;
 use raw_window_handle::HasRawWindowHandle;
 use std::marker::PhantomData;
 use crate::scene::SceneHost;
@@ -36,7 +27,6 @@ pub struct Engine<R> where R : RendererApi {
     scene_host: SceneHost,
     phantom_renderer: PhantomData<R>,
     renderer: Box<dyn RendererApi>,
-    camera: Box<dyn Camera>,
     controller: Box<dyn Control>,
     timer: Box<dyn Timer>,
     drawing_description: DrawingDescription,
@@ -49,7 +39,6 @@ impl<R: 'static> Engine<R> where R : RendererApi {
             scene_host: SceneHost::new(scene_info),
             phantom_renderer: PhantomData::default(),
             renderer: Box::new(NullRenderer::new()),
-            camera: Box::new(NullCamera::new()),
             controller: Box::new(NullControl::new()),
             timer: Box::new(NullTimer::new()),
             drawing_description: DrawingDescription::default(),
@@ -61,9 +50,9 @@ impl<R: 'static> Engine<R> where R : RendererApi {
         let description = self.scene_host.get_current().make_description();
         let renderer = R::new(window_owner, &description).unwrap();
         let aspect_ratio = renderer.get_aspect_ratio();
+        self.scene_host.update_aspect_ratio(aspect_ratio);
 
         self.renderer = Box::new(renderer);
-        self.camera = Box::new(PlayerCamera::new(aspect_ratio));
         self.controller = Box::new(UserControl::new());
         self.timer = Box::new(GlobalTimer::new());
         self.drawing_description = description;
@@ -73,16 +62,8 @@ impl<R: 'static> Engine<R> where R : RendererApi {
         self.controller.process_keyboard_event(keycode, state);
     }
 
-    pub fn update_aspect(&mut self, aspect_ratio: f32) {
-        self.camera.update_aspect(aspect_ratio);
-    }
-
     pub fn pull_time_step_millis(&mut self) -> u64 {
         self.timer.pull_time_step_millis()
-    }
-
-    pub fn get_camera_matrix(&self) -> Matrix4<f32> {
-        self.camera.get_matrix()
     }
 
     pub fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
@@ -92,16 +73,15 @@ impl<R: 'static> Engine<R> where R : RendererApi {
         self.renderer.recreate_swapchain(window_owner, &self.drawing_description)?;
         aspect_ratio = self.renderer.get_aspect_ratio();
 
-        self.update_aspect(aspect_ratio);
+        self.scene_host.update_aspect_ratio(aspect_ratio);
         Ok(())
     }
 
     pub fn update(&mut self, time_step_millis: u64) {
 
         self.controller.update();
-        self.camera.update(time_step_millis, self.controller.as_ref());
 
-        if let Some(new_scene) = self.scene_host.update_current(&self.get_camera_matrix()) {
+        if let Some(new_scene) = self.scene_host.update_current(time_step_millis, self.controller.as_ref()) {
             self.scene_host.queue_scene(new_scene);
         }
 
@@ -123,7 +103,7 @@ impl<R: 'static> Engine<R> where R : RendererApi {
             Err(e) => return Err(format!("{}", e))
         };
 
-        self.update_aspect(updated_aspect_ratio);
+        self.scene_host.update_aspect_ratio(updated_aspect_ratio);
         Ok(())
     }
 }

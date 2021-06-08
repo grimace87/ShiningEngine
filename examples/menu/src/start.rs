@@ -1,7 +1,7 @@
 
 use crate::submenu::SubMenuScene;
 
-use defs::{SceneInfo, SceneManager, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep};
+use defs::{Camera, SceneInfo, SceneManager, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep, Control};
 use engine::util::{
     TextureCodec,
     decode_texture,
@@ -105,7 +105,9 @@ impl SceneInfo for StartMenuScene {
         }
     }
 
-    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) -> Option<Box<dyn SceneInfo>> {
+    fn update_aspect_ratio(&mut self, _aspect_ratio: f32) {}
+
+    fn update_camera(&mut self, _time_step_millis: u64, _controller: &dyn Control) -> Option<Box<dyn SceneInfo>> {
         let red = 0.5 + 0.5 * matrix.x.x;
         self.text_paint_ubo.paint_color.x = red;
         self.text_paint_ubo.paint_color.z = 1.0 - red;

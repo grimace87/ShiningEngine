@@ -1,6 +1,6 @@
 
-use crate::camera::Camera;
-use crate::Control;
+use defs::Camera;
+use defs::Control;
 use cgmath::{Matrix4, SquareMatrix};
 
 pub struct NullCamera {}

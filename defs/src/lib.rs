@@ -32,6 +32,32 @@ impl Default for PostStep {
     }
 }
 
+pub enum KeyCode {
+    Unknown,
+    Left,
+    Up,
+    Down,
+    Right
+}
+
+pub enum InputState {
+    Pressed,
+    Released
+}
+
+pub trait Control {
+    fn update(&mut self);
+    fn process_keyboard_event(&mut self, keycode: KeyCode, state: InputState);
+    fn get_dx(&self) -> f32;
+    fn get_dy(&self) -> f32;
+}
+
+pub trait Camera {
+    fn update_aspect(&mut self, aspect_ratio: f32);
+    fn update(&mut self, time_step_millis: u64, controller: &dyn Control);
+    fn get_matrix(&self) -> Matrix4<f32>;
+}
+
 pub trait RendererApi {
     fn new(window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<Self, String> where Self : Sized;
     fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, String>;
@@ -70,6 +96,7 @@ pub trait SceneManager {
 
 pub trait SceneInfo {
     fn make_description(&self) -> DrawingDescription;
-    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) -> Option<Box<dyn SceneInfo>>;
+    fn update_aspect_ratio(&mut self, aspect_ratio: f32);
+    fn update_camera(&mut self, time_step_millis: u64, controller: &dyn Control) -> Option<Box<dyn SceneInfo>>;
     unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize) -> (*const u8, usize);
 }

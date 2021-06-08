@@ -1,10 +1,13 @@
 
-use defs::{SceneInfo, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep};
-use engine::util::{
-    TextureCodec,
-    decode_texture,
-    decode_model,
-    textbuffer::{TextGenerator, TextAlignment}
+use defs::{Camera, SceneInfo, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep, Control};
+use engine::{
+    camera::player::PlayerCamera,
+    util::{
+        TextureCodec,
+        decode_texture,
+        decode_model,
+        textbuffer::{TextGenerator, TextAlignment}
+    }
 };
 
 use cgmath::{Matrix4, Vector4, SquareMatrix};
@@ -26,6 +29,7 @@ struct TextPaintUbo {
 }
 
 pub struct SceneryScene {
+    camera: PlayerCamera,
     text_generator: TextGenerator,
     camera_ubo: CameraUbo,
     text_paint_ubo: TextPaintUbo
@@ -34,6 +38,7 @@ pub struct SceneryScene {
 impl SceneryScene {
     pub fn new() -> SceneryScene {
         SceneryScene {
+            camera: PlayerCamera::new(1.0),
             text_generator: TextGenerator::from_resource(
                 include_str!("../../resources/font/Musica.fnt")
             ),
@@ -98,7 +103,14 @@ impl SceneInfo for SceneryScene {
         }
     }
 
-    fn on_camera_updated(&mut self, matrix: &Matrix4<f32>) -> Option<Box<dyn SceneInfo>> {
+    fn update_aspect_ratio(&mut self, aspect_ratio: f32) {
+        self.camera.update_aspect(aspect_ratio);
+    }
+
+    fn update_camera(&mut self, time_step_millis: u64, controller: &dyn Control) -> Option<Box<dyn SceneInfo>> {
+        self.camera.update(time_step_millis, controller);
+        let matrix = self.camera.get_matrix();
+
         let red = 0.5 + 0.5 * matrix.x.x;
         self.camera_ubo.camera_matrix = matrix.clone();
         self.text_paint_ubo.paint_color.x = red;

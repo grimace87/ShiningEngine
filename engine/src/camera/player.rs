@@ -1,8 +1,5 @@
 
-use crate::{
-    camera::Camera,
-    control::Control
-};
+use defs::{Camera, Control};
 
 use cgmath::{Matrix4, Rad, Vector3};
 

@@ -1,5 +1,5 @@
 
-use crate::control::{Control, KeyCode, InputState};
+use defs::{Control, KeyCode, InputState};
 
 pub struct UserControl {
     dx: f32,

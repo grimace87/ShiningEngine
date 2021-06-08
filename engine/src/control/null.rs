@@ -1,5 +1,5 @@
 
-use crate::control::{Control, InputState, KeyCode};
+use defs::{Control, InputState, KeyCode};
 
 pub struct NullControl {}
 
