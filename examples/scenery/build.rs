@@ -1,5 +1,6 @@
 
 use collada::COLLADA;
+use collada::config::Config;
 
 use std::{
     env,
@@ -43,7 +44,13 @@ fn convert_collada_files_in_directory(collada_models_dir: &Path, binary_models_d
         };
         match extension.to_str() {
             Some("dae") => {
-                convert_collada_file(&path, binary_models_dir);
+                let mut config_path = path.clone();
+                config_path.set_extension("toml");
+                let config = match config_path.exists() {
+                    true => Config::from_toml_file(&config_path),
+                    false => Config::default()
+                };
+                convert_collada_file(&path, config, binary_models_dir);
                 files_processed += 1;
             },
             _ => continue
@@ -52,7 +59,7 @@ fn convert_collada_files_in_directory(collada_models_dir: &Path, binary_models_d
     println!("Processed {} file(s) in directory {:?}", files_processed, collada_models_dir);
 }
 
-fn convert_collada_file(source_file: &Path, binary_models_dir: &Path) {
+fn convert_collada_file(source_file: &Path, config: Config, binary_models_dir: &Path) {
     println!("Processing models in file {:?}: ", source_file);
     let mut collada_file = File::open(source_file)
         .expect("Failed to open a file");
@@ -62,7 +69,7 @@ fn convert_collada_file(source_file: &Path, binary_models_dir: &Path) {
     collada_file.read(&mut file_bytes)
         .expect("Buffer overflow reading from file");
     let collada = COLLADA::new(file_bytes.as_slice());
-    let models = collada.extract_models();
+    let models = collada.extract_models(config);
     for model in models.iter() {
         let mut file_path = PathBuf::from(binary_models_dir);
         file_path.push(model.name.as_str());

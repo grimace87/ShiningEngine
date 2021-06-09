@@ -1,5 +1,6 @@
 
 mod elements;
+pub mod config;
 
 #[macro_use]
 extern crate serde_derive;
@@ -7,6 +8,7 @@ extern crate serde;
 extern crate serde_xml_rs;
 
 use elements::{GeometryLibrary, VisualScenesLibrary, Matrix, Node};
+use config::Config;
 use model::factory::{Model, StaticVertex};
 use serde_xml_rs::from_reader;
 
@@ -21,17 +23,39 @@ impl COLLADA {
         from_reader(file_data).unwrap()
     }
 
-    pub fn extract_models(&self) -> Vec<Model> {
-        let mut models: Vec<Model> = vec![];
+    pub fn extract_models(&self, config: Config) -> Vec<Model> {
+        let mut pre_merge_models: Vec<Model> = vec![];
         for geometry in self.library_geometries.items.iter() {
             let mesh = &geometry.mesh;
             let mut vertex_data = mesh.get_vertex_data();
             if let Some(scene_matrix) = self.find_transform_for(&geometry.id) {
                 Self::transform_vertices(&mut vertex_data, scene_matrix);
             }
-            models.push(Model::new_from_components(String::from(&geometry.name), vertex_data));
+            pre_merge_models.push(Model::new_from_components(String::from(&geometry.name), vertex_data));
         }
-        models
+
+        if config.merges.is_empty() {
+            return pre_merge_models;
+        }
+
+        let mut merged_models: Vec<Model> = vec![];
+        for merge_config in config.merges.iter() {
+            let name = &merge_config.name;
+            let mut source_models: Vec<Model> = vec![];
+            for model_name in merge_config.geometries.iter() {
+                let model_index = pre_merge_models.iter()
+                    .position(|m| m.name.eq(model_name))
+                    .expect(format!("Did not find mesh named {}", model_name).as_str());
+                let model = pre_merge_models.remove(model_index);
+                source_models.push(model);
+            }
+            let merged_model = Model::merge(name, source_models);
+            merged_models.push(merged_model);
+        }
+        for unmerged_model in pre_merge_models.into_iter() {
+            merged_models.push(unmerged_model);
+        }
+        merged_models
     }
 
     fn find_transform_for(&self, geometry_id: &String) -> Option<&Matrix> {

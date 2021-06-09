@@ -170,6 +170,7 @@ dependencies = [
  "serde",
  "serde-xml-rs",
  "serde_derive",
+ "toml",
 ]
 
 [[package]]

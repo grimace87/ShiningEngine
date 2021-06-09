@@ -1,0 +1,4 @@
+
+[[merges]]
+name = "SceneTerrain"
+geometries = ["Terrain", "Rock", "Fence"]

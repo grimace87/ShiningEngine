@@ -81,4 +81,17 @@ impl Model {
         // Done
         Ok(())
     }
+
+    pub fn merge(name: &String, source_models: Vec<Model>) -> Model {
+        let mut all_vertices = vec![];
+        for model in source_models.into_iter() {
+            for vertex in model.vertices.into_iter() {
+                all_vertices.push(vertex);
+            }
+        }
+        Model {
+            name: name.clone(),
+            vertices: all_vertices
+        }
+    }
 }
