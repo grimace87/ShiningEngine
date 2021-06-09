@@ -10,16 +10,17 @@ use engine::{
     }
 };
 
-use cgmath::{Matrix4, Vector4, SquareMatrix};
+use cgmath::{Matrix4, Vector4, SquareMatrix, Vector3};
 
 const MENU_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\SceneTerrain.mdl"));
+const RIVER_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\River.mdl"));
 const FACES_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\Grimace.mdl"));
 const TERRAIN_TEXTURE_BYTES: &[u8] = include_bytes!("../../resources/textures/simple_outdoor_texture.jpg");
 const MUSICA_FONT_BYTES: &[u8] = include_bytes!("../../resources/textures/Musica.png");
 
 #[repr(C)]
-struct CameraUbo {
-    camera_matrix: Matrix4<f32>
+struct MvpUbo {
+    matrix: Matrix4<f32>
 }
 
 #[repr(C)]
@@ -31,8 +32,10 @@ struct TextPaintUbo {
 pub struct SceneryScene {
     camera: PlayerCamera,
     text_generator: TextGenerator,
-    camera_ubo: CameraUbo,
-    text_paint_ubo: TextPaintUbo
+    terrain_pass_ubo: MvpUbo,
+    river_pass_ubo: MvpUbo,
+    text_paint_ubo: TextPaintUbo,
+    river_phase: f64
 }
 
 impl SceneryScene {
@@ -42,13 +45,17 @@ impl SceneryScene {
             text_generator: TextGenerator::from_resource(
                 include_str!("../../resources/font/Musica.fnt")
             ),
-            camera_ubo: CameraUbo {
-                camera_matrix: Matrix4::identity()
+            terrain_pass_ubo: MvpUbo {
+                matrix: Matrix4::identity()
+            },
+            river_pass_ubo: MvpUbo {
+                matrix: Matrix4::identity()
             },
             text_paint_ubo: TextPaintUbo {
                 camera_matrix: Matrix4::identity(),
                 paint_color: Vector4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 }
-            }
+            },
+            river_phase: 0.0
         }
     }
 }
@@ -58,11 +65,14 @@ impl SceneInfo for SceneryScene {
     fn make_description(&self) -> DrawingDescription {
 
         let (scene_model_data, scene_vertex_count) = decode_model(MENU_MODEL_BYTES);
+        let (river_model_data, river_vertex_count) = decode_model(RIVER_MODEL_BYTES);
 
         // TODO - Something?
         let (_face_model_data, _face_vertex_count) = decode_model(FACES_MODEL_BYTES);
 
+        // TODO - Share textures between passes
         let scene_texture = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg).unwrap();
+        let scene_texture_again = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg).unwrap();
         let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
 
         let hud_data = self.text_generator.generate_vertex_buffer(
@@ -89,6 +99,16 @@ impl SceneInfo for SceneryScene {
                     depth_test: true
                 },
                 DrawingPass {
+                    shader: Shader::PlainPnt,
+                    vertex_format: VertexFormat::PositionNormalTexture,
+                    vertex_data: river_model_data,
+                    vertex_count: river_vertex_count,
+                    draw_indexed: false,
+                    index_data: None,
+                    texture: scene_texture_again,
+                    depth_test: true
+                },
+                DrawingPass {
                     shader: Shader::Text,
                     vertex_format: VertexFormat::PositionNormalTexture,
                     vertex_data: hud_data,
@@ -111,8 +131,16 @@ impl SceneInfo for SceneryScene {
         self.camera.update(time_step_millis, controller);
         let matrix = self.camera.get_matrix();
 
+        self.river_phase += (time_step_millis as f64) * 0.001 * std::f64::consts::PI;
+        if self.river_phase > std::f64::consts::TAU {
+            self.river_phase -= std::f64::consts::TAU;
+        }
+        let deviation = self.river_phase.sin() as f32 * 0.01;
+        let river_translation = Matrix4::<f32>::from_translation(Vector3 { x: 0.0, y: deviation, z: 0.0 });
+        self.river_pass_ubo.matrix = river_translation * matrix;
+
         let red = 0.5 + 0.5 * matrix.x.x;
-        self.camera_ubo.camera_matrix = matrix.clone();
+        self.terrain_pass_ubo.matrix = matrix.clone();
         self.text_paint_ubo.paint_color.x = red;
         self.text_paint_ubo.paint_color.z = 1.0 - red;
         None
@@ -120,8 +148,9 @@ impl SceneInfo for SceneryScene {
 
     unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize) -> (*const u8, usize) {
         match pass_index {
-            0 => (&self.camera_ubo as *const CameraUbo as *const u8, std::mem::size_of::<CameraUbo>()),
-            1 => (&self.text_paint_ubo as *const TextPaintUbo as *const u8, std::mem::size_of::<TextPaintUbo>()),
+            0 => (&self.terrain_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
+            1 => (&self.river_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
+            2 => (&self.text_paint_ubo as *const TextPaintUbo as *const u8, std::mem::size_of::<TextPaintUbo>()),
             _ => panic!("Cannot get UBO for SceneryScene")
         }
     }
