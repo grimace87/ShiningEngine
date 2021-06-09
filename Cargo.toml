@@ -10,5 +10,5 @@ members = [
     "examples/menu"
 ]
 default-members = [
-    "examples/scenery"
+    "examples/menu"
 ]

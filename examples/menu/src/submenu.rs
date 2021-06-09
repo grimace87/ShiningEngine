@@ -1,5 +1,5 @@
 
-use defs::{Camera, SceneInfo, SceneManager, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep, Control};
+use defs::{Camera, SceneInfo, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep, Control};
 use engine::{
     camera::null::NullCamera,
     util::{

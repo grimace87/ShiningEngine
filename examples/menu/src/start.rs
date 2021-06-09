@@ -1,7 +1,7 @@
 
 use crate::submenu::SubMenuScene;
 
-use defs::{Camera, SceneInfo, SceneManager, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep, Control};
+use defs::{SceneInfo, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep, Control};
 use engine::util::{
     TextureCodec,
     decode_texture,
@@ -10,7 +10,6 @@ use engine::util::{
 };
 
 use cgmath::{Matrix4, Vector4, SquareMatrix};
-use engine::Engine;
 
 const MENU_TEXTURE_BYTES: &[u8] = include_bytes!("../../resources/textures/menu_texture.png");
 const MUSICA_FONT_BYTES: &[u8] = include_bytes!("../../resources/textures/Musica.png");
@@ -108,7 +107,7 @@ impl SceneInfo for StartMenuScene {
     fn update_aspect_ratio(&mut self, _aspect_ratio: f32) {}
 
     fn update_camera(&mut self, _time_step_millis: u64, _controller: &dyn Control) -> Option<Box<dyn SceneInfo>> {
-        let red = 0.5 + 0.5 * matrix.x.x;
+        let red: f32 = 1.0;
         self.text_paint_ubo.paint_color.x = red;
         self.text_paint_ubo.paint_color.z = 1.0 - red;
 
