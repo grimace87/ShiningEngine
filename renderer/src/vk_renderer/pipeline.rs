@@ -6,7 +6,7 @@ use crate::vk_renderer::{
     images::ImageWrapper
 };
 
-use defs::{DrawingPass, Shader, VertexFormat};
+use defs::{DrawingStep, Shader, VertexFormat};
 
 use ash::{
     vk,
@@ -64,7 +64,7 @@ impl PipelineWrapper {
         }
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass) -> Result<(), String> {
+    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingStep) -> Result<(), String> {
 
         // Make shader modules
         let vertex_shader_create_info = vk::ShaderModuleCreateInfo::builder()

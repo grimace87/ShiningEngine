@@ -22,16 +22,6 @@ pub enum VertexFormat {
     PositionNormalTexture
 }
 
-pub enum PostStep {
-    Nothing
-}
-
-impl Default for PostStep {
-    fn default() -> Self {
-        PostStep::Nothing
-    }
-}
-
 pub enum KeyCode {
     Unknown,
     Left,
@@ -66,6 +56,10 @@ pub trait RendererApi {
     fn get_aspect_ratio(&self) -> f32;
 }
 
+pub enum FramebufferTarget {
+    DefaultFramebuffer
+}
+
 pub struct DecodedTexture {
     pub data: Vec<u8>,
     pub width: u32,
@@ -73,7 +67,7 @@ pub struct DecodedTexture {
     pub format: TexturePixelFormat
 }
 
-pub struct DrawingPass {
+pub struct DrawingStep {
     pub shader: Shader,
     pub vertex_format: VertexFormat,
     pub vertex_data: Vec<StaticVertex>,
@@ -84,10 +78,14 @@ pub struct DrawingPass {
     pub depth_test: bool
 }
 
+pub struct DrawingPass {
+    pub target: FramebufferTarget,
+    pub steps: Vec<DrawingStep>
+}
+
 #[derive(Default)]
 pub struct DrawingDescription {
-    pub passes: Vec<DrawingPass>,
-    pub post_step: PostStep
+    pub passes: Vec<DrawingPass>
 }
 
 pub trait SceneManager {

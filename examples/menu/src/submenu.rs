@@ -1,5 +1,5 @@
 
-use defs::{Camera, SceneInfo, DrawingDescription, DrawingPass, Shader, VertexFormat, PostStep, Control};
+use defs::{Camera, SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, Control};
 use engine::{
     camera::null::NullCamera,
     util::{
@@ -81,27 +81,31 @@ impl SceneInfo for SubMenuScene {
         DrawingDescription {
             passes: vec![
                 DrawingPass {
-                    shader: Shader::PlainPnt,
-                    vertex_format: VertexFormat::PositionNormalTexture,
-                    vertex_data: menu_model_data,
-                    vertex_count: menu_vertex_count,
-                    draw_indexed: false,
-                    index_data: None,
-                    texture: menu_texture,
-                    depth_test: true
-                },
-                DrawingPass {
-                    shader: Shader::Text,
-                    vertex_format: VertexFormat::PositionNormalTexture,
-                    vertex_data: hud_data,
-                    vertex_count: hud_data_size,
-                    draw_indexed: false,
-                    index_data: None,
-                    texture: font_texture,
-                    depth_test: true
+                    target: FramebufferTarget::DefaultFramebuffer,
+                    steps: vec![
+                        DrawingStep {
+                            shader: Shader::PlainPnt,
+                            vertex_format: VertexFormat::PositionNormalTexture,
+                            vertex_data: menu_model_data,
+                            vertex_count: menu_vertex_count,
+                            draw_indexed: false,
+                            index_data: None,
+                            texture: menu_texture,
+                            depth_test: true
+                        },
+                        DrawingStep {
+                            shader: Shader::Text,
+                            vertex_format: VertexFormat::PositionNormalTexture,
+                            vertex_data: hud_data,
+                            vertex_count: hud_data_size,
+                            draw_indexed: false,
+                            index_data: None,
+                            texture: font_texture,
+                            depth_test: true
+                        }
+                    ]
                 }
-            ],
-            post_step: PostStep::Nothing
+            ]
         }
     }
 

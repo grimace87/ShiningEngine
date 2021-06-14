@@ -21,7 +21,11 @@ impl PipelineSet {
 
     pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingDescription) -> Result<PipelineSet, String> {
 
-        let pipelines = description.passes
+        // TODO - Don't use 'final_pass'.
+        // TODO - Support multiple passes using non-default framebuffers
+        // TODO - Make sure passes are then properly synchronised
+        let final_pass = &description.passes[0];
+        let pipelines = final_pass.steps
             .iter()
             .map(|_description| PipelineWrapper::new().unwrap())
             .collect();
@@ -43,8 +47,9 @@ impl PipelineSet {
 
     pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingDescription) -> Result<(), String> {
 
+        let final_pass = &description.passes[0];
         for (i, pipeline) in self.pipelines.iter_mut().enumerate() {
-            pipeline.create_resources(render_core, renderpass_wrapper, &description.passes[i])?;
+            pipeline.create_resources(render_core, renderpass_wrapper, &final_pass.steps[i])?;
         }
 
         // Allocate and record command buffers
