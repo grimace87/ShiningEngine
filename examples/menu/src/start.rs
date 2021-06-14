@@ -1,7 +1,7 @@
 
 use crate::submenu::SubMenuScene;
 
-use defs::{SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, Control};
+use defs::{SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, Control, VboCreationData, TextureCreationData, ResourcePreloads};
 use engine::util::{
     TextureCodec,
     decode_texture,
@@ -10,9 +10,16 @@ use engine::util::{
 };
 
 use cgmath::{Matrix4, Vector4, SquareMatrix};
+use std::collections::HashMap;
 
 const MENU_TEXTURE_BYTES: &[u8] = include_bytes!("../../resources/textures/menu_texture.png");
 const MUSICA_FONT_BYTES: &[u8] = include_bytes!("../../resources/textures/Musica.png");
+
+const VBO_INDEX_BG: usize = 0;
+const VBO_INDEX_HUD: usize = 1;
+
+const TEXTURE_INDEX_BG: usize = 0;
+const TEXTURE_INDEX_FONT: usize = 1;
 
 #[repr(C)]
 struct CameraUbo {
@@ -52,7 +59,7 @@ impl StartMenuScene {
 
 impl SceneInfo for StartMenuScene {
 
-    fn make_description(&self) -> DrawingDescription {
+    fn make_preloads(&self) -> ResourcePreloads {
 
         let (menu_model_data, menu_vertex_count) = {
             let float_data = map_ui_rects(vec![
@@ -63,9 +70,6 @@ impl SceneInfo for StartMenuScene {
             (float_data, vertex_count)
         };
 
-        let menu_texture = decode_texture(MENU_TEXTURE_BYTES, TextureCodec::Png).unwrap();
-        let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
-
         let hud_data = self.text_generator.generate_vertex_buffer(
             "Ey, mate",
             -1.0,
@@ -75,8 +79,38 @@ impl SceneInfo for StartMenuScene {
             0.125,
             TextAlignment::Start,
             TextAlignment::Start);
-        let hud_data_size = hud_data.len();
+        let hud_data_vertex_count = hud_data.len();
 
+        let mut vbo_loads = HashMap::<usize, VboCreationData>::new();
+        vbo_loads.insert(VBO_INDEX_BG, VboCreationData {
+            vertex_format: VertexFormat::PositionNormalTexture,
+            vertex_data: menu_model_data,
+            vertex_count: menu_vertex_count,
+            draw_indexed: false,
+            index_data: None
+        });
+        vbo_loads.insert(VBO_INDEX_HUD, VboCreationData {
+            vertex_format: VertexFormat::PositionNormalTexture,
+            vertex_data: hud_data,
+            vertex_count: hud_data_vertex_count,
+            draw_indexed: false,
+            index_data: None
+        });
+
+        let menu_texture = decode_texture(MENU_TEXTURE_BYTES, TextureCodec::Png).unwrap();
+        let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
+        let mut texture_loads = HashMap::<usize, TextureCreationData>::new();
+        texture_loads.insert(TEXTURE_INDEX_BG, menu_texture);
+        texture_loads.insert(TEXTURE_INDEX_FONT, font_texture);
+
+        ResourcePreloads {
+            vbo_preloads: vbo_loads,
+            texture_preloads: texture_loads,
+            framebuffer_preloads: HashMap::new()
+        }
+    }
+
+    fn make_description(&self) -> DrawingDescription {
         DrawingDescription {
             passes: vec![
                 DrawingPass {
@@ -84,22 +118,18 @@ impl SceneInfo for StartMenuScene {
                     steps: vec![
                         DrawingStep {
                             shader: Shader::PlainPnt,
-                            vertex_format: VertexFormat::PositionNormalTexture,
-                            vertex_data: menu_model_data,
-                            vertex_count: menu_vertex_count,
+                            vbo_index: VBO_INDEX_BG,
+                            vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            index_data: None,
-                            texture: menu_texture,
+                            texture_index: TEXTURE_INDEX_BG,
                             depth_test: true
                         },
                         DrawingStep {
                             shader: Shader::Text,
-                            vertex_format: VertexFormat::PositionNormalTexture,
-                            vertex_data: hud_data,
-                            vertex_count: hud_data_size,
+                            vbo_index: VBO_INDEX_HUD,
+                            vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            index_data: None,
-                            texture: font_texture,
+                            texture_index: TEXTURE_INDEX_FONT,
                             depth_test: true
                         }
                     ]

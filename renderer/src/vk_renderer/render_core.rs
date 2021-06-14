@@ -1,7 +1,7 @@
 
 use crate::vk_renderer::images::ImageWrapper;
 
-use defs::PresentResult;
+use defs::{PresentResult, ResourcePreloads, VertexFormat};
 
 use std::{
     ffi::CString,
@@ -20,6 +20,8 @@ use ash::{
 };
 use vk_mem::AllocatorCreateFlags;
 use raw_window_handle::HasRawWindowHandle;
+use std::collections::HashMap;
+use crate::vk_renderer::buffers::BufferWrapper;
 
 pub const PROJ_VK_SWAPCHAIN_SIZE: usize = 2;
 
@@ -65,7 +67,9 @@ pub struct RenderCore {
     swapchain_fn: Swapchain,
     swapchain: vk::SwapchainKHR,
     pub image_views: Vec<vk::ImageView>,
-    depth_image: Option<ImageWrapper>
+    depth_image: Option<ImageWrapper>,
+    vbo_objects: HashMap<usize, (usize, BufferWrapper)>,
+    texture_objects: HashMap<usize, ImageWrapper>
 }
 
 impl Drop for RenderCore {
@@ -83,6 +87,7 @@ impl Drop for RenderCore {
             }
             self.device.destroy_command_pool(self.transfer_command_buffer_pool, None);
             self.device.destroy_command_pool(self.graphics_command_buffer_pool, None);
+            self.destroy_all_resources();
             self.mem_allocator.destroy();
             self.device.destroy_device(None);
             self.debug_utils.destroy_debug_utils_messenger(self.utils_messenger, None);
@@ -93,10 +98,11 @@ impl Drop for RenderCore {
 
 impl RenderCore {
 
-    pub fn new(entry: &Entry, window_owner: &dyn HasRawWindowHandle) -> Result<RenderCore, String> {
+    pub fn new(entry: &Entry, window_owner: &dyn HasRawWindowHandle, resource_preloads: &ResourcePreloads) -> Result<RenderCore, String> {
         Ok(unsafe {
             let mut core = Self::new_without_swapchain(entry, window_owner)?;
             core.create_swapchain(entry, window_owner)?;
+            core.load_new_resources(resource_preloads).unwrap();
             core
         })
     }
@@ -296,9 +302,66 @@ impl RenderCore {
                 swapchain_fn,
                 swapchain: vk::SwapchainKHR::null(),
                 image_views: vec![],
-                depth_image: None
+                depth_image: None,
+                vbo_objects: HashMap::new(),
+                texture_objects: HashMap::new()
             }
         )
+    }
+
+    pub unsafe fn load_new_resources(&mut self, resource_preloads: &ResourcePreloads) -> Result<(), String> {
+
+        // VBOs
+        for (vbo_index, creation_data) in resource_preloads.vbo_preloads.iter() {
+            let vertex_size_bytes: usize = match creation_data.vertex_format {
+                VertexFormat::PositionNormalTexture => 32
+            };
+            let buffer = {
+                let mut buffer = BufferWrapper::new_vertex_buffer(
+                    &self.mem_allocator,
+                    creation_data.vertex_count * vertex_size_bytes)?;
+                buffer.update_from_vec(&self.mem_allocator, &creation_data.vertex_data)?;
+                buffer
+            };
+            self.vbo_objects.insert(*vbo_index, (creation_data.vertex_count, buffer));
+        }
+
+        // Textures
+        for (texture_index, creation_data) in resource_preloads.texture_preloads.iter() {
+            let texture = ImageWrapper::new_initialised_texture_image_rgba(
+                self,
+                creation_data.width,
+                creation_data.height,
+                &creation_data.data)?;
+            self.texture_objects.insert(*texture_index, texture);
+        }
+
+        // TODO - Framebuffers
+
+        Ok(())
+    }
+
+    unsafe fn destroy_all_resources(&mut self) {
+        for (_key, (_, buffer)) in self.vbo_objects.iter() {
+            buffer.destroy(&self.mem_allocator).unwrap();
+        }
+        for (_key, image) in self.texture_objects.iter() {
+            image.destroy(&self.device, &self.mem_allocator).unwrap();
+        }
+    }
+
+    pub unsafe fn query_vbo(&self, index: usize) -> Result<(usize, vk::Buffer), String> {
+        match self.vbo_objects.get(&index) {
+            Some((vertex_count, buffer)) => Ok((*vertex_count, buffer.buffer)),
+            None => Err(String::from("Queried VBO that is not loaded"))
+        }
+    }
+
+    pub unsafe fn query_texture(&self, index: usize) -> Result<vk::ImageView, String> {
+        match self.texture_objects.get(&index) {
+            Some(texture) => Ok(texture.image_view),
+            None => Err(String::from("Queried texture that is not loaded"))
+        }
     }
 
     pub unsafe fn destroy_swapchain(&mut self) {

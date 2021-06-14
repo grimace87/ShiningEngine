@@ -3,6 +3,7 @@ use model::factory::StaticVertex;
 
 use raw_window_handle::HasRawWindowHandle;
 use cgmath::Matrix4;
+use std::collections::HashMap;
 
 pub enum PresentResult {
     Ok,
@@ -15,6 +16,10 @@ pub enum Shader {
 }
 
 pub enum TexturePixelFormat {
+    RGBA
+}
+
+pub enum FramebufferFormat {
     RGBA
 }
 
@@ -49,32 +54,45 @@ pub trait Camera {
 }
 
 pub trait RendererApi {
-    fn new(window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<Self, String> where Self : Sized;
+    fn new(window_owner: &dyn HasRawWindowHandle, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<Self, String> where Self : Sized;
     fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, String>;
     fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String>;
-    fn recreate_scene_resources(&mut self, description: &DrawingDescription) -> Result<(), String>;
+    fn recreate_scene_resources(&mut self, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<(), String>;
     fn get_aspect_ratio(&self) -> f32;
 }
 
 pub enum FramebufferTarget {
-    DefaultFramebuffer
+    DefaultFramebuffer,
+    Texture
 }
 
-pub struct DecodedTexture {
+pub struct VboCreationData {
+    pub vertex_format: VertexFormat,
+    pub vertex_data: Vec<StaticVertex>,
+    pub vertex_count: usize,
+    pub draw_indexed: bool,
+    pub index_data: Option<Vec<u16>>
+}
+
+pub struct TextureCreationData {
     pub data: Vec<u8>,
     pub width: u32,
     pub height: u32,
     pub format: TexturePixelFormat
 }
 
+pub struct FramebufferCreationData {
+    pub width: usize,
+    pub height: usize,
+    pub format: FramebufferFormat
+}
+
 pub struct DrawingStep {
     pub shader: Shader,
-    pub vertex_format: VertexFormat,
-    pub vertex_data: Vec<StaticVertex>,
-    pub vertex_count: usize,
+    pub vbo_index: usize,
+    pub vbo_format: VertexFormat,
     pub draw_indexed: bool,
-    pub index_data: Option<Vec<u16>>,
-    pub texture: DecodedTexture,
+    pub texture_index: usize,
     pub depth_test: bool
 }
 
@@ -88,11 +106,18 @@ pub struct DrawingDescription {
     pub passes: Vec<DrawingPass>
 }
 
+pub struct ResourcePreloads {
+    pub vbo_preloads: HashMap<usize, VboCreationData>,
+    pub texture_preloads: HashMap<usize, TextureCreationData>,
+    pub framebuffer_preloads: HashMap<usize, FramebufferCreationData>
+}
+
 pub trait SceneManager {
     fn queue_scene(&self, new_scene: Box<dyn SceneInfo>);
 }
 
 pub trait SceneInfo {
+    fn make_preloads(&self) -> ResourcePreloads;
     fn make_description(&self) -> DrawingDescription;
     fn update_aspect_ratio(&mut self, aspect_ratio: f32);
     fn update_camera(&mut self, time_step_millis: u64, controller: &dyn Control) -> Option<Box<dyn SceneInfo>>;

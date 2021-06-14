@@ -12,7 +12,7 @@ use self::{
     pipeline_set::PipelineSet
 };
 
-use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo};
+use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, ResourcePreloads};
 
 use ash::Entry;
 use raw_window_handle::HasRawWindowHandle;
@@ -32,11 +32,11 @@ impl RendererApi for VkRenderer {
     /// - DrawingPass.depth_test being false
     /// - DrawingDescription.post_step
 
-    fn new(window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<Self, String> {
+    fn new(window_owner: &dyn HasRawWindowHandle, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<Self, String> {
         let entry = unsafe {
             Entry::new().map_err(|e| format!("Entry creation failed: {:?}", e))?
         };
-        let render_core = RenderCore::new(&entry, window_owner)?;
+        let render_core = RenderCore::new(&entry, window_owner, resource_preloads)?;
         let renderpass = RenderpassWrapper::new(&render_core)?;
         let pipelines = PipelineSet::new(&render_core, &renderpass, description)?;
 
@@ -60,6 +60,7 @@ impl RendererApi for VkRenderer {
 
     fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String> {
         self.render_core.wait_until_idle().unwrap();
+
         self.pipelines.destroy_resources(&self.render_core);
         self.renderpass.destroy_resources(&self.render_core);
         unsafe {
@@ -71,8 +72,12 @@ impl RendererApi for VkRenderer {
         Ok(())
     }
 
-    fn recreate_scene_resources(&mut self, description: &DrawingDescription) -> Result<(), String> {
+    fn recreate_scene_resources(&mut self, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<(), String> {
         self.render_core.wait_until_idle().unwrap();
+        unsafe {
+            self.render_core.load_new_resources(resource_preloads).unwrap();
+        }
+
         self.pipelines.destroy_resources(&self.render_core);
         self.renderpass.destroy_resources(&self.render_core);
         unsafe {

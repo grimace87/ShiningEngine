@@ -1,5 +1,5 @@
 
-use defs::{Camera, SceneInfo, DrawingDescription, DrawingPass, DrawingStep, Shader, VertexFormat, Control, FramebufferTarget};
+use defs::{Camera, SceneInfo, DrawingDescription, DrawingPass, DrawingStep, Shader, VertexFormat, Control, FramebufferTarget, ResourcePreloads, VboCreationData, TextureCreationData};
 use engine::{
     camera::player::PlayerCamera,
     util::{
@@ -11,12 +11,19 @@ use engine::{
 };
 
 use cgmath::{Matrix4, Vector4, SquareMatrix, Vector3};
+use std::collections::HashMap;
 
 const MENU_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\SceneTerrain.mdl"));
 const RIVER_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\River.mdl"));
-const FACES_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\Grimace.mdl"));
 const TERRAIN_TEXTURE_BYTES: &[u8] = include_bytes!("../../resources/textures/simple_outdoor_texture.jpg");
 const MUSICA_FONT_BYTES: &[u8] = include_bytes!("../../resources/textures/Musica.png");
+
+const VBO_INDEX_SCENE: usize = 0;
+const VBO_INDEX_RIVER: usize = 1;
+const VBO_INDEX_HUD: usize = 2;
+
+const TEXTURE_INDEX_TERRAIN: usize = 0;
+const TEXTURE_INDEX_FONT: usize = 1;
 
 #[repr(C)]
 struct MvpUbo {
@@ -62,18 +69,10 @@ impl SceneryScene {
 
 impl SceneInfo for SceneryScene {
 
-    fn make_description(&self) -> DrawingDescription {
+    fn make_preloads(&self) -> ResourcePreloads {
 
         let (scene_model_data, scene_vertex_count) = decode_model(MENU_MODEL_BYTES);
         let (river_model_data, river_vertex_count) = decode_model(RIVER_MODEL_BYTES);
-
-        // TODO - Something?
-        let (_face_model_data, _face_vertex_count) = decode_model(FACES_MODEL_BYTES);
-
-        // TODO - Share textures between passes
-        let scene_texture = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg).unwrap();
-        let scene_texture_again = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg).unwrap();
-        let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
 
         let hud_data = self.text_generator.generate_vertex_buffer(
             "Ey, mate",
@@ -84,8 +83,45 @@ impl SceneInfo for SceneryScene {
             0.125,
             TextAlignment::Start,
             TextAlignment::Start);
-        let hud_data_size = hud_data.len();
+        let hud_data_vertex_count = hud_data.len();
 
+        let mut vbo_loads = HashMap::<usize, VboCreationData>::new();
+        vbo_loads.insert(VBO_INDEX_SCENE, VboCreationData {
+            vertex_format: VertexFormat::PositionNormalTexture,
+            vertex_data: scene_model_data,
+            vertex_count: scene_vertex_count,
+            draw_indexed: false,
+            index_data: None
+        });
+        vbo_loads.insert(VBO_INDEX_RIVER, VboCreationData {
+            vertex_format: VertexFormat::PositionNormalTexture,
+            vertex_data: river_model_data,
+            vertex_count: river_vertex_count,
+            draw_indexed: false,
+            index_data: None
+        });
+        vbo_loads.insert(VBO_INDEX_HUD, VboCreationData {
+            vertex_format: VertexFormat::PositionNormalTexture,
+            vertex_data: hud_data,
+            vertex_count: hud_data_vertex_count,
+            draw_indexed: false,
+            index_data: None
+        });
+
+        let scene_texture = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg).unwrap();
+        let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
+        let mut texture_loads = HashMap::<usize, TextureCreationData>::new();
+        texture_loads.insert(TEXTURE_INDEX_TERRAIN, scene_texture);
+        texture_loads.insert(TEXTURE_INDEX_FONT, font_texture);
+
+        ResourcePreloads {
+            vbo_preloads: vbo_loads,
+            texture_preloads: texture_loads,
+            framebuffer_preloads: HashMap::new()
+        }
+    }
+
+    fn make_description(&self) -> DrawingDescription {
         DrawingDescription {
             passes: vec![
                 DrawingPass {
@@ -93,32 +129,26 @@ impl SceneInfo for SceneryScene {
                     steps: vec![
                         DrawingStep {
                             shader: Shader::PlainPnt,
-                            vertex_format: VertexFormat::PositionNormalTexture,
-                            vertex_data: scene_model_data,
-                            vertex_count: scene_vertex_count,
+                            vbo_index: VBO_INDEX_SCENE,
+                            vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            index_data: None,
-                            texture: scene_texture,
+                            texture_index: TEXTURE_INDEX_TERRAIN,
                             depth_test: true
                         },
                         DrawingStep {
                             shader: Shader::PlainPnt,
-                            vertex_format: VertexFormat::PositionNormalTexture,
-                            vertex_data: river_model_data,
-                            vertex_count: river_vertex_count,
+                            vbo_index: VBO_INDEX_RIVER,
+                            vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            index_data: None,
-                            texture: scene_texture_again,
+                            texture_index: TEXTURE_INDEX_TERRAIN,
                             depth_test: true
                         },
                         DrawingStep {
                             shader: Shader::Text,
-                            vertex_format: VertexFormat::PositionNormalTexture,
-                            vertex_data: hud_data,
-                            vertex_count: hud_data_size,
+                            vbo_index: VBO_INDEX_HUD,
+                            vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            index_data: None,
-                            texture: font_texture,
+                            texture_index: TEXTURE_INDEX_FONT,
                             depth_test: true
                         }
                     ]

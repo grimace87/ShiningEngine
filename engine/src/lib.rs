@@ -47,8 +47,9 @@ impl<R: 'static> Engine<R> where R : RendererApi {
 
     pub fn initialise(&mut self, window_owner: &dyn HasRawWindowHandle) {
 
+        let resource_preloads = self.scene_host.get_current().make_preloads();
         let description = self.scene_host.get_current().make_description();
-        let renderer = R::new(window_owner, &description).unwrap();
+        let renderer = R::new(window_owner, &resource_preloads, &description).unwrap();
         let aspect_ratio = renderer.get_aspect_ratio();
         self.scene_host.update_aspect_ratio(aspect_ratio);
 
@@ -86,8 +87,9 @@ impl<R: 'static> Engine<R> where R : RendererApi {
         }
 
         if self.scene_host.drain_queue() {
+            let resource_preloads = self.scene_host.get_current().make_preloads();
             let description = self.scene_host.get_current().make_description();
-            self.renderer.recreate_scene_resources(&description).unwrap();
+            self.renderer.recreate_scene_resources(&resource_preloads, &description).unwrap();
         }
     }
 

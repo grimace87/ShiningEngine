@@ -1,7 +1,7 @@
 
 pub mod textbuffer;
 
-use defs::{TexturePixelFormat, DecodedTexture};
+use defs::{TexturePixelFormat, TextureCreationData};
 use model::factory::{Model, StaticVertex};
 
 use image::{
@@ -17,7 +17,7 @@ pub enum TextureCodec {
     Png
 }
 
-pub fn decode_texture(image_file_bytes: &[u8], codec: TextureCodec) -> Result<DecodedTexture, String> {
+pub fn decode_texture(image_file_bytes: &[u8], codec: TextureCodec) -> Result<TextureCreationData, String> {
     let (data, width, height) = match codec {
         TextureCodec::Jpeg => {
             let src_cursor = Cursor::new(image_file_bytes.to_vec());
@@ -36,7 +36,7 @@ pub fn decode_texture(image_file_bytes: &[u8], codec: TextureCodec) -> Result<De
             (image_data_rgba.to_vec(), image_data_rgba.width(), image_data_rgba.height())
         }
     };
-    Ok(DecodedTexture {
+    Ok(TextureCreationData {
         data,
         width,
         height,

@@ -2,8 +2,7 @@
 use crate::vk_renderer::{
     RenderCore,
     buffers::BufferWrapper,
-    renderpass::RenderpassWrapper,
-    images::ImageWrapper
+    renderpass::RenderpassWrapper
 };
 
 use defs::{DrawingStep, Shader, VertexFormat};
@@ -17,16 +16,16 @@ use std::ffi::CString;
 pub struct PipelineWrapper {
     vertex_shader_module: vk::ShaderModule,
     fragment_shader_module: vk::ShaderModule,
-    vertex_buffer: BufferWrapper,
+    vertex_buffer: vk::Buffer,
+    vertex_count: usize,
     uniform_buffer: BufferWrapper,
-    terrain_texture: ImageWrapper,
+    texture_image_view: vk::ImageView,
     sampler: vk::Sampler,
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
     descriptor_sets: Vec<vk::DescriptorSet>,
     pipeline_layout: vk::PipelineLayout,
-    pipeline: vk::Pipeline,
-    vertex_count: usize
+    pipeline: vk::Pipeline
 }
 
 impl PipelineWrapper {
@@ -35,16 +34,16 @@ impl PipelineWrapper {
         Ok(PipelineWrapper {
             vertex_shader_module: vk::ShaderModule::null(),
             fragment_shader_module: vk::ShaderModule::null(),
-            vertex_buffer: BufferWrapper::empty(),
+            vertex_buffer: vk::Buffer::null(),
+            vertex_count: 0,
             uniform_buffer: BufferWrapper::empty(),
-            terrain_texture: ImageWrapper::empty(),
+            texture_image_view: vk::ImageView::null(),
             sampler: vk::Sampler::null(),
             descriptor_set_layout: vk::DescriptorSetLayout::null(),
             descriptor_pool: vk::DescriptorPool::null(),
             descriptor_sets: vec![],
             pipeline_layout: vk::PipelineLayout::null(),
-            pipeline: vk::Pipeline::null(),
-            vertex_count: 0
+            pipeline: vk::Pipeline::null()
         })
     }
 
@@ -57,8 +56,6 @@ impl PipelineWrapper {
             render_core.device.destroy_descriptor_pool(self.descriptor_pool, None);
             render_core.device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
             render_core.device.destroy_sampler(self.sampler, None);
-            self.terrain_texture.destroy(&render_core.device, allocator).unwrap();
-            self.vertex_buffer.destroy(allocator).unwrap();
             render_core.device.destroy_shader_module(self.fragment_shader_module, None);
             render_core.device.destroy_shader_module(self.vertex_shader_module, None);
         }
@@ -95,16 +92,9 @@ impl PipelineWrapper {
         let shader_stages = vec![vertex_shader_stage.build(), fragment_shader_stage.build()];
 
         // Vertex buffer
-        let vertex_size_bytes: usize = match description.vertex_format {
+        let (vbo_vertex_count, vbo_handle) = render_core.query_vbo(description.vbo_index)?;
+        let vertex_size_bytes: usize = match description.vbo_format {
             VertexFormat::PositionNormalTexture => 32
-        };
-        let (vertex_buffer, vertex_count) = {
-            let allocator = render_core.get_mem_allocator();
-            let mut buffer = BufferWrapper::new_vertex_buffer(
-                allocator,
-                description.vertex_count * vertex_size_bytes)?;
-            buffer.update_from_vec(allocator, &description.vertex_data)?;
-            (buffer, description.vertex_count)
         };
 
         // Vertex input configuration
@@ -156,12 +146,8 @@ impl PipelineWrapper {
             buffer
         };
 
-        // Load texture image
-        let terrain_texture = ImageWrapper::new_initialised_texture_image_rgba(
-            &render_core,
-            description.texture.width,
-            description.texture.height,
-            &description.texture.data)?;
+        // Texture image
+        let texture_image_view = render_core.query_texture(description.texture_index)?;
 
         // Sampler
         let sampler_info = vk::SamplerCreateInfo::builder()
@@ -227,7 +213,7 @@ impl PipelineWrapper {
                 range: ubo_size_bytes as u64
             }];
             let image_infos = [vk::DescriptorImageInfo {
-                image_view: terrain_texture.image_view,
+                image_view: texture_image_view,
                 sampler,
                 image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL
             }];
@@ -319,10 +305,10 @@ impl PipelineWrapper {
 
         self.vertex_shader_module = vertex_shader_module;
         self.fragment_shader_module = fragment_shader_module;
-        self.vertex_buffer = vertex_buffer;
-        self.vertex_count = vertex_count;
+        self.vertex_buffer = vbo_handle;
+        self.vertex_count = vbo_vertex_count;
         self.uniform_buffer = uniform_buffer;
-        self.terrain_texture = terrain_texture;
+        self.texture_image_view = texture_image_view;
         self.sampler = sampler;
         self.descriptor_set_layout = descriptor_set_layout;
         self.descriptor_pool = descriptor_pool;
@@ -338,7 +324,7 @@ impl PipelineWrapper {
 
     pub unsafe fn record_commands(&self, command_buffer_index: usize, command_buffer: vk::CommandBuffer, render_core: &RenderCore) -> Result<(), String> {
         render_core.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, self.pipeline);
-        render_core.device.cmd_bind_vertex_buffers(command_buffer, 0, &[self.vertex_buffer.buffer()], &[0]);
+        render_core.device.cmd_bind_vertex_buffers(command_buffer, 0, &[self.vertex_buffer], &[0]);
         render_core.device.cmd_bind_descriptor_sets(command_buffer, vk::PipelineBindPoint::GRAPHICS, self.pipeline_layout, 0, &[self.descriptor_sets[command_buffer_index]], &[]);
         render_core.device.cmd_draw(command_buffer, self.vertex_count as u32, 1, 0, 0);
         Ok(())
