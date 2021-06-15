@@ -52,7 +52,7 @@ impl PipelineSet {
             pipeline.create_resources(render_core, renderpass_wrapper, &final_pass.steps[i])?;
         }
 
-        // Allocate and record command buffers
+        // Allocate and record command buffers - one command buffer per swapchain image
         let command_buffer_count = render_core.image_views.len() as u32;
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::builder()
             .command_pool(render_core.graphics_command_buffer_pool)
@@ -88,8 +88,10 @@ impl PipelineSet {
                 .map_err(|e| format!("{:?}", e))?;
             render_core.device.cmd_begin_render_pass(command_buffer, &renderpass_begin_info, vk::SubpassContents::INLINE);
 
-            self.pipelines[0].record_commands(index, command_buffer, render_core).unwrap();
-            self.pipelines[1].record_commands(index, command_buffer, render_core).unwrap();
+            // Draw calls for each pipeline (one pipeline per drawing step)
+            for pipeline in self.pipelines.iter() {
+                pipeline.record_commands(index, command_buffer, render_core).unwrap();
+            }
 
             render_core.device.cmd_end_render_pass(command_buffer);
             render_core.device.end_command_buffer(command_buffer)
