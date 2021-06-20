@@ -5,7 +5,7 @@ use crate::vk_renderer::{
     pipeline::PipelineWrapper
 };
 
-use defs::{DrawingDescription, SceneInfo};
+use defs::{DrawingPass, SceneInfo};
 
 use ash::{
     vk,
@@ -19,13 +19,9 @@ pub struct PipelineSet {
 
 impl PipelineSet {
 
-    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingDescription) -> Result<PipelineSet, String> {
+    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass) -> Result<PipelineSet, String> {
 
-        // TODO - Don't use 'final_pass'.
-        // TODO - Support multiple passes using non-default framebuffers
-        // TODO - Make sure passes are then properly synchronised
-        let final_pass = &description.passes[0];
-        let pipelines = final_pass.steps
+        let pipelines = description.steps
             .iter()
             .map(|_description| PipelineWrapper::new().unwrap())
             .collect();
@@ -45,11 +41,12 @@ impl PipelineSet {
         }
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingDescription) -> Result<(), String> {
+    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass) -> Result<(), String> {
 
-        let final_pass = &description.passes[0];
+        // TODO - Don't assume this is all for the swapchain; record command buffers that cover all renderpasses
+
         for (i, pipeline) in self.pipelines.iter_mut().enumerate() {
-            pipeline.create_resources(render_core, renderpass_wrapper, &final_pass.steps[i])?;
+            pipeline.create_resources(render_core, renderpass_wrapper, &description.steps[i])?;
         }
 
         // Allocate and record command buffers - one command buffer per swapchain image
@@ -77,7 +74,7 @@ impl PipelineSet {
             ];
             let renderpass_begin_info = vk::RenderPassBeginInfo::builder()
                 .render_pass(renderpass_wrapper.renderpass)
-                .framebuffer(renderpass_wrapper.framebuffers[index])
+                .framebuffer(renderpass_wrapper.swapchain_framebuffers[index])
                 .render_area(vk::Rect2D {
                     offset: vk::Offset2D { x: 0, y: 0 },
                     extent: render_core.get_extent()?

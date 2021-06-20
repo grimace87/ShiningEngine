@@ -336,8 +336,6 @@ impl RenderCore {
             self.texture_objects.insert(*texture_index, texture);
         }
 
-        // TODO - Framebuffers
-
         Ok(())
     }
 

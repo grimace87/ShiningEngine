@@ -16,11 +16,13 @@ pub enum Shader {
 }
 
 pub enum TexturePixelFormat {
+    None,
     RGBA
 }
 
-pub enum FramebufferFormat {
-    RGBA
+pub enum DepthFormat {
+    None,
+    Unorm16
 }
 
 pub enum VertexFormat {
@@ -63,7 +65,7 @@ pub trait RendererApi {
 
 pub enum FramebufferTarget {
     DefaultFramebuffer,
-    Texture
+    Texture(FramebufferCreationData)
 }
 
 pub struct VboCreationData {
@@ -84,7 +86,8 @@ pub struct TextureCreationData {
 pub struct FramebufferCreationData {
     pub width: usize,
     pub height: usize,
-    pub format: FramebufferFormat
+    pub color_format: TexturePixelFormat,
+    pub depth_format: DepthFormat
 }
 
 pub struct DrawingStep {
