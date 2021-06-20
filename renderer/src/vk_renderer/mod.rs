@@ -22,7 +22,7 @@ pub struct VkRenderer {
     function_loader: Entry,
     render_core: RenderCore,
     renderpasses: Vec<RenderpassWrapper>,
-    pipelines: Vec<PipelineSet>
+    renderpass_pipeline_sets: Vec<PipelineSet>
 }
 
 impl RendererApi for VkRenderer {
@@ -35,7 +35,7 @@ impl RendererApi for VkRenderer {
         let renderpasses: Vec<RenderpassWrapper> = description.passes.iter()
             .map(|pass| RenderpassWrapper::new(&render_core, &pass.target).unwrap())
             .collect();
-        let pipelines = description.passes.iter()
+        let renderpass_pipeline_sets = description.passes.iter()
             .enumerate()
             .map(|(i, pass)| PipelineSet::new(&render_core, &renderpasses[i], pass).unwrap())
             .collect();
@@ -44,7 +44,7 @@ impl RendererApi for VkRenderer {
             function_loader: entry,
             render_core,
             renderpasses,
-            pipelines
+            renderpass_pipeline_sets
         })
     }
 
@@ -52,8 +52,8 @@ impl RendererApi for VkRenderer {
     fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, String> {
         unsafe {
             let image_index = self.render_core.acquire_next_image()?;
-            self.pipelines[0].update_uniform_buffer(&mut self.render_core, scene_info).unwrap();
-            let command_buffer = self.pipelines[0].get_command_buffer(image_index);
+            self.renderpass_pipeline_sets[0].update_uniform_buffer(&mut self.render_core, scene_info).unwrap();
+            let command_buffer = self.renderpass_pipeline_sets[0].get_command_buffer(image_index);
             self.render_core.submit_command_buffer(command_buffer)?;
             return self.render_core.present_image();
         }
@@ -62,7 +62,7 @@ impl RendererApi for VkRenderer {
     fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String> {
         self.render_core.wait_until_idle().unwrap();
 
-        for pipeline in self.pipelines.iter_mut() {
+        for pipeline in self.renderpass_pipeline_sets.iter_mut() {
             pipeline.destroy_resources(&self.render_core);
         }
         for renderpass in self.renderpasses.iter_mut() {
@@ -73,7 +73,7 @@ impl RendererApi for VkRenderer {
             self.render_core.create_swapchain(&self.function_loader, window_owner)?;
             for (i, renderpass) in self.renderpasses.iter_mut().enumerate() {
                 renderpass.create_resources(&self.render_core, &description.passes[i].target)?;
-                self.pipelines[i].create_resources(&self.render_core, renderpass, &description.passes[i])?;
+                self.renderpass_pipeline_sets[i].create_resources(&self.render_core, renderpass, &description.passes[i])?;
             }
         }
         Ok(())
@@ -85,7 +85,7 @@ impl RendererApi for VkRenderer {
             self.render_core.load_new_resources(resource_preloads).unwrap();
         }
 
-        for pipeline in self.pipelines.iter_mut() {
+        for pipeline in self.renderpass_pipeline_sets.iter_mut() {
             pipeline.destroy_resources(&self.render_core);
         }
         for renderpass in self.renderpasses.iter_mut() {
@@ -94,7 +94,7 @@ impl RendererApi for VkRenderer {
         unsafe {
             for (i, renderpass) in self.renderpasses.iter_mut().enumerate() {
                 renderpass.create_resources(&self.render_core, &description.passes[i].target)?;
-                self.pipelines[i].create_resources(&self.render_core, renderpass, &description.passes[i])?;
+                self.renderpass_pipeline_sets[i].create_resources(&self.render_core, renderpass, &description.passes[i])?;
             }
         }
         Ok(())
@@ -112,7 +112,7 @@ impl RendererApi for VkRenderer {
 impl Drop for VkRenderer {
     fn drop(&mut self) {
         self.render_core.wait_until_idle().unwrap();
-        for pipeline in self.pipelines.iter_mut() {
+        for pipeline in self.renderpass_pipeline_sets.iter_mut() {
             pipeline.destroy_resources(&self.render_core);
         }
         for renderpass in self.renderpasses.iter_mut() {
