@@ -5,6 +5,7 @@ use ash::{
     vk,
     version::DeviceV1_0
 };
+use crate::vk_renderer::images::ImageWrapper;
 
 pub struct RenderpassWrapper {
     pub renderpass: vk::RenderPass,
@@ -106,6 +107,18 @@ impl RenderpassWrapper {
             .map_err(|e| format!("{:?}", e))?;
 
         // Create framebuffers for the swapchain image views for use in this renderpass
+        let framebuffers = self.create_swapchain_framebuffers(render_core, renderpass, depth_image)?;
+
+        self.renderpass = renderpass;
+        self.framebuffers.clear();
+        for framebuffer in framebuffers.iter() {
+            self.framebuffers.push(*framebuffer);
+        }
+
+        Ok(())
+    }
+
+    unsafe fn create_swapchain_framebuffers(&self, render_core: &RenderCore, renderpass: vk::RenderPass, depth_image: &ImageWrapper) -> Result<Vec<vk::Framebuffer>, String> {
         let extent = render_core.get_extent()?;
         let mut framebuffers = vec![];
         for image_view in render_core.image_views.iter() {
@@ -121,13 +134,6 @@ impl RenderpassWrapper {
                 .map_err(|e| format!("{:?}", e))?;
             framebuffers.push(framebuffer);
         }
-
-        self.renderpass = renderpass;
-        self.framebuffers.clear();
-        for framebuffer in framebuffers.iter() {
-            self.framebuffers.push(*framebuffer);
-        }
-
-        Ok(())
+        Ok(framebuffers)
     }
 }
