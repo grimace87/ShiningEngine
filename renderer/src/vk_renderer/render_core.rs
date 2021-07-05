@@ -130,6 +130,7 @@ impl RenderCore {
             extension_name_pointers.extend(&required_platform_extensions);
 
             // Validation layers
+            // TODO - Check for layer support. This one seemingly not supported by Intel HD 530.
             let layer_names: Vec<CString> = vec![
                 CString::new("VK_LAYER_KHRONOS_validation").unwrap()
             ];
