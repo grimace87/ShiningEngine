@@ -13,7 +13,7 @@ use defs::{FramebufferTarget, FramebufferCreationData, TexturePixelFormat, Depth
 
 pub struct RenderpassWrapper {
     pub renderpass: vk::RenderPass,
-    pub swapchain_framebuffers: Vec<vk::Framebuffer>,
+    pub swapchain_framebuffer: vk::Framebuffer,
     custom_framebuffer: Option<FramebufferWrapper>
 }
 
@@ -21,23 +21,21 @@ pub struct RenderpassWrapper {
 /// if the swapchain is recreated.
 impl RenderpassWrapper {
 
-    pub fn new(render_core: &RenderCore, framebuffer_target: &FramebufferTarget) -> Result<RenderpassWrapper, String> {
+    pub fn new(render_core: &RenderCore, image_index: usize, framebuffer_target: &FramebufferTarget) -> Result<RenderpassWrapper, String> {
         let mut wrapper = RenderpassWrapper {
             renderpass: vk::RenderPass::null(),
-            swapchain_framebuffers: vec![],
+            swapchain_framebuffer: vk::Framebuffer::null(),
             custom_framebuffer: None
         };
         unsafe {
-            wrapper.create_resources(render_core, framebuffer_target)?;
+            wrapper.create_resources(render_core, image_index, framebuffer_target)?;
         }
         Ok(wrapper)
     }
 
     pub fn destroy_resources(&self, render_core: &RenderCore) {
         unsafe {
-            for framebuffer in self.swapchain_framebuffers.iter() {
-                render_core.device.destroy_framebuffer(*framebuffer, None);
-            }
+            render_core.device.destroy_framebuffer(self.swapchain_framebuffer, None);
             if let Some(framebuffer) = self.custom_framebuffer.as_ref() {
                 render_core.device.destroy_framebuffer(framebuffer.framebuffer, None);
             }
@@ -45,15 +43,14 @@ impl RenderpassWrapper {
         }
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, framebuffer_target: &FramebufferTarget) -> Result<(), String> {
-        if let FramebufferTarget::Texture(creation_data) = framebuffer_target {
-            self.create_non_final_renderpass_resources(render_core, creation_data)
-        } else {
-            self.create_swapchain_renderpass_resources(render_core)
+    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, image_index: usize, framebuffer_target: &FramebufferTarget) -> Result<(), String> {
+        match framebuffer_target {
+            FramebufferTarget::Texture(creation_data) => self.create_non_final_renderpass_resources(render_core, creation_data),
+            FramebufferTarget::DefaultFramebuffer => self.create_swapchain_renderpass_resources(render_core, image_index)
         }
     }
 
-    unsafe fn create_swapchain_renderpass_resources(&mut self, render_core: &RenderCore) -> Result<(), String> {
+    unsafe fn create_swapchain_renderpass_resources(&mut self, render_core: &RenderCore, image_index: usize) -> Result<(), String> {
 
         let depth_image = match render_core.get_depth_image() {
             Some(image) => image,
@@ -124,14 +121,11 @@ impl RenderpassWrapper {
             .map_err(|e| format!("{:?}", e))?;
 
         // Create framebuffers for the swapchain image views for use in this renderpass
-        let framebuffers = self.create_swapchain_framebuffers(render_core, renderpass, depth_image)?;
+        let framebuffer = self.create_swapchain_framebuffer(render_core, image_index, renderpass, depth_image)?;
 
         self.renderpass = renderpass;
-        self.swapchain_framebuffers.clear();
+        self.swapchain_framebuffer = framebuffer;
         self.custom_framebuffer = None;
-        for framebuffer in framebuffers.iter() {
-            self.swapchain_framebuffers.push(*framebuffer);
-        }
 
         Ok(())
     }
@@ -218,28 +212,24 @@ impl RenderpassWrapper {
 
         // Create framebuffers for swapchain image views, or new framebuffers from scratch, for use in this renderpass
         self.renderpass = renderpass;
-        self.swapchain_framebuffers.clear();
+        self.swapchain_framebuffer = vk::Framebuffer::null();
         self.custom_framebuffer = Some(FramebufferWrapper::new_from_config(render_core, renderpass, config)?);
 
         Ok(())
     }
 
-    unsafe fn create_swapchain_framebuffers(&self, render_core: &RenderCore, renderpass: vk::RenderPass, depth_image: &ImageWrapper) -> Result<Vec<vk::Framebuffer>, String> {
+    unsafe fn create_swapchain_framebuffer(&self, render_core: &RenderCore, image_index: usize, renderpass: vk::RenderPass, depth_image: &ImageWrapper) -> Result<vk::Framebuffer, String> {
         let extent = render_core.get_extent()?;
-        let mut framebuffers = vec![];
-        for image_view in render_core.image_views.iter() {
-            let attachments_array = [*image_view, depth_image.image_view];
-            let framebuffer_info = vk::FramebufferCreateInfo::builder()
-                .render_pass(renderpass)
-                .attachments(&attachments_array)
-                .width(extent.width)
-                .height(extent.height)
-                .layers(1);
-            let framebuffer = render_core.device
-                .create_framebuffer(&framebuffer_info, None)
-                .map_err(|e| format!("{:?}", e))?;
-            framebuffers.push(framebuffer);
-        }
-        Ok(framebuffers)
+        let attachments_array = [render_core.image_views[image_index], depth_image.image_view];
+        let framebuffer_info = vk::FramebufferCreateInfo::builder()
+            .render_pass(renderpass)
+            .attachments(&attachments_array)
+            .width(extent.width)
+            .height(extent.height)
+            .layers(1);
+        let framebuffer = render_core.device
+            .create_framebuffer(&framebuffer_info, None)
+            .map_err(|e| format!("{:?}", e))?;
+        Ok(framebuffer)
     }
 }

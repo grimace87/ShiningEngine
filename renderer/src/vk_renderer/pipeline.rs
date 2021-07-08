@@ -23,7 +23,7 @@ pub struct PipelineWrapper {
     sampler: vk::Sampler,
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
-    descriptor_sets: Vec<vk::DescriptorSet>,
+    descriptor_set: vk::DescriptorSet,
     pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline
 }
@@ -41,7 +41,7 @@ impl PipelineWrapper {
             sampler: vk::Sampler::null(),
             descriptor_set_layout: vk::DescriptorSetLayout::null(),
             descriptor_pool: vk::DescriptorPool::null(),
-            descriptor_sets: vec![],
+            descriptor_set: vk::DescriptorSet::null(),
             pipeline_layout: vk::PipelineLayout::null(),
             pipeline: vk::Pipeline::null()
         })
@@ -184,56 +184,55 @@ impl PipelineWrapper {
         let pool_sizes = [
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: render_core.image_views.len() as u32
+                descriptor_count: 1
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: render_core.image_views.len() as u32
+                descriptor_count: 1
             }
         ];
         let descriptor_pool_info = vk::DescriptorPoolCreateInfo::builder()
-            .max_sets(render_core.image_views.len() as u32)
+            .max_sets(1)
             .pool_sizes(&pool_sizes);
         let descriptor_pool = render_core.device
             .create_descriptor_pool(&descriptor_pool_info, None)
             .map_err(|e| format!("Error creating descriptor pool: {:?}", e))?;
-        let descriptor_layouts = vec![descriptor_set_layout; render_core.image_views.len()];
+        let descriptor_layouts = vec![descriptor_set_layout];
         let descriptor_set_alloc_info = vk::DescriptorSetAllocateInfo::builder()
             .descriptor_pool(descriptor_pool)
             .set_layouts(&descriptor_layouts);
-        let descriptor_sets = render_core.device
+        let descriptor_set = render_core.device
             .allocate_descriptor_sets(&descriptor_set_alloc_info)
-            .map_err(|e| format!("Failed allocating descriptor sets: {:?}", e))?;
+            .map_err(|e| format!("Failed allocating descriptor sets: {:?}", e))?
+            [0];
 
         // Descriptor bindings
-        for (_i, descriptor_set) in descriptor_sets.iter().enumerate() {
-            let buffer_infos = [vk::DescriptorBufferInfo {
-                buffer: uniform_buffer.buffer(),
-                offset: 0,
-                range: ubo_size_bytes as u64
-            }];
-            let image_infos = [vk::DescriptorImageInfo {
-                image_view: texture_image_view,
-                sampler,
-                image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL
-            }];
-            let descriptor_set_writes = [
-                vk::WriteDescriptorSet::builder()
-                    .dst_set(*descriptor_set)
-                    .dst_binding(0)
-                    .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-                    .buffer_info(&buffer_infos)
-                    .build(),
-                vk::WriteDescriptorSet::builder()
-                    .dst_set(*descriptor_set)
-                    .dst_binding(1)
-                    .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                    .buffer_info(&buffer_infos)
-                    .image_info(&image_infos)
-                    .build()
-            ];
-            render_core.device.update_descriptor_sets(&descriptor_set_writes, &[]);
-        }
+        let buffer_infos = [vk::DescriptorBufferInfo {
+            buffer: uniform_buffer.buffer(),
+            offset: 0,
+            range: ubo_size_bytes as u64
+        }];
+        let image_infos = [vk::DescriptorImageInfo {
+            image_view: texture_image_view,
+            sampler,
+            image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL
+        }];
+        let descriptor_set_writes = [
+            vk::WriteDescriptorSet::builder()
+                .dst_set(descriptor_set)
+                .dst_binding(0)
+                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+                .buffer_info(&buffer_infos)
+                .build(),
+            vk::WriteDescriptorSet::builder()
+                .dst_set(descriptor_set)
+                .dst_binding(1)
+                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                .buffer_info(&buffer_infos)
+                .image_info(&image_infos)
+                .build()
+        ];
+        render_core.device.update_descriptor_sets(&descriptor_set_writes, &[]);
 
         // Viewport
         let extent = render_core.get_extent()?;
@@ -312,20 +311,17 @@ impl PipelineWrapper {
         self.sampler = sampler;
         self.descriptor_set_layout = descriptor_set_layout;
         self.descriptor_pool = descriptor_pool;
-        self.descriptor_sets.clear();
-        for set in descriptor_sets.iter() {
-            self.descriptor_sets.push(*set);
-        }
+        self.descriptor_set = descriptor_set;
         self.pipeline_layout = pipeline_layout;
         self.pipeline = graphics_pipeline[0];
 
         Ok(())
     }
 
-    pub unsafe fn record_commands(&self, command_buffer_index: usize, command_buffer: vk::CommandBuffer, render_core: &RenderCore) -> Result<(), String> {
+    pub unsafe fn record_commands(&self, command_buffer: vk::CommandBuffer, render_core: &RenderCore) -> Result<(), String> {
         render_core.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, self.pipeline);
         render_core.device.cmd_bind_vertex_buffers(command_buffer, 0, &[self.vertex_buffer], &[0]);
-        render_core.device.cmd_bind_descriptor_sets(command_buffer, vk::PipelineBindPoint::GRAPHICS, self.pipeline_layout, 0, &[self.descriptor_sets[command_buffer_index]], &[]);
+        render_core.device.cmd_bind_descriptor_sets(command_buffer, vk::PipelineBindPoint::GRAPHICS, self.pipeline_layout, 0, &[self.descriptor_set], &[]);
         render_core.device.cmd_draw(command_buffer, self.vertex_count as u32, 1, 0, 0);
         Ok(())
     }

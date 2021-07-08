@@ -6,45 +6,57 @@ mod render_core;
 mod renderpass;
 mod pipeline;
 mod pipeline_set;
+mod per_image_resources;
 
-use self::{
+use crate::vk_renderer::{
     render_core::RenderCore,
-    renderpass::RenderpassWrapper,
-    pipeline_set::PipelineSet
+    per_image_resources::PerImageResources
 };
 
 use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, ResourcePreloads};
 
+use ash::vk;
 use ash::Entry;
 use raw_window_handle::HasRawWindowHandle;
+use ash::version::DeviceV1_0;
 
 pub struct VkRenderer {
     function_loader: Entry,
     render_core: RenderCore,
-    renderpasses: Vec<RenderpassWrapper>,
-    renderpass_pipeline_sets: Vec<PipelineSet>
+    per_image_resources: Vec<PerImageResources>
 }
 
 impl RendererApi for VkRenderer {
 
     fn new(window_owner: &dyn HasRawWindowHandle, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<Self, String> {
+
+        // Vulkan core - instance, device, swapchain, queues, command pools
         let entry = unsafe {
             Entry::new().map_err(|e| format!("Entry creation failed: {:?}", e))?
         };
         let render_core = RenderCore::new(&entry, window_owner, resource_preloads)?;
-        let renderpasses: Vec<RenderpassWrapper> = description.passes.iter()
-            .map(|pass| RenderpassWrapper::new(&render_core, &pass.target).unwrap())
-            .collect();
-        let renderpass_pipeline_sets = description.passes.iter()
-            .enumerate()
-            .map(|(i, pass)| PipelineSet::new(&render_core, &renderpasses[i], pass).unwrap())
-            .collect();
+
+        // Per-swapchain-image resources - command buffers, whatever pipelines, buffers etc. are required
+        let command_buffer_count = render_core.image_views.len() as u32;
+        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::builder()
+            .command_pool(render_core.graphics_command_buffer_pool)
+            .command_buffer_count(command_buffer_count);
+        let command_buffers = unsafe {
+            render_core.device
+                .allocate_command_buffers(&command_buffer_allocate_info)
+                .map_err(|e| format!("{:?}", e))?
+        };
+        let mut per_image_resources = vec![];
+        let swapchain_image_count = render_core.image_views.len();
+        for image_index in 0..swapchain_image_count {
+            let resources = PerImageResources::new(&render_core, image_index, description, command_buffers[image_index]);
+            per_image_resources.push(resources);
+        }
 
         Ok(VkRenderer {
             function_loader: entry,
             render_core,
-            renderpasses,
-            renderpass_pipeline_sets
+            per_image_resources
         })
     }
 
@@ -52,8 +64,8 @@ impl RendererApi for VkRenderer {
     fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, String> {
         unsafe {
             let image_index = self.render_core.acquire_next_image()?;
-            self.renderpass_pipeline_sets[0].update_uniform_buffer(&mut self.render_core, scene_info).unwrap();
-            let command_buffer = self.renderpass_pipeline_sets[0].get_command_buffer(image_index);
+            self.per_image_resources[image_index].on_pre_render(&mut self.render_core, scene_info);
+            let command_buffer = self.per_image_resources[image_index].get_command_buffer();
             self.render_core.submit_command_buffer(command_buffer)?;
             return self.render_core.present_image();
         }
@@ -62,18 +74,14 @@ impl RendererApi for VkRenderer {
     fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String> {
         self.render_core.wait_until_idle().unwrap();
 
-        for pipeline in self.renderpass_pipeline_sets.iter_mut() {
-            pipeline.destroy_resources(&self.render_core);
-        }
-        for renderpass in self.renderpasses.iter_mut() {
-            renderpass.destroy_resources(&self.render_core);
+        for resources in self.per_image_resources.iter_mut() {
+            resources.destroy_resources(&self.render_core);
         }
         unsafe {
             self.render_core.destroy_swapchain();
             self.render_core.create_swapchain(&self.function_loader, window_owner)?;
-            for (i, renderpass) in self.renderpasses.iter_mut().enumerate() {
-                renderpass.create_resources(&self.render_core, &description.passes[i].target)?;
-                self.renderpass_pipeline_sets[i].create_resources(&self.render_core, renderpass, &description.passes[i])?;
+            for (image_index, resources) in self.per_image_resources.iter_mut().enumerate() {
+                resources.create_resources(&self.render_core, image_index, description)?;
             }
         }
         Ok(())
@@ -85,16 +93,12 @@ impl RendererApi for VkRenderer {
             self.render_core.load_new_resources(resource_preloads).unwrap();
         }
 
-        for pipeline in self.renderpass_pipeline_sets.iter_mut() {
-            pipeline.destroy_resources(&self.render_core);
-        }
-        for renderpass in self.renderpasses.iter_mut() {
-            renderpass.destroy_resources(&self.render_core);
+        for resources in self.per_image_resources.iter_mut() {
+            resources.destroy_resources(&self.render_core);
         }
         unsafe {
-            for (i, renderpass) in self.renderpasses.iter_mut().enumerate() {
-                renderpass.create_resources(&self.render_core, &description.passes[i].target)?;
-                self.renderpass_pipeline_sets[i].create_resources(&self.render_core, renderpass, &description.passes[i])?;
+            for (image_index, resources) in self.per_image_resources.iter_mut().enumerate() {
+                resources.create_resources(&self.render_core, image_index, description)?;
             }
         }
         Ok(())
@@ -112,11 +116,8 @@ impl RendererApi for VkRenderer {
 impl Drop for VkRenderer {
     fn drop(&mut self) {
         self.render_core.wait_until_idle().unwrap();
-        for pipeline in self.renderpass_pipeline_sets.iter_mut() {
-            pipeline.destroy_resources(&self.render_core);
-        }
-        for renderpass in self.renderpasses.iter_mut() {
-            renderpass.destroy_resources(&self.render_core);
+        for resources in self.per_image_resources.iter_mut() {
+            resources.destroy_resources(&self.render_core);
         }
     }
 }
