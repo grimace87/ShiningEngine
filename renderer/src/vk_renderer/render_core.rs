@@ -38,6 +38,13 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
     vk::FALSE
 }
 
+#[derive(Copy, Clone)]
+pub struct PhysicalDeviceProperties {
+    pub physical_device: vk::PhysicalDevice,
+    pub graphics_queue_family_index: u32,
+    pub transfer_queue_family_index: u32,
+}
+
 /// Wraps resources that either never change while the app is running, or rarely change (perhaps
 /// when a window is resized or the surface becomes invalidated for some other reason).
 ///
@@ -50,10 +57,8 @@ pub struct RenderCore {
     utils_messenger: vk::DebugUtilsMessengerEXT,
     debug_utils: DebugUtils,
     pub device: Device,
-    physical_device: vk::PhysicalDevice,
+    pub physical_device_properties: PhysicalDeviceProperties,
     mem_allocator: vk_mem::Allocator,
-    pub graphics_queue_family_index: u32,
-    pub transfer_queue_family_index: u32,
     pub graphics_queue: vk::Queue,
     pub transfer_queue: vk::Queue,
     pub graphics_command_buffer_pool: vk::CommandPool,
@@ -76,6 +81,7 @@ impl Drop for RenderCore {
     fn drop(&mut self) {
         unsafe {
             self.destroy_swapchain();
+            self.destroy_surface();
             for semaphore in self.sync_rendering_finished.iter_mut() {
                 self.device.destroy_semaphore(*semaphore, None);
             }
@@ -100,14 +106,14 @@ impl RenderCore {
 
     pub fn new(entry: &Entry, window_owner: &dyn HasRawWindowHandle, resource_preloads: &ResourcePreloads) -> Result<RenderCore, String> {
         Ok(unsafe {
-            let mut core = Self::new_without_swapchain(entry, window_owner)?;
-            core.create_swapchain(entry, window_owner)?;
+            let mut core = Self::new_with_surface_without_swapchain(entry, window_owner)?;
+            core.create_swapchain()?;
             core.load_new_resources(resource_preloads).unwrap();
             core
         })
     }
 
-    unsafe fn new_without_swapchain(entry: &Entry, window_owner: &dyn HasRawWindowHandle) -> Result<RenderCore, String> {
+    unsafe fn new_with_surface_without_swapchain(entry: &Entry, window_owner: &dyn HasRawWindowHandle) -> Result<RenderCore, String> {
 
         let instance = {
 
@@ -161,14 +167,11 @@ impl RenderCore {
             .create_debug_utils_messenger(&debug_create_info, None)
             .map_err(|e| format!("Debug messenger creation failed: {:?}", e))?;
 
-        // Choose physical device
-        let phys_devices = instance
-            .enumerate_physical_devices()
-            .map_err(|e| format!("{:?}", e))?;
-        if phys_devices.is_empty() {
-            return Err(String::from("No physical devices found"));
-        }
-        let physical_device: vk::PhysicalDevice = phys_devices[0];
+        // Create surface and surface loader, and chosoe a compatible physical device
+        let surface_fn = Surface::new(entry, &instance);
+        let surface = RenderCore::make_new_surface(entry, &instance, window_owner);
+        let physical_device_properties = RenderCore::select_physical_device(&instance, &surface_fn, &surface)?;
+        let physical_device = physical_device_properties.physical_device;
 
         // Find queue indices for graphics and transfer (ideally different but could be the same)
         let queue_family_properties = instance
@@ -278,18 +281,16 @@ impl RenderCore {
             sync_rendering_finished.push(semaphore_finished);
         }
 
-        let surface_fn = Surface::new(entry, &instance);
         let swapchain_fn = Swapchain::new(&instance, &device);
+
         Ok(
             RenderCore {
                 instance,
                 utils_messenger,
                 debug_utils,
                 device,
-                physical_device,
+                physical_device_properties,
                 mem_allocator,
-                graphics_queue_family_index,
-                transfer_queue_family_index,
                 graphics_queue,
                 transfer_queue,
                 graphics_command_buffer_pool,
@@ -299,7 +300,7 @@ impl RenderCore {
                 sync_rendering_finished,
                 current_image_acquired: PROJ_VK_SWAPCHAIN_SIZE - 1,
                 surface_fn,
-                surface: vk::SurfaceKHR::null(),
+                surface,
                 swapchain_fn,
                 swapchain: vk::SwapchainKHR::null(),
                 image_views: vec![],
@@ -340,6 +341,51 @@ impl RenderCore {
         Ok(())
     }
 
+    unsafe fn select_physical_device(
+            instance: &ash::Instance,
+            surface_loader: &ash::extensions:: khr::Surface,
+            surface: &vk::SurfaceKHR
+            ) -> Result<PhysicalDeviceProperties, String> {
+
+        let physical_devices = instance
+            .enumerate_physical_devices()
+            .map_err(|e| format!("{:?}", e))?;
+        if physical_devices.is_empty() {
+            return Err(String::from("No physical devices found"));
+        }
+
+        let unset_value: u32 = u32::MAX;
+        for physical_device in physical_devices.iter() {
+            let queue_family_properties = instance.get_physical_device_queue_family_properties(*physical_device);
+            let mut graphics_index: u32 = unset_value;
+            let mut transfer_index: u32 = unset_value;
+            for (index, properties) in queue_family_properties.iter().enumerate() {
+                let supports_graphics = properties.queue_flags.contains(vk::QueueFlags::GRAPHICS);
+                let supports_surface = surface_loader
+                    .get_physical_device_surface_support(*physical_device, index as u32, *surface)
+                    .unwrap();
+                let supports_transfer = properties.queue_flags.contains(vk::QueueFlags::TRANSFER);
+
+                let graphics_and_surface = supports_graphics && supports_surface;
+                if graphics_and_surface {
+                    graphics_index = index as u32;
+                }
+                if supports_transfer && (transfer_index == unset_value || !graphics_and_surface) {
+                    transfer_index = index as u32;
+                }
+            }
+            if graphics_index != unset_value && transfer_index != unset_value {
+                return Ok(PhysicalDeviceProperties {
+                    physical_device: *physical_device,
+                    graphics_queue_family_index: graphics_index,
+                    transfer_queue_family_index: transfer_index
+                });
+            }
+        }
+
+        Err(String::from("Could not find a suitable physical device"))
+    }
+
     unsafe fn destroy_all_resources(&mut self) {
         for (_key, (_, buffer)) in self.vbo_objects.iter() {
             buffer.destroy(&self.mem_allocator).unwrap();
@@ -363,6 +409,10 @@ impl RenderCore {
         }
     }
 
+    unsafe fn make_new_surface(entry: &Entry, instance: &Instance, window_owner: &dyn HasRawWindowHandle) -> vk::SurfaceKHR {
+        ash_window::create_surface(entry, instance, window_owner, None).unwrap()
+    }
+
     pub unsafe fn destroy_swapchain(&mut self) {
         if let Some(image) = &self.depth_image {
             image.destroy(&self.device, &self.mem_allocator).unwrap();
@@ -371,25 +421,32 @@ impl RenderCore {
             self.device.destroy_image_view(*image_view, None);
         }
         self.swapchain_fn.destroy_swapchain(self.swapchain, None);
+    }
+
+    pub unsafe fn destroy_surface(&mut self) {
         self.surface_fn.destroy_surface(self.surface, None);
     }
 
-    pub unsafe fn create_swapchain(&mut self, entry: &Entry, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
+    pub unsafe fn create_surface(&mut self, entry: &Entry, window_owner: &dyn HasRawWindowHandle) {
+        self.surface = RenderCore::make_new_surface(entry, &self.instance, window_owner);
+    }
 
-        // Create the surface
-        let surface = ash_window::create_surface(entry, &self.instance, window_owner, None).unwrap();
-        let surface_fn = Surface::new(entry, &self.instance);
+    pub unsafe fn create_swapchain(&mut self) -> Result<(), String> {
 
         // Make the swapchain; automatically creates the images (but not image views)
-        let surface_capabilities = surface_fn.get_physical_device_surface_capabilities(self.physical_device, surface)
+        let surface_capabilities = self.surface_fn
+            .get_physical_device_surface_capabilities(self.physical_device_properties.physical_device, self.surface)
             .map_err(|e| format!("{:?}", e))?;
-        let queue_families = [self.graphics_queue_family_index];
+        let queue_families = [self.physical_device_properties.graphics_queue_family_index];
         let (swapchain_fn, swapchain) = {
-            let surface_present_modes = surface_fn.get_physical_device_surface_present_modes(self.physical_device, surface)
+            let surface_present_modes = self.surface_fn
+                .get_physical_device_surface_present_modes(self.physical_device_properties.physical_device, self.surface)
                 .map_err(|e| format!("{:?}", e))?;
-            let surface_formats = surface_fn.get_physical_device_surface_formats(self.physical_device, surface)
+            let surface_formats = self.surface_fn
+                .get_physical_device_surface_formats(self.physical_device_properties.physical_device, self.surface)
                 .map_err(|e| format!("{:?}", e))?;
-            let present_supported = surface_fn.get_physical_device_surface_support(self.physical_device, self.graphics_queue_family_index, surface)
+            let present_supported = self.surface_fn
+                .get_physical_device_surface_support(self.physical_device_properties.physical_device, self.physical_device_properties.graphics_queue_family_index, self.surface)
                 .map_err(|e| format!("{:?}", e))?;
             if !present_supported {
                 return Err(String::from("Presentation not supported by selected graphics queue family"));
@@ -403,7 +460,7 @@ impl RenderCore {
             }
 
             let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()
-                .surface(surface)
+                .surface(self.surface)
                 .min_image_count(PROJ_VK_SWAPCHAIN_SIZE as u32)
                 .image_format(surface_formats.first().unwrap().format)
                 .image_color_space(surface_formats.first().unwrap().color_space)
@@ -447,8 +504,6 @@ impl RenderCore {
             return Err(format!("Recreated swapchain has {} images; had {} before", image_views.len(), self.sync_image_available.len()));
         }
 
-        self.surface = surface;
-        self.surface_fn = surface_fn;
         self.swapchain_fn = swapchain_fn;
         self.swapchain = swapchain;
         self.image_views.clear();
@@ -477,13 +532,13 @@ impl RenderCore {
     }
 
     pub unsafe fn get_surface_formats(&self) -> Result<Vec<vk::SurfaceFormatKHR>, String> {
-        self.surface_fn.get_physical_device_surface_formats(self.physical_device, self.surface)
+        self.surface_fn.get_physical_device_surface_formats(self.physical_device_properties.physical_device, self.surface)
             .map_err(|e| format!("{:?}", e))
     }
 
     pub fn get_extent(&self) -> Result<vk::Extent2D, String> {
         let surface_capabilities = unsafe {
-            self.surface_fn.get_physical_device_surface_capabilities(self.physical_device, self.surface)
+            self.surface_fn.get_physical_device_surface_capabilities(self.physical_device_properties.physical_device, self.surface)
                 .map_err(|e| format!("{:?}", e))?
         };
         Ok(surface_capabilities.current_extent)

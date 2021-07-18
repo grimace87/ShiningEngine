@@ -31,7 +31,7 @@ impl ImageWrapper {
         sharing_mode: vk::SharingMode,
         aspect_flags: vk::ImageAspectFlags
     ) -> Result<(vk_mem::Allocation, vk::Image, vk::ImageView), String> {
-        let queue_families = [render_core.graphics_queue_family_index];
+        let queue_families = [render_core.physical_device_properties.graphics_queue_family_index];
         let extent3d = vk::Extent3D { width, height, depth: 1 };
         let image_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
