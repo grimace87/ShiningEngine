@@ -43,7 +43,7 @@ impl RenderpassWrapper {
         }
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, image_index: usize, framebuffer_target: &FramebufferTarget) -> Result<(), String> {
+    unsafe fn create_resources(&mut self, render_core: &RenderCore, image_index: usize, framebuffer_target: &FramebufferTarget) -> Result<(), String> {
         match framebuffer_target {
             FramebufferTarget::Texture(creation_data) => self.create_non_final_renderpass_resources(render_core, creation_data),
             FramebufferTarget::DefaultFramebuffer => self.create_swapchain_renderpass_resources(render_core, image_index)

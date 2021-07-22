@@ -15,10 +15,8 @@ use crate::vk_renderer::{
 
 use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, ResourcePreloads};
 
-use ash::vk;
 use ash::Entry;
 use raw_window_handle::HasRawWindowHandle;
-use ash::version::DeviceV1_0;
 
 pub struct VkRenderer {
     function_loader: Entry,
@@ -37,14 +35,8 @@ impl RendererApi for VkRenderer {
         let render_core = RenderCore::new(&entry, window_owner, resource_preloads)?;
 
         // Per-swapchain-image resources - command buffers, whatever pipelines, buffers etc. are required
-        let command_buffer_count = render_core.image_views.len() as u32;
-        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::builder()
-            .command_pool(render_core.graphics_command_buffer_pool)
-            .command_buffer_count(command_buffer_count);
         let command_buffers = unsafe {
-            render_core.device
-                .allocate_command_buffers(&command_buffer_allocate_info)
-                .map_err(|e| format!("{:?}", e))?
+            render_core.regenerate_command_buffers()?
         };
         let mut per_image_resources = vec![];
         let swapchain_image_count = render_core.image_views.len();
@@ -77,13 +69,22 @@ impl RendererApi for VkRenderer {
         for resources in self.per_image_resources.iter_mut() {
             resources.destroy_resources(&self.render_core);
         }
+        self.per_image_resources.clear();
+
+        let command_buffers = unsafe {
+            self.render_core.regenerate_command_buffers()?
+        };
+
         unsafe {
             self.render_core.destroy_swapchain();
             self.render_core.destroy_surface();
             self.render_core.create_surface(&self.function_loader, window_owner);
             self.render_core.create_swapchain()?;
-            for (image_index, resources) in self.per_image_resources.iter_mut().enumerate() {
-                resources.create_resources(&self.render_core, image_index, description)?;
+
+            let swapchain_image_count = self.render_core.image_views.len();
+            for image_index in 0..swapchain_image_count {
+                let resources = PerImageResources::new(&self.render_core, image_index, description, command_buffers[image_index]);
+                self.per_image_resources.push(resources);
             }
         }
         Ok(())
@@ -98,10 +99,16 @@ impl RendererApi for VkRenderer {
         for resources in self.per_image_resources.iter_mut() {
             resources.destroy_resources(&self.render_core);
         }
-        unsafe {
-            for (image_index, resources) in self.per_image_resources.iter_mut().enumerate() {
-                resources.create_resources(&self.render_core, image_index, description)?;
-            }
+        self.per_image_resources.clear();
+
+        let command_buffers = unsafe {
+            self.render_core.regenerate_command_buffers()?
+        };
+
+        let swapchain_image_count = self.render_core.image_views.len();
+        for image_index in 0..swapchain_image_count {
+            let resources = PerImageResources::new(&self.render_core, image_index, description, command_buffers[image_index]);
+            self.per_image_resources.push(resources);
         }
         Ok(())
     }

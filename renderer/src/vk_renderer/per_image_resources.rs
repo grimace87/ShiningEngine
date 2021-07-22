@@ -36,14 +36,6 @@ impl PerImageResources {
         }
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, image_index: usize, description: &DrawingDescription) -> Result<(), String> {
-        for (i, renderpass) in self.renderpasses.iter_mut().enumerate() {
-            renderpass.create_resources(render_core, image_index, &description.passes[i].target)?;
-            self.renderpass_pipeline_sets[i].create_resources(render_core, renderpass, &description.passes[i])?;
-        }
-        Ok(())
-    }
-
     pub fn destroy_resources(&mut self, render_core: &RenderCore) {
         for pipeline in self.renderpass_pipeline_sets.iter_mut() {
             pipeline.destroy_resources(render_core);

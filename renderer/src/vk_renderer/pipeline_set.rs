@@ -27,17 +27,17 @@ impl PipelineSet {
 
         let mut pipeline_set = PipelineSet { pipelines };
         unsafe {
-            pipeline_set.create_resources(render_core, renderpass_wrapper, description)?;
-            pipeline_set.record_command_buffer(command_buffer, render_core, renderpass_wrapper)?;
+            pipeline_set.create_resources(render_core, renderpass_wrapper, description, command_buffer)?;
         }
 
         Ok(pipeline_set)
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass) -> Result<(), String> {
+    unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass, command_buffer: &vk::CommandBuffer) -> Result<(), String> {
         for (i, pipeline) in self.pipelines.iter_mut().enumerate() {
             pipeline.create_resources(render_core, renderpass_wrapper, &description.steps[i])?;
         }
+        self.record_command_buffer(command_buffer, render_core, renderpass_wrapper)?;
         Ok(())
     }
 

@@ -522,6 +522,19 @@ impl RenderCore {
         Ok(())
     }
 
+    pub unsafe fn regenerate_command_buffers(&self) -> Result<Vec<vk::CommandBuffer>, String> {
+        self.device
+            .reset_command_pool(self.graphics_command_buffer_pool, vk::CommandPoolResetFlags::RELEASE_RESOURCES)
+            .map_err(|e| format!("Error resetting command pool: {:?}", e))?;
+        let command_buffer_count = self.image_views.len() as u32;
+        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::builder()
+            .command_pool(self.graphics_command_buffer_pool)
+            .command_buffer_count(command_buffer_count);
+        self.device
+            .allocate_command_buffers(&command_buffer_allocate_info)
+            .map_err(|e| format!("{:?}", e))
+    }
+
     fn get_window_extensions(window_owner: &dyn HasRawWindowHandle) -> Result<Vec<*const c_char>, String> {
         let extensions_as_c_str = ash_window::enumerate_required_extensions(window_owner)
             .map_err(|e| format!("{:?}", e))?
