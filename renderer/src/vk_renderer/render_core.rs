@@ -115,6 +115,9 @@ impl RenderCore {
 
     unsafe fn new_with_surface_without_swapchain(entry: &Entry, window_owner: &dyn HasRawWindowHandle) -> Result<RenderCore, String> {
 
+        // TODO - MATCH ALL THIS FUNCTIONS WITH EXAMPLE AROUND LINE 230 AND SO ON FROM:
+        // https://github.com/MaikKlein/ash/blob/master/examples/src/lib.rs
+
         let instance = {
 
             let required_platform_extensions = Self::get_window_extensions(window_owner)?;
@@ -437,8 +440,7 @@ impl RenderCore {
         let surface_capabilities = self.surface_fn
             .get_physical_device_surface_capabilities(self.physical_device_properties.physical_device, self.surface)
             .map_err(|e| format!("{:?}", e))?;
-        let queue_families = [self.physical_device_properties.graphics_queue_family_index];
-        let (swapchain_fn, swapchain) = {
+        let swapchain = {
             let surface_present_modes = self.surface_fn
                 .get_physical_device_surface_present_modes(self.physical_device_properties.physical_device, self.surface)
                 .map_err(|e| format!("{:?}", e))?;
@@ -459,28 +461,27 @@ impl RenderCore {
                 return Err(String::from("Requested swapchain size is not supported"));
             }
 
+            let surface_format = surface_formats.first().unwrap();
             let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()
                 .surface(self.surface)
                 .min_image_count(PROJ_VK_SWAPCHAIN_SIZE as u32)
-                .image_format(surface_formats.first().unwrap().format)
-                .image_color_space(surface_formats.first().unwrap().color_space)
+                .image_color_space(surface_format.color_space)
+                .image_format(surface_format.format)
                 .image_extent(surface_capabilities.current_extent)
-                .image_array_layers(1)
                 .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
                 .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
-                .queue_family_indices(&queue_families)
                 .pre_transform(surface_capabilities.current_transform)
                 .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
-                .present_mode(vk::PresentModeKHR::FIFO);
+                .present_mode(vk::PresentModeKHR::FIFO)
+                .clipped(true)
+                .image_array_layers(1);
 
-            let swapchain_fn = Swapchain::new(&self.instance, &self.device);
-            let swapchain = swapchain_fn.create_swapchain(&swapchain_create_info, None)
-                .map_err(|e| format!("{:?}", e))?;
-            (swapchain_fn, swapchain)
+            self.swapchain_fn.create_swapchain(&swapchain_create_info, None)
+                .map_err(|e| format!("{:?}", e))?
         };
 
         // Make the image views over the images
-        let swapchain_images = swapchain_fn.get_swapchain_images(swapchain)
+        let swapchain_images = self.swapchain_fn.get_swapchain_images(swapchain)
             .map_err(|e| format!("{:?}", e))?;
         let mut image_views = Vec::with_capacity(swapchain_images.len());
         for image in swapchain_images.iter() {
@@ -504,7 +505,6 @@ impl RenderCore {
             return Err(format!("Recreated swapchain has {} images; had {} before", image_views.len(), self.sync_image_available.len()));
         }
 
-        self.swapchain_fn = swapchain_fn;
         self.swapchain = swapchain;
         self.image_views.clear();
         for image in image_views.iter() {
@@ -563,11 +563,11 @@ impl RenderCore {
         &self.mem_allocator
     }
 
-    /// Increment current image number to focus on the next image in the chain, to wait for its
-    /// synchronisation objects and so on.
-    ///
-    /// Acquires an image while signalling a semaphore, then waits on a fence to know that the
-    /// image is available to draw on.
+    // Increment current image number to focus on the next image in the chain, to wait for its
+    // synchronisation objects and so on.
+    //
+    // Acquires an image while signalling a semaphore, then waits on a fence to know that the
+    // image is available to draw on.
     pub unsafe fn acquire_next_image(&mut self) -> Result<usize, String> {
         let sync_objects_index = (self.current_image_acquired + 1) % (self.image_views.len());
         let (image_index, _) = self.swapchain_fn.acquire_next_image(
