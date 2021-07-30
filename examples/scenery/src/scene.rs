@@ -116,8 +116,7 @@ impl SceneInfo for SceneryScene {
 
         ResourcePreloads {
             vbo_preloads: vbo_loads,
-            texture_preloads: texture_loads,
-            framebuffer_preloads: HashMap::new()
+            texture_preloads: texture_loads
         }
     }
 

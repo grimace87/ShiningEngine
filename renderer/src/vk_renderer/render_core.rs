@@ -333,11 +333,18 @@ impl RenderCore {
 
         // Textures
         for (texture_index, creation_data) in resource_preloads.texture_preloads.iter() {
-            let texture = ImageWrapper::new_initialised_texture_image_rgba(
-                self,
-                creation_data.width,
-                creation_data.height,
-                &creation_data.data)?;
+            let texture = match creation_data.data.as_ref() {
+                Some(data) => ImageWrapper::new_initialised_texture_image_rgba(
+                    self,
+                    creation_data.width,
+                    creation_data.height,
+                    data)?,
+                // TODO - One per swapchain image
+                None => ImageWrapper::new_texture_image_uninitialised(
+                    self,
+                    creation_data.width,
+                    creation_data.height)?
+            };
             self.texture_objects.insert(*texture_index, texture);
         }
 

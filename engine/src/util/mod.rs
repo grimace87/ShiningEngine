@@ -37,7 +37,7 @@ pub fn decode_texture(image_file_bytes: &[u8], codec: TextureCodec) -> Result<Te
         }
     };
     Ok(TextureCreationData {
-        data,
+        data: Some(data),
         width,
         height,
         format: TexturePixelFormat::RGBA

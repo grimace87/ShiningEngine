@@ -15,6 +15,7 @@ pub enum Shader {
     Text,     // Position-Normal-Texture, R8 texture, no lighting
 }
 
+#[derive(Debug)]
 pub enum TexturePixelFormat {
     None,
     RGBA
@@ -77,13 +78,14 @@ pub struct VboCreationData {
 }
 
 pub struct TextureCreationData {
-    pub data: Vec<u8>,
+    pub data: Option<Vec<u8>>,
     pub width: u32,
     pub height: u32,
     pub format: TexturePixelFormat
 }
 
 pub struct FramebufferCreationData {
+    pub texture_index: usize,
     pub width: usize,
     pub height: usize,
     pub color_format: TexturePixelFormat,
@@ -111,8 +113,7 @@ pub struct DrawingDescription {
 
 pub struct ResourcePreloads {
     pub vbo_preloads: HashMap<usize, VboCreationData>,
-    pub texture_preloads: HashMap<usize, TextureCreationData>,
-    pub framebuffer_preloads: HashMap<usize, FramebufferCreationData>
+    pub texture_preloads: HashMap<usize, TextureCreationData>
 }
 
 pub trait SceneManager {

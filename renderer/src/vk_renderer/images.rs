@@ -43,7 +43,8 @@ impl ImageWrapper {
             .tiling(vk::ImageTiling::OPTIMAL)
             .usage(image_usage_flags)
             .sharing_mode(sharing_mode)
-            .queue_family_indices(&queue_families);
+            .queue_family_indices(&queue_families)
+            .initial_layout(vk::ImageLayout::UNDEFINED);
         let allocation_info = vk_mem::AllocationCreateInfo {
             usage: vk_mem::MemoryUsage::GpuOnly,
             ..Default::default()

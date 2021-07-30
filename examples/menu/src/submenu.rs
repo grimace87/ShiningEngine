@@ -75,8 +75,7 @@ impl SceneInfo for SubMenuScene {
 
         ResourcePreloads {
             vbo_preloads: vbo_loads,
-            texture_preloads: HashMap::new(),
-            framebuffer_preloads: HashMap::new()
+            texture_preloads: HashMap::new()
         }
     }
 
