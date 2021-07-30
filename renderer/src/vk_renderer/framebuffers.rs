@@ -4,7 +4,7 @@ use crate::vk_renderer::{
     render_core::RenderCore
 };
 
-use defs::{FramebufferCreationData, TexturePixelFormat, DepthFormat};
+use defs::{FramebufferCreationData, TexturePixelFormat};
 
 use ash::vk;
 use ash::version::DeviceV1_0;
@@ -21,12 +21,12 @@ impl FramebufferWrapper {
         let width = config.width as u32;
         let height = config.height as u32;
         let depth_image: Option<ImageWrapper> = match config.depth_format {
-            DepthFormat::None => None,
-            DepthFormat::Unorm16 => Some(ImageWrapper::new_depth_image(render_core, width, height)?)
+            TexturePixelFormat::Unorm16 => Some(ImageWrapper::new_depth_image(render_core, width, height)?),
+            _ => return Err(format!("Invalid depth format: {:?}", config.depth_format))
         };
         let colour_image: Option<ImageWrapper> = match config.color_format {
-            TexturePixelFormat::None => None,
-            TexturePixelFormat::RGBA => Some(ImageWrapper::new_texture_image_uninitialised(render_core, width, height)?)
+            TexturePixelFormat::RGBA => Some(ImageWrapper::new_texture_image_uninitialised(render_core, width, height)?),
+            _ => return Err(format!("Invalid color format: {:?}", config.color_format))
         };
 
         let mut attachment_image_view = vec![];

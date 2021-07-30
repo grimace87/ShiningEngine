@@ -9,7 +9,7 @@ use ash::{
     vk,
     version::DeviceV1_0
 };
-use defs::{FramebufferTarget, FramebufferCreationData, TexturePixelFormat, DepthFormat};
+use defs::{FramebufferTarget, FramebufferCreationData, TexturePixelFormat};
 
 pub struct RenderpassWrapper {
     pub renderpass: vk::RenderPass,
@@ -159,7 +159,7 @@ impl RenderpassWrapper {
             _ => {}
         };
         match config.depth_format {
-            DepthFormat::Unorm16 => {
+            TexturePixelFormat::Unorm16 => {
                 attachments.push(vk::AttachmentDescription::builder()
                     .format(depth_image.format)
                     .load_op(vk::AttachmentLoadOp::CLEAR)

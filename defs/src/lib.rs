@@ -18,11 +18,7 @@ pub enum Shader {
 #[derive(Debug)]
 pub enum TexturePixelFormat {
     None,
-    RGBA
-}
-
-pub enum DepthFormat {
-    None,
+    RGBA,
     Unorm16
 }
 
@@ -89,7 +85,7 @@ pub struct FramebufferCreationData {
     pub width: usize,
     pub height: usize,
     pub color_format: TexturePixelFormat,
-    pub depth_format: DepthFormat
+    pub depth_format: TexturePixelFormat
 }
 
 pub struct DrawingStep {
