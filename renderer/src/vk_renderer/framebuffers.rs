@@ -4,7 +4,7 @@ use crate::vk_renderer::{
     render_core::RenderCore
 };
 
-use defs::{FramebufferCreationData, TexturePixelFormat};
+use defs::{FramebufferCreationData, TexturePixelFormat, ImageUsage};
 
 use ash::vk;
 use ash::version::DeviceV1_0;
@@ -21,11 +21,15 @@ impl FramebufferWrapper {
         let width = config.width as u32;
         let height = config.height as u32;
         let depth_image: Option<ImageWrapper> = match config.depth_format {
-            TexturePixelFormat::Unorm16 => Some(ImageWrapper::new_depth_image(render_core, width, height)?),
+            TexturePixelFormat::Unorm16 => Some(
+                ImageWrapper::new(render_core, ImageUsage::DepthBuffer, TexturePixelFormat::Unorm16, width, height, None)?
+            ),
             _ => return Err(format!("Invalid depth format: {:?}", config.depth_format))
         };
         let colour_image: Option<ImageWrapper> = match config.color_format {
-            TexturePixelFormat::RGBA => Some(ImageWrapper::new_texture_image_uninitialised(render_core, width, height)?),
+            TexturePixelFormat::RGBA => Some(
+                ImageWrapper::new(render_core, ImageUsage::OffscreenRenderTextureSample, TexturePixelFormat::RGBA, width, height, None)?
+            ),
             _ => return Err(format!("Invalid color format: {:?}", config.color_format))
         };
 

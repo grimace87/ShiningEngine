@@ -15,7 +15,14 @@ pub enum Shader {
     Text,     // Position-Normal-Texture, R8 texture, no lighting
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
+pub enum ImageUsage {
+    TextureSampleOnly,
+    DepthBuffer,
+    OffscreenRenderTextureSample
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum TexturePixelFormat {
     None,
     RGBA,

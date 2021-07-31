@@ -1,7 +1,7 @@
 
 use crate::vk_renderer::images::ImageWrapper;
 
-use defs::{PresentResult, ResourcePreloads, VertexFormat};
+use defs::{PresentResult, ResourcePreloads, VertexFormat, ImageUsage, TexturePixelFormat};
 
 use std::{
     ffi::CString,
@@ -334,16 +334,22 @@ impl RenderCore {
         // Textures
         for (texture_index, creation_data) in resource_preloads.texture_preloads.iter() {
             let texture = match creation_data.data.as_ref() {
-                Some(data) => ImageWrapper::new_initialised_texture_image_rgba(
+                Some(data) => ImageWrapper::new(
                     self,
+                    ImageUsage::TextureSampleOnly,
+                    TexturePixelFormat::RGBA,
                     creation_data.width,
                     creation_data.height,
-                    data)?,
+                    Some(data))?,
                 // TODO - One per swapchain image
-                None => ImageWrapper::new_texture_image_uninitialised(
+                None => ImageWrapper::new(
                     self,
+                    ImageUsage::OffscreenRenderTextureSample,
+                    TexturePixelFormat::RGBA,
                     creation_data.width,
-                    creation_data.height)?
+                    creation_data.height,
+                    None
+                )?
             };
             self.texture_objects.insert(*texture_index, texture);
         }
@@ -519,10 +525,13 @@ impl RenderCore {
         }
 
         let extent = self.get_extent()?;
-        let depth_image = ImageWrapper::new_depth_image(
+        let depth_image = ImageWrapper::new(
             &self,
+            ImageUsage::DepthBuffer,
+            TexturePixelFormat::Unorm16,
             extent.width as u32,
-            extent.height as u32)?;
+            extent.height as u32,
+            None)?;
 
         self.depth_image = Some(depth_image);
 

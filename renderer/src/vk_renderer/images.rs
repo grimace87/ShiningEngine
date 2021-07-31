@@ -9,6 +9,7 @@ use ash::{
     Device,
     version::DeviceV1_0
 };
+use defs::{TexturePixelFormat, ImageUsage};
 
 pub const PROJ_VK_DEPTH_FORMAT: vk::Format = vk::Format::D16_UNORM;
 pub const PROJ_VK_TEXTURE_FORMAT: vk::Format = vk::Format::R8G8B8A8_UNORM;
@@ -21,6 +22,92 @@ pub struct ImageWrapper {
 }
 
 impl ImageWrapper {
+
+    pub fn empty() -> ImageWrapper {
+        ImageWrapper {
+            allocation: vk_mem::Allocation::null(),
+            image: vk::Image::null(),
+            image_view: vk::ImageView::null(),
+            format: vk::Format::UNDEFINED
+        }
+    }
+
+    pub unsafe fn new(
+        render_core: &RenderCore,
+        usage: ImageUsage,
+        format: TexturePixelFormat,
+        width: u32,
+        height: u32,
+        init_data: Option<&Vec<u8>>
+    ) -> Result<ImageWrapper, String> {
+
+        let (allocation, image, image_view, vk_format) = {
+
+            // Typical depth buffer
+            if usage == ImageUsage::DepthBuffer && format == TexturePixelFormat::Unorm16 {
+                if let Some(_) = init_data {
+                    return Err(String::from("Initialising depth buffer not allowed"));
+                }
+                let (allocation, image, image_view) = Self::make_image_and_view(
+                    render_core,
+                    width,
+                    height,
+                    self::PROJ_VK_DEPTH_FORMAT,
+                    vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+                    vk::SharingMode::EXCLUSIVE,
+                    vk::ImageAspectFlags::DEPTH)?;
+                (allocation, image, image_view, self::PROJ_VK_DEPTH_FORMAT)
+            }
+
+            // Typical off-screen-rendered color attachment
+            else if usage == ImageUsage::OffscreenRenderTextureSample && format == TexturePixelFormat::RGBA {
+                if let Some(_) = init_data {
+                    return Err(String::from("Initialising off-screen render image not allowed"));
+                }
+                let (allocation, image, image_view) = Self::make_image_and_view(
+                    render_core,
+                    width,
+                    height,
+                    self::PROJ_VK_TEXTURE_FORMAT,
+                    vk::ImageUsageFlags::SAMPLED,
+                    vk::SharingMode::EXCLUSIVE,
+                    vk::ImageAspectFlags::DEPTH)?; // TODO - What is this?!
+                (allocation, image, image_view, self::PROJ_VK_TEXTURE_FORMAT)
+            }
+
+            // Typical initialised texture
+            else if usage == ImageUsage::TextureSampleOnly && format == TexturePixelFormat::RGBA {
+                if init_data == None {
+                    return Err(String::from("Not initialising sample-only texture not allowed"));
+                }
+                let (allocation, image, image_view) = Self::make_image_and_view(
+                    render_core,
+                    width,
+                    height,
+                    self::PROJ_VK_TEXTURE_FORMAT,
+                    vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
+                    vk::SharingMode::EXCLUSIVE,
+                    vk::ImageAspectFlags::COLOR)?;
+                (allocation, image, image_view, self::PROJ_VK_TEXTURE_FORMAT)
+            }
+
+            // Unhandled cases
+            else {
+                return Err(String::from("Tried to create an image with an unhandled config"));
+            }
+        };
+
+        if let Some(data) = init_data {
+            Self::initialise_read_only_color_texture(render_core, width, height, &image, data)?;
+        }
+
+        Ok(ImageWrapper {
+            allocation,
+            image,
+            image_view,
+            format: vk_format
+        })
+    }
 
     unsafe fn make_image_and_view(
         render_core: &RenderCore,
@@ -69,84 +156,20 @@ impl ImageWrapper {
         Ok((allocation, image, image_view))
     }
 
-    pub fn empty() -> ImageWrapper {
-        ImageWrapper {
-            allocation: vk_mem::Allocation::null(),
-            image: vk::Image::null(),
-            image_view: vk::ImageView::null(),
-            format: vk::Format::UNDEFINED
-        }
-    }
-
     pub unsafe fn destroy(&self, device: &Device, allocator: &vk_mem::Allocator) -> Result<(), String> {
         device.destroy_image_view(self.image_view, None);
         allocator.destroy_image(self.image, &self.allocation)
             .map_err(|e| format!("Error freeing image: {:?}", e))
     }
 
-    pub unsafe fn new_depth_image(
-        render_core: &RenderCore,
-        width: u32,
-        height: u32) -> Result<ImageWrapper, String> {
-
-        let (allocation, image, image_view) =
-            Self::make_image_and_view(
-                render_core,
-                width,
-                height,
-                self::PROJ_VK_DEPTH_FORMAT,
-                vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-                vk::SharingMode::EXCLUSIVE,
-                vk::ImageAspectFlags::DEPTH)?;
-
-        Ok(ImageWrapper {
-            allocation,
-            image,
-            image_view,
-            format: self::PROJ_VK_DEPTH_FORMAT
-        })
-    }
-
-    pub unsafe fn new_texture_image_uninitialised(
-        render_core: &RenderCore,
-        width: u32,
-        height: u32) -> Result<ImageWrapper, String> {
-
-        let (allocation, image, image_view) =
-            Self::make_image_and_view(
-                render_core,
-                width,
-                height,
-                self::PROJ_VK_TEXTURE_FORMAT,
-                vk::ImageUsageFlags::SAMPLED,
-                vk::SharingMode::EXCLUSIVE,
-                vk::ImageAspectFlags::DEPTH)?;
-
-        Ok(ImageWrapper {
-            allocation,
-            image,
-            image_view,
-            format: self::PROJ_VK_TEXTURE_FORMAT
-        })
-    }
-
-    pub unsafe fn new_initialised_texture_image_rgba(
+    unsafe fn initialise_read_only_color_texture(
         render_core: &RenderCore,
         width: u32,
         height: u32,
-        init_data: &Vec<u8>) -> Result<ImageWrapper, String> {
+        image: &vk::Image,
+        init_data: &Vec<u8>) -> Result<(), String> {
 
         let pixel_size_bytes: usize = 4;
-
-        let (allocation, image, image_view) =
-            Self::make_image_and_view(
-                render_core,
-                width,
-                height,
-                self::PROJ_VK_TEXTURE_FORMAT,
-                vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
-                vk::SharingMode::EXCLUSIVE,
-                vk::ImageAspectFlags::COLOR)?;
 
         // Staging buffer
         let mut staging_buffer = BufferWrapper::new_staging_buffer(
@@ -169,7 +192,7 @@ impl ImageWrapper {
 
         // Initial memory dependency
         let barrier = vk::ImageMemoryBarrier::builder()
-            .image(image)
+            .image(*image)
             .src_access_mask(vk::AccessFlags::empty())
             .dst_access_mask(vk::AccessFlags::TRANSFER_WRITE)
             .old_layout(vk::ImageLayout::UNDEFINED)
@@ -211,14 +234,14 @@ impl ImageWrapper {
         render_core.device.cmd_copy_buffer_to_image(
             copy_command_buffer,
             staging_buffer.buffer,
-            image,
+            *image,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             &[region]
         );
 
         // Final memory dependency
         let barrier = vk::ImageMemoryBarrier::builder()
-            .image(image)
+            .image(*image)
             .src_access_mask(vk::AccessFlags::TRANSFER_WRITE)
             .dst_access_mask(vk::AccessFlags::SHADER_READ)
             .old_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
@@ -259,11 +282,6 @@ impl ImageWrapper {
         staging_buffer.destroy(render_core.get_mem_allocator())?;
         render_core.device.free_command_buffers(render_core.graphics_command_buffer_pool, &[copy_command_buffer]);
 
-        Ok(ImageWrapper {
-            allocation,
-            image,
-            image_view,
-            format: self::PROJ_VK_TEXTURE_FORMAT
-        })
+        Ok(())
     }
 }
