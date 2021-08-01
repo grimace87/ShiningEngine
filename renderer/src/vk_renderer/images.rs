@@ -11,9 +11,6 @@ use ash::{
 };
 use defs::{TexturePixelFormat, ImageUsage};
 
-pub const PROJ_VK_DEPTH_FORMAT: vk::Format = vk::Format::D16_UNORM;
-pub const PROJ_VK_TEXTURE_FORMAT: vk::Format = vk::Format::R8G8B8A8_UNORM;
-
 pub struct ImageWrapper {
     allocation: vk_mem::Allocation,
     image: vk::Image,
@@ -52,11 +49,11 @@ impl ImageWrapper {
                     render_core,
                     width,
                     height,
-                    self::PROJ_VK_DEPTH_FORMAT,
+                    vk::Format::D16_UNORM,
                     vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
                     vk::SharingMode::EXCLUSIVE,
                     vk::ImageAspectFlags::DEPTH)?;
-                (allocation, image, image_view, self::PROJ_VK_DEPTH_FORMAT)
+                (allocation, image, image_view, vk::Format::D16_UNORM)
             }
 
             // Typical off-screen-rendered color attachment
@@ -68,11 +65,11 @@ impl ImageWrapper {
                     render_core,
                     width,
                     height,
-                    self::PROJ_VK_TEXTURE_FORMAT,
+                    vk::Format::R8G8B8A8_UNORM,
                     vk::ImageUsageFlags::SAMPLED,
                     vk::SharingMode::EXCLUSIVE,
                     vk::ImageAspectFlags::DEPTH)?; // TODO - What is this?!
-                (allocation, image, image_view, self::PROJ_VK_TEXTURE_FORMAT)
+                (allocation, image, image_view, vk::Format::R8G8B8A8_UNORM)
             }
 
             // Typical initialised texture
@@ -84,11 +81,11 @@ impl ImageWrapper {
                     render_core,
                     width,
                     height,
-                    self::PROJ_VK_TEXTURE_FORMAT,
+                    vk::Format::R8G8B8A8_UNORM,
                     vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
                     vk::SharingMode::EXCLUSIVE,
                     vk::ImageAspectFlags::COLOR)?;
-                (allocation, image, image_view, self::PROJ_VK_TEXTURE_FORMAT)
+                (allocation, image, image_view, vk::Format::R8G8B8A8_UNORM)
             }
 
             // Unhandled cases
