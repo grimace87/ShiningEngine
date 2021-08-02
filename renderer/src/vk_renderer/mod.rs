@@ -1,7 +1,6 @@
 
 pub mod buffers;
 pub mod images;
-pub mod framebuffers;
 mod render_core;
 mod renderpass;
 mod pipeline;

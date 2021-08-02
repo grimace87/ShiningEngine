@@ -1,8 +1,7 @@
 
 use crate::vk_renderer::{
     RenderCore,
-    images::ImageWrapper,
-    framebuffers::FramebufferWrapper
+    images::ImageWrapper
 };
 
 use ash::{
@@ -14,7 +13,7 @@ use defs::{FramebufferTarget, FramebufferCreationData, TexturePixelFormat};
 pub struct RenderpassWrapper {
     pub renderpass: vk::RenderPass,
     pub swapchain_framebuffer: vk::Framebuffer,
-    custom_framebuffer: Option<FramebufferWrapper>
+    pub custom_framebuffer: Option<vk::Framebuffer>
 }
 
 /// Wraps resources related to renderpasses, including framebuffers. Resources need to be recreated
@@ -37,7 +36,7 @@ impl RenderpassWrapper {
         unsafe {
             render_core.device.destroy_framebuffer(self.swapchain_framebuffer, None);
             if let Some(framebuffer) = self.custom_framebuffer.as_ref() {
-                render_core.device.destroy_framebuffer(framebuffer.framebuffer, None);
+                render_core.device.destroy_framebuffer(*framebuffer, None);
             }
             render_core.device.destroy_render_pass(self.renderpass, None);
         }
@@ -45,7 +44,7 @@ impl RenderpassWrapper {
 
     unsafe fn create_resources(&mut self, render_core: &RenderCore, image_index: usize, framebuffer_target: &FramebufferTarget) -> Result<(), String> {
         match framebuffer_target {
-            FramebufferTarget::Texture(creation_data) => self.create_non_final_renderpass_resources(render_core, creation_data),
+            FramebufferTarget::Texture(creation_data) => self.create_offscreen_renderpass_resources(render_core, creation_data),
             FramebufferTarget::DefaultFramebuffer => self.create_swapchain_renderpass_resources(render_core, image_index)
         }
     }
@@ -130,49 +129,50 @@ impl RenderpassWrapper {
         Ok(())
     }
 
-    unsafe fn create_non_final_renderpass_resources(&mut self, render_core: &RenderCore, config: &FramebufferCreationData) -> Result<(), String> {
+    unsafe fn create_offscreen_renderpass_resources(&mut self, render_core: &RenderCore, config: &FramebufferCreationData) -> Result<(), String> {
 
-        let depth_image = match render_core.get_depth_image() {
-            Some(image) => image,
-            _ => return Err(String::from("Creating new renderpass wrapper with no depth image available"))
+        // Get the texture to use for color attachment
+        let color_texture_image_view = render_core.query_texture(config.color_texture_index)?;
+        let color_format = match config.color_format {
+            TexturePixelFormat::RGBA => vk::Format::R8G8B8A8_UNORM,
+            _ => return Err(format!("Cannot set color attachment tp {:?}", config.color_format))
         };
 
-        // Define subpass with single colour attachment
-        let surface_format = render_core.get_surface_formats()?
-            .first()
-            .unwrap()
-            .format;
+        // Define subpass with single colour attachment and optionally depth attachment
         let mut attachments = vec![];
-        match config.color_format {
-            TexturePixelFormat::RGBA => {
-                attachments.push(vk::AttachmentDescription::builder()
-                    .format(surface_format)
-                    .load_op(vk::AttachmentLoadOp::CLEAR)
-                    .store_op(vk::AttachmentStoreOp::STORE)
-                    .stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
-                    .stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
-                    .initial_layout(vk::ImageLayout::UNDEFINED)
-                    .final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
-                    .samples(vk::SampleCountFlags::TYPE_1)
-                    .build());
+        attachments.push(vk::AttachmentDescription::builder()
+            .format(color_format)
+            .load_op(vk::AttachmentLoadOp::CLEAR)
+            .store_op(vk::AttachmentStoreOp::STORE)
+            .stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
+            .stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
+            .initial_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+            .final_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
+            .samples(vk::SampleCountFlags::TYPE_1)
+            .build());
+        let depth_texture_image_view = match config.depth_texture_index {
+            Some(depth_texture_index) => {
+                // Get the texture to use for color attachment
+                let depth_texture_image_view = render_core.query_texture(depth_texture_index)?;
+                match config.depth_format {
+                    TexturePixelFormat::Unorm16 => {
+                        attachments.push(vk::AttachmentDescription::builder()
+                            .format(vk::Format::D16_UNORM)
+                            .load_op(vk::AttachmentLoadOp::CLEAR)
+                            .store_op(vk::AttachmentStoreOp::DONT_CARE)
+                            .stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
+                            .stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
+                            .initial_layout(vk::ImageLayout::UNDEFINED)
+                            .final_layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+                            .samples(vk::SampleCountFlags::TYPE_1)
+                            .build());
+                    },
+                    _ => return Err(format!("Cannot set color attachment tp {:?}", config.color_format))
+                };
+                Some(depth_texture_image_view)
             },
-            _ => {}
+            _ => None
         };
-        match config.depth_format {
-            TexturePixelFormat::Unorm16 => {
-                attachments.push(vk::AttachmentDescription::builder()
-                    .format(depth_image.format)
-                    .load_op(vk::AttachmentLoadOp::CLEAR)
-                    .store_op(vk::AttachmentStoreOp::DONT_CARE)
-                    .stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
-                    .stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
-                    .initial_layout(vk::ImageLayout::UNDEFINED)
-                    .final_layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-                    .samples(vk::SampleCountFlags::TYPE_1)
-                    .build());
-            },
-            _ => {}
-        }
 
         let color_attachment_refs = [
             vk::AttachmentReference {
@@ -180,10 +180,13 @@ impl RenderpassWrapper {
                 layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL
             }
         ];
+
+        // TODO - Depth attachment is optional
         let depth_attachment_ref = vk::AttachmentReference {
             attachment: 1,
             layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL
         };
+
         let subpasses = [
             vk::SubpassDescription::builder()
                 .color_attachments(&color_attachment_refs)
@@ -194,10 +197,19 @@ impl RenderpassWrapper {
         let subpass_dependencies = [
             vk::SubpassDependency::builder()
                 .src_subpass(vk::SUBPASS_EXTERNAL)
-                .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                .src_stage_mask(vk::PipelineStageFlags::FRAGMENT_SHADER)
+                .src_access_mask(vk::AccessFlags::SHADER_READ)
                 .dst_subpass(0)
                 .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-                .dst_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_READ | vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+                .dst_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+                .build(),
+            vk::SubpassDependency::builder()
+                .src_subpass(0)
+                .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                .src_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+                .dst_subpass(vk::SUBPASS_EXTERNAL)
+                .dst_stage_mask(vk::PipelineStageFlags::FRAGMENT_SHADER)
+                .dst_access_mask(vk::AccessFlags::SHADER_READ)
                 .build()
         ];
 
@@ -213,7 +225,7 @@ impl RenderpassWrapper {
         // Create framebuffers for swapchain image views, or new framebuffers from scratch, for use in this renderpass
         self.renderpass = renderpass;
         self.swapchain_framebuffer = vk::Framebuffer::null();
-        self.custom_framebuffer = Some(FramebufferWrapper::new_from_config(render_core, renderpass, config)?);
+        self.custom_framebuffer = Some(Self::create_offscreen_framebuffer(render_core, renderpass, config, color_texture_image_view, depth_texture_image_view)?);
 
         Ok(())
     }
@@ -231,5 +243,27 @@ impl RenderpassWrapper {
             .create_framebuffer(&framebuffer_info, None)
             .map_err(|e| format!("{:?}", e))?;
         Ok(framebuffer)
+    }
+
+    unsafe fn create_offscreen_framebuffer(render_core: &RenderCore, renderpass: vk::RenderPass, config: &FramebufferCreationData, color_image: vk::ImageView, depth_image: Option<vk::ImageView>) -> Result<vk::Framebuffer, String> {
+
+        let width = config.width as u32;
+        let height = config.height as u32;
+
+        let mut attachment_image_view = vec![];
+        attachment_image_view.push(color_image);
+        if let Some(image_view) = depth_image.as_ref() {
+            attachment_image_view.push(*image_view);
+        }
+
+        let framebuffer_info = vk::FramebufferCreateInfo::builder()
+            .render_pass(renderpass)
+            .attachments(attachment_image_view.as_slice())
+            .width(width)
+            .height(height)
+            .layers(1);
+        render_core.device
+            .create_framebuffer(&framebuffer_info, None)
+            .map_err(|e| format!("{:?}", e))
     }
 }

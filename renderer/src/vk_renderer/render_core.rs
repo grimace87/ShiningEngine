@@ -337,15 +337,15 @@ impl RenderCore {
                 Some(data) => ImageWrapper::new(
                     self,
                     ImageUsage::TextureSampleOnly,
-                    TexturePixelFormat::RGBA,
+                    creation_data.format,
                     creation_data.width,
                     creation_data.height,
                     Some(data))?,
                 // TODO - One per swapchain image
                 None => ImageWrapper::new(
                     self,
-                    ImageUsage::OffscreenRenderTextureSample,
-                    TexturePixelFormat::RGBA,
+                    ImageUsage::OffscreenRenderSampleColorWriteDepth,
+                    creation_data.format,
                     creation_data.width,
                     creation_data.height,
                     None

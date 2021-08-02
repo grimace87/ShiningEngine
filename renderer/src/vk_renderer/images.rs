@@ -57,7 +57,7 @@ impl ImageWrapper {
             }
 
             // Typical off-screen-rendered color attachment
-            else if usage == ImageUsage::OffscreenRenderTextureSample && format == TexturePixelFormat::RGBA {
+            else if usage == ImageUsage::OffscreenRenderSampleColorWriteDepth && format == TexturePixelFormat::RGBA {
                 if let Some(_) = init_data {
                     return Err(String::from("Initialising off-screen render image not allowed"));
                 }
@@ -66,10 +66,26 @@ impl ImageWrapper {
                     width,
                     height,
                     vk::Format::R8G8B8A8_UNORM,
-                    vk::ImageUsageFlags::SAMPLED,
+                    vk::ImageUsageFlags::SAMPLED | vk::ImageUsageFlags::COLOR_ATTACHMENT,
                     vk::SharingMode::EXCLUSIVE,
-                    vk::ImageAspectFlags::DEPTH)?; // TODO - What is this?!
+                    vk::ImageAspectFlags::COLOR)?;
                 (allocation, image, image_view, vk::Format::R8G8B8A8_UNORM)
+            }
+
+            // Typical off-screen-rendered depth attachment
+            else if usage == ImageUsage::OffscreenRenderSampleColorWriteDepth && format == TexturePixelFormat::Unorm16 {
+                if let Some(_) = init_data {
+                    return Err(String::from("Initialising off-screen render image not allowed"));
+                }
+                let (allocation, image, image_view) = Self::make_image_and_view(
+                    render_core,
+                    width,
+                    height,
+                    vk::Format::D16_UNORM,
+                    vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+                    vk::SharingMode::EXCLUSIVE,
+                    vk::ImageAspectFlags::DEPTH)?;
+                (allocation, image, image_view, vk::Format::D16_UNORM)
             }
 
             // Typical initialised texture

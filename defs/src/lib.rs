@@ -15,14 +15,14 @@ pub enum Shader {
     Text,     // Position-Normal-Texture, R8 texture, no lighting
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum ImageUsage {
     TextureSampleOnly,
     DepthBuffer,
-    OffscreenRenderTextureSample
+    OffscreenRenderSampleColorWriteDepth
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum TexturePixelFormat {
     None,
     RGBA,
@@ -88,7 +88,8 @@ pub struct TextureCreationData {
 }
 
 pub struct FramebufferCreationData {
-    pub texture_index: usize,
+    pub color_texture_index: usize,
+    pub depth_texture_index: Option<usize>,
     pub width: usize,
     pub height: usize,
     pub color_format: TexturePixelFormat,
