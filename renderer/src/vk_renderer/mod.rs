@@ -40,7 +40,7 @@ impl RendererApi for VkRenderer {
             let command_buffer = command_buffers[swapchain_image_index];
             let resources = PerImageResources::new(&render_core, swapchain_image_index, description, command_buffer)?;
             unsafe {
-                resources.record_command_buffer(&render_core, command_buffer)?;
+                resources.record_command_buffer(&render_core, description, command_buffer)?;
             }
             per_image_resources.push(resources);
         }
@@ -84,7 +84,7 @@ impl RendererApi for VkRenderer {
             for swapchain_image_index in 0..swapchain_image_count {
                 let command_buffer = command_buffers[swapchain_image_index];
                 let resources = PerImageResources::new(&self.render_core, swapchain_image_index, description, command_buffer)?;
-                resources.record_command_buffer(&self.render_core, command_buffer)?;
+                resources.record_command_buffer(&self.render_core, description, command_buffer)?;
                 self.per_image_resources.push(resources);
             }
         }
@@ -111,7 +111,7 @@ impl RendererApi for VkRenderer {
             let command_buffer = command_buffers[swapchain_image_index];
             let resources = PerImageResources::new(&self.render_core, swapchain_image_index, description, command_buffer)?;
             unsafe {
-                resources.record_command_buffer(&self.render_core, command_buffer)?;
+                resources.record_command_buffer(&self.render_core, description, command_buffer)?;
             }
             self.per_image_resources.push(resources);
         }

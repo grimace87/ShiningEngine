@@ -11,10 +11,7 @@ use crate::vk_renderer::{
         per_pass_resources::PerPassResources
     }
 };
-use defs::{
-    SceneInfo,
-    DrawingDescription
-};
+use defs::{SceneInfo, DrawingDescription, FramebufferTarget, FramebufferCreationData};
 use ash::{
     vk,
     version::DeviceV1_0
@@ -37,12 +34,20 @@ impl PerImageResources {
         })
     }
 
-    pub unsafe fn record_command_buffer(&self, render_core: &RenderCore, command_buffer: vk::CommandBuffer) -> Result<(), String> {
+    pub unsafe fn record_command_buffer(&self, render_core: &RenderCore, description: &DrawingDescription, command_buffer: vk::CommandBuffer) -> Result<(), String> {
         let begin_info = vk::CommandBufferBeginInfo::builder();
         render_core.device.begin_command_buffer(command_buffer, &begin_info)
             .map_err(|e| format!("{:?}", e))?;
-        for resources in self.resources.iter() {
-            resources.record_command_buffer(render_core, command_buffer)?;
+        for (pass_index, resources) in self.resources.iter().enumerate() {
+            let pass = &description.passes[pass_index];
+            let render_extent = match &pass.target {
+                FramebufferTarget::Texture(framebuffer_config) => vk::Extent2D { width: framebuffer_config.width as u32, height: framebuffer_config.height as u32 },
+                _ => render_core.get_extent()?
+            };
+            resources.record_command_buffer(render_core, command_buffer, render_extent)?;
+            if let FramebufferTarget::Texture(framebuffer_spec) = &pass.target {
+                self.insert_pipeline_barrier(render_core, &framebuffer_spec, command_buffer)?;
+            }
         }
         render_core.device.end_command_buffer(command_buffer)
             .map_err(|e| format!("{:?}", e))?;
@@ -64,5 +69,37 @@ impl PerImageResources {
 
     pub fn get_command_buffer(&self) -> vk::CommandBuffer {
         self.command_buffer
+    }
+
+    unsafe fn insert_pipeline_barrier(&self, render_core: &RenderCore, framebuffer_spec: &FramebufferCreationData, command_buffer: vk::CommandBuffer) -> Result<(), String> {
+        let mut barriers = vec![];
+
+        let image = render_core.query_texture(framebuffer_spec.color_texture_index)?;
+        barriers.push(vk::ImageMemoryBarrier::builder()
+            .image(image.image)
+            .src_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+            .dst_access_mask(vk::AccessFlags::SHADER_READ)
+            .old_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
+            .new_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+            .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+            .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+            .subresource_range(vk::ImageSubresourceRange {
+                aspect_mask: vk::ImageAspectFlags::COLOR,
+                base_mip_level: 0,
+                level_count: 1,
+                base_array_layer: 0,
+                layer_count: 1
+            })
+            .build());
+        render_core.device.cmd_pipeline_barrier(
+            command_buffer,
+            vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
+            vk::PipelineStageFlags::FRAGMENT_SHADER,
+            vk::DependencyFlags::empty(),
+            &[],
+            &[],
+            barriers.as_slice()
+        );
+        Ok(())
     }
 }

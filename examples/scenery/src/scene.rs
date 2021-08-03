@@ -1,5 +1,5 @@
 
-use defs::{Camera, SceneInfo, DrawingDescription, DrawingPass, DrawingStep, Shader, VertexFormat, Control, FramebufferTarget, ResourcePreloads, VboCreationData, TextureCreationData};
+use defs::{Camera, SceneInfo, DrawingDescription, DrawingPass, DrawingStep, Shader, VertexFormat, Control, FramebufferTarget, ResourcePreloads, VboCreationData, TextureCreationData, FramebufferCreationData, TexturePixelFormat};
 use engine::{
     camera::player::PlayerCamera,
     util::{
@@ -24,6 +24,10 @@ const VBO_INDEX_HUD: usize = 2;
 
 const TEXTURE_INDEX_TERRAIN: usize = 0;
 const TEXTURE_INDEX_FONT: usize = 1;
+const TEXTURE_INDEX_PRE_RENDER_COLOR: usize = 2;
+const TEXTURE_INDEX_PRE_RENDER_DEPTH: usize = 3;
+
+const OFFSCREEN_RENDER_SIZE: u32 = 1024;
 
 #[repr(C)]
 struct MvpUbo {
@@ -113,6 +117,18 @@ impl SceneInfo for SceneryScene {
         let mut texture_loads = HashMap::<usize, TextureCreationData>::new();
         texture_loads.insert(TEXTURE_INDEX_TERRAIN, scene_texture);
         texture_loads.insert(TEXTURE_INDEX_FONT, font_texture);
+        texture_loads.insert(TEXTURE_INDEX_PRE_RENDER_COLOR, TextureCreationData {
+            data: None,
+            width: OFFSCREEN_RENDER_SIZE,
+            height: OFFSCREEN_RENDER_SIZE,
+            format: TexturePixelFormat::RGBA
+        });
+        texture_loads.insert(TEXTURE_INDEX_PRE_RENDER_DEPTH, TextureCreationData {
+            data: None,
+            width: OFFSCREEN_RENDER_SIZE,
+            height: OFFSCREEN_RENDER_SIZE,
+            format: TexturePixelFormat::Unorm16
+        });
 
         ResourcePreloads {
             vbo_preloads: vbo_loads,
@@ -123,6 +139,26 @@ impl SceneInfo for SceneryScene {
     fn make_description(&self) -> DrawingDescription {
         DrawingDescription {
             passes: vec![
+                DrawingPass {
+                    target: FramebufferTarget::Texture(FramebufferCreationData {
+                        color_texture_index: TEXTURE_INDEX_PRE_RENDER_COLOR,
+                        depth_texture_index: Some(TEXTURE_INDEX_PRE_RENDER_DEPTH),
+                        width: OFFSCREEN_RENDER_SIZE as usize,
+                        height: OFFSCREEN_RENDER_SIZE as usize,
+                        color_format: TexturePixelFormat::RGBA,
+                        depth_format: TexturePixelFormat::Unorm16
+                    }),
+                    steps: vec![
+                        DrawingStep {
+                            shader: Shader::PlainPnt,
+                            vbo_index: VBO_INDEX_SCENE,
+                            vbo_format: VertexFormat::PositionNormalTexture,
+                            draw_indexed: false,
+                            texture_index: TEXTURE_INDEX_TERRAIN,
+                            depth_test: true
+                        }
+                    ]
+                },
                 DrawingPass {
                     target: FramebufferTarget::DefaultFramebuffer,
                     steps: vec![
@@ -139,7 +175,10 @@ impl SceneInfo for SceneryScene {
                             vbo_index: VBO_INDEX_RIVER,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            texture_index: TEXTURE_INDEX_TERRAIN,
+
+                            // TODO - One of these per swapchain image
+                            texture_index: TEXTURE_INDEX_PRE_RENDER_COLOR,
+
                             depth_test: true
                         },
                         DrawingStep {

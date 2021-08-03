@@ -61,7 +61,7 @@ impl PipelineWrapper {
         }
     }
 
-    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingStep) -> Result<(), String> {
+    pub unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingStep, render_extent: vk::Extent2D) -> Result<(), String> {
 
         // Make shader modules
         let vertex_shader_create_info = vk::ShaderModuleCreateInfo::builder()
@@ -149,7 +149,7 @@ impl PipelineWrapper {
         };
 
         // Texture image
-        let texture_image_view = render_core.query_texture(description.texture_index)?;
+        let texture_image_view = render_core.query_texture(description.texture_index)?.image_view;
 
         // Sampler
         let sampler_info = vk::SamplerCreateInfo::builder()
@@ -237,18 +237,17 @@ impl PipelineWrapper {
         render_core.device.update_descriptor_sets(&descriptor_set_writes, &[]);
 
         // Viewport
-        let extent = render_core.get_extent()?;
         let viewports = [vk::Viewport {
             x: 0.0,
             y: 0.0,
-            width: extent.width as f32,
-            height: extent.height as f32,
+            width: render_extent.width as f32,
+            height: render_extent.height as f32,
             min_depth: 0.0,
             max_depth: 1.0
         }];
         let scissors = [vk::Rect2D {
             offset: vk::Offset2D { x: 0, y: 0 },
-            extent
+            extent: render_extent
         }];
         let viewport_info = vk::PipelineViewportStateCreateInfo::builder()
             .viewports(&viewports)

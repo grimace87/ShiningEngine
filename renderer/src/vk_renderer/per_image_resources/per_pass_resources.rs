@@ -25,7 +25,7 @@ impl PerPassResources {
         })
     }
 
-    pub unsafe fn record_command_buffer(&self, render_core: &RenderCore, command_buffer: vk::CommandBuffer) -> Result<(), String> {
+    pub unsafe fn record_command_buffer(&self, render_core: &RenderCore, command_buffer: vk::CommandBuffer, render_extent: vk::Extent2D) -> Result<(), String> {
         let clear_values = [
             vk::ClearValue {
                 color: vk::ClearColorValue {
@@ -39,12 +39,16 @@ impl PerPassResources {
                 }
             }
         ];
+        let framebuffer = match self.renderpass.custom_framebuffer {
+            Some(f) => f,
+            _ => self.renderpass.swapchain_framebuffer
+        };
         let renderpass_begin_info = vk::RenderPassBeginInfo::builder()
             .render_pass(self.renderpass.renderpass)
-            .framebuffer(self.renderpass.swapchain_framebuffer)
+            .framebuffer(framebuffer)
             .render_area(vk::Rect2D {
                 offset: vk::Offset2D { x: 0, y: 0 },
-                extent: render_core.get_extent()?
+                extent: render_extent
             })
             .clear_values(&clear_values);
         render_core.device.cmd_begin_render_pass(command_buffer, &renderpass_begin_info, vk::SubpassContents::INLINE);

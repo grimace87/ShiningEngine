@@ -249,9 +249,9 @@ impl RenderCore {
         }
     }
 
-    pub unsafe fn query_texture(&self, index: usize) -> Result<vk::ImageView, String> {
+    pub unsafe fn query_texture(&self, index: usize) -> Result<&ImageWrapper, String> {
         match self.texture_objects.get(&index) {
-            Some(texture) => Ok(texture.image_view),
+            Some(texture) => Ok(texture),
             None => Err(String::from("Queried texture that is not loaded"))
         }
     }

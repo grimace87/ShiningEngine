@@ -19,7 +19,7 @@ struct ImageCreationParams {
 
 pub struct ImageWrapper {
     allocation: vk_mem::Allocation,
-    image: vk::Image,
+    pub image: vk::Image,
     pub image_view: vk::ImageView,
     pub format: vk::Format
 }

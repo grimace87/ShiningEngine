@@ -7,7 +7,7 @@ use crate::vk_renderer::{
     }
 };
 
-use defs::{DrawingPass, SceneInfo};
+use defs::{DrawingPass, SceneInfo, FramebufferTarget};
 
 use ash::vk;
 
@@ -33,8 +33,12 @@ impl PipelineSet {
     }
 
     unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass) -> Result<(), String> {
+        let render_extent = match &description.target {
+            FramebufferTarget::Texture(framebuffer_config) => vk::Extent2D { width: framebuffer_config.width as u32, height: framebuffer_config.height as u32 },
+            _ => render_core.get_extent()?
+        };
         for (i, pipeline) in self.pipelines.iter_mut().enumerate() {
-            pipeline.create_resources(render_core, renderpass_wrapper, &description.steps[i])?;
+            pipeline.create_resources(render_core, renderpass_wrapper, &description.steps[i], render_extent)?;
         }
         Ok(())
     }
