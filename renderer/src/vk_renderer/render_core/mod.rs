@@ -1,5 +1,8 @@
 
+mod instance;
+
 use crate::vk_renderer::images::ImageWrapper;
+use instance::make_instance;
 
 use defs::{PresentResult, ResourcePreloads, VertexFormat, ImageUsage, TexturePixelFormat};
 
@@ -12,7 +15,7 @@ use ash::{
     Entry,
     Instance,
     Device,
-    version::{EntryV1_0, InstanceV1_0, DeviceV1_0},
+    version::{InstanceV1_0, DeviceV1_0},
     extensions::{
         ext::DebugUtils,
         khr::{Swapchain, Surface}
@@ -115,50 +118,10 @@ impl RenderCore {
 
     unsafe fn new_with_surface_without_swapchain(entry: &Entry, window_owner: &dyn HasRawWindowHandle) -> Result<RenderCore, String> {
 
-        // TODO - MATCH ALL THIS FUNCTIONS WITH EXAMPLE AROUND LINE 230 AND SO ON FROM:
-        // https://github.com/MaikKlein/ash/blob/master/examples/src/lib.rs
-
-        let instance = {
-
-            let required_platform_extensions = Self::get_window_extensions(window_owner)?;
-
-            // App info
-            let engine_name = CString::new("ThisIsAnEngine").unwrap();
-            let app_name = CString::new("Strength Beyond Fear").unwrap();
-            let app_info = vk::ApplicationInfo::builder()
-                .application_name(&app_name)
-                .application_version(vk::make_version(0, 1, 0))
-                .engine_name(&engine_name)
-                .engine_version(vk::make_version(0, 0, 1))
-                .api_version(vk::make_version(1, 0, 0));
-
-            // Instance extensions
-            let mut extension_name_pointers: Vec<*const c_char> = vec![
-                ash::extensions::ext::DebugUtils::name().as_ptr()
-            ];
-            extension_name_pointers.extend(&required_platform_extensions);
-
-            // Validation layers
-            // TODO - Check for layer support. This one seemingly not supported by Intel HD 530.
-            let layer_names: Vec<CString> = vec![
-                CString::new("VK_LAYER_KHRONOS_validation").unwrap()
-            ];
-            let layer_name_pointers: Vec<*const c_char> = layer_names
-                .iter()
-                .map(|layer_name| layer_name.as_ptr())
-                .collect();
-
-            // Create the instance
-            let instance_create_info = vk::InstanceCreateInfo::builder()
-                .application_info(&app_info)
-                .enabled_extension_names(&extension_name_pointers)
-                .enabled_layer_names(&layer_name_pointers);
-            entry
-                .create_instance(&instance_create_info, None)
-                .map_err(|e| format!("Instance creation failed: {:?}", e))?
-        };
+        let instance = make_instance(entry, window_owner)?;
 
         // Create debug messenger
+        // TODO - Only if debug mode
         let debug_utils = ash::extensions::ext::DebugUtils::new(entry, &instance);
         let debug_create_info = vk::DebugUtilsMessengerCreateInfoEXT {
             message_severity: vk::DebugUtilsMessageSeverityFlagsEXT::WARNING | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
@@ -549,15 +512,6 @@ impl RenderCore {
         self.device
             .allocate_command_buffers(&command_buffer_allocate_info)
             .map_err(|e| format!("{:?}", e))
-    }
-
-    fn get_window_extensions(window_owner: &dyn HasRawWindowHandle) -> Result<Vec<*const c_char>, String> {
-        let extensions_as_c_str = ash_window::enumerate_required_extensions(window_owner)
-            .map_err(|e| format!("{:?}", e))?
-            .iter()
-            .map(|ext| ext.as_ptr())
-            .collect::<Vec<*const c_char>>();
-        Ok(extensions_as_c_str)
     }
 
     pub unsafe fn get_surface_formats(&self) -> Result<Vec<vk::SurfaceFormatKHR>, String> {
