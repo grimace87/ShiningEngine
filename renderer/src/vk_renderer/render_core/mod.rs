@@ -1,8 +1,10 @@
 
 mod instance;
+mod debug;
 
 use crate::vk_renderer::images::ImageWrapper;
 use instance::make_instance;
+use debug::make_debug_utils;
 
 use defs::{PresentResult, ResourcePreloads, VertexFormat, ImageUsage, TexturePixelFormat};
 
@@ -28,19 +30,6 @@ use crate::vk_renderer::buffers::BufferWrapper;
 
 pub const PROJ_VK_SWAPCHAIN_SIZE: usize = 2;
 
-unsafe extern "system" fn vulkan_debug_utils_callback(
-    message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
-    message_type: vk::DebugUtilsMessageTypeFlagsEXT,
-    p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
-    _p_user_data: *mut std::ffi::c_void
-) -> vk::Bool32 {
-    let message = std::ffi::CStr::from_ptr((*p_callback_data).p_message);
-    let severity = format!("{:?}", message_severity);
-    let ty = format!("{:?}", message_type);
-    println!("[Debug][{}][{}] {:?}", severity, ty, message);
-    vk::FALSE
-}
-
 #[derive(Copy, Clone)]
 pub struct PhysicalDeviceProperties {
     pub physical_device: vk::PhysicalDevice,
@@ -57,8 +46,7 @@ pub struct PhysicalDeviceProperties {
 /// - Vulkan swapchain with image views for its images
 pub struct RenderCore {
     pub instance: Instance,
-    utils_messenger: vk::DebugUtilsMessengerEXT,
-    debug_utils: DebugUtils,
+    debug_utils: Option<(DebugUtils, vk::DebugUtilsMessengerEXT)>,
     pub device: Device,
     pub physical_device_properties: PhysicalDeviceProperties,
     mem_allocator: vk_mem::Allocator,
@@ -99,7 +87,9 @@ impl Drop for RenderCore {
             self.destroy_all_resources();
             self.mem_allocator.destroy();
             self.device.destroy_device(None);
-            self.debug_utils.destroy_debug_utils_messenger(self.utils_messenger, None);
+            if let Some((debug_utils, utils_messenger)) = &self.debug_utils {
+                debug_utils.destroy_debug_utils_messenger(*utils_messenger, None);
+            }
             self.instance.destroy_instance(None);
         }
     }
@@ -119,19 +109,7 @@ impl RenderCore {
     unsafe fn new_with_surface_without_swapchain(entry: &Entry, window_owner: &dyn HasRawWindowHandle) -> Result<RenderCore, String> {
 
         let instance = make_instance(entry, window_owner)?;
-
-        // Create debug messenger
-        // TODO - Only if debug mode
-        let debug_utils = ash::extensions::ext::DebugUtils::new(entry, &instance);
-        let debug_create_info = vk::DebugUtilsMessengerCreateInfoEXT {
-            message_severity: vk::DebugUtilsMessageSeverityFlagsEXT::WARNING | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
-            message_type: vk::DebugUtilsMessageTypeFlagsEXT::GENERAL | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
-            pfn_user_callback: Some(vulkan_debug_utils_callback),
-            ..Default::default()
-        };
-        let utils_messenger = debug_utils
-            .create_debug_utils_messenger(&debug_create_info, None)
-            .map_err(|e| format!("Debug messenger creation failed: {:?}", e))?;
+        let debug_utils = make_debug_utils(entry, &instance)?;
 
         // Create surface and surface loader, and chosoe a compatible physical device
         let surface_fn = Surface::new(entry, &instance);
@@ -252,7 +230,6 @@ impl RenderCore {
         Ok(
             RenderCore {
                 instance,
-                utils_messenger,
                 debug_utils,
                 device,
                 physical_device_properties,
