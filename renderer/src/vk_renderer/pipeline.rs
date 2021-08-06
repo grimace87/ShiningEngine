@@ -139,9 +139,11 @@ impl PipelineWrapper {
         let uniform_buffer = {
             let uniform_buffer_data: Vec<f32> = vec![0.0; ubo_size_bytes];
             let allocator = render_core.get_mem_allocator();
-            let mut buffer = BufferWrapper::new_uniform_buffer(
+            let mut buffer = BufferWrapper::new(
                 allocator,
-                ubo_size_bytes)?;
+                ubo_size_bytes,
+                vk::BufferUsageFlags::UNIFORM_BUFFER,
+                vk_mem::MemoryUsage::CpuToGpu)?;
             buffer.update_from_vec::<f32>(allocator, &uniform_buffer_data)?;
             buffer
         };

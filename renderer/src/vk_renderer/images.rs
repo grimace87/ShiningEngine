@@ -185,10 +185,11 @@ impl ImageWrapper {
         let pixel_size_bytes: usize = 4;
 
         // Staging buffer
-        let mut staging_buffer = BufferWrapper::new_staging_buffer(
+        let mut staging_buffer = BufferWrapper::new(
             render_core.get_mem_allocator(),
-            pixel_size_bytes * width as usize * height as usize
-        )?;
+            pixel_size_bytes * width as usize * height as usize,
+            vk::BufferUsageFlags::TRANSFER_SRC,
+            vk_mem::MemoryUsage::CpuToGpu)?;
         staging_buffer.update_from_vec(render_core.get_mem_allocator(), init_data)?;
 
         // Allocate a single-use command buffer and begin recording

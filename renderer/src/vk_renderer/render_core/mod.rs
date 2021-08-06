@@ -196,9 +196,11 @@ impl RenderCore {
                 VertexFormat::PositionNormalTexture => 32
             };
             let buffer = {
-                let mut buffer = BufferWrapper::new_vertex_buffer(
+                let mut buffer = BufferWrapper::new(
                     &self.mem_allocator,
-                    creation_data.vertex_count * vertex_size_bytes)?;
+                    creation_data.vertex_count * vertex_size_bytes,
+                    vk::BufferUsageFlags::VERTEX_BUFFER,
+                    vk_mem::MemoryUsage::CpuToGpu)?;
                 buffer.update_from_vec(&self.mem_allocator, &creation_data.vertex_data)?;
                 buffer
             };
