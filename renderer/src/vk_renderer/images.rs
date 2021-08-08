@@ -11,6 +11,12 @@ use ash::{
 };
 use defs::{TexturePixelFormat, ImageUsage};
 
+struct ImageCreationParams {
+    format: vk::Format,
+    usage: vk::ImageUsageFlags,
+    aspect: vk::ImageAspectFlags
+}
+
 pub struct ImageWrapper {
     allocation: vk_mem::Allocation,
     image: vk::Image,
@@ -38,70 +44,53 @@ impl ImageWrapper {
         init_data: Option<&Vec<u8>>
     ) -> Result<ImageWrapper, String> {
 
-        let (allocation, image, image_view, vk_format) = {
-
+        let creation_params = {
             // Typical depth buffer
             if usage == ImageUsage::DepthBuffer && format == TexturePixelFormat::Unorm16 {
-                if let Some(_) = init_data {
+                if init_data.is_some() {
                     return Err(String::from("Initialising depth buffer not allowed"));
                 }
-                let (allocation, image, image_view) = Self::make_image_and_view(
-                    render_core,
-                    width,
-                    height,
-                    vk::Format::D16_UNORM,
-                    vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-                    vk::SharingMode::EXCLUSIVE,
-                    vk::ImageAspectFlags::DEPTH)?;
-                (allocation, image, image_view, vk::Format::D16_UNORM)
+                ImageCreationParams {
+                    format: vk::Format::D16_UNORM,
+                    usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+                    aspect: vk::ImageAspectFlags::DEPTH
+                }
             }
 
             // Typical off-screen-rendered color attachment
             else if usage == ImageUsage::OffscreenRenderSampleColorWriteDepth && format == TexturePixelFormat::RGBA {
-                if let Some(_) = init_data {
+                if init_data.is_some() {
                     return Err(String::from("Initialising off-screen render image not allowed"));
                 }
-                let (allocation, image, image_view) = Self::make_image_and_view(
-                    render_core,
-                    width,
-                    height,
-                    vk::Format::R8G8B8A8_UNORM,
-                    vk::ImageUsageFlags::SAMPLED | vk::ImageUsageFlags::COLOR_ATTACHMENT,
-                    vk::SharingMode::EXCLUSIVE,
-                    vk::ImageAspectFlags::COLOR)?;
-                (allocation, image, image_view, vk::Format::R8G8B8A8_UNORM)
+                ImageCreationParams {
+                    format: vk::Format::R8G8B8A8_UNORM,
+                    usage: vk::ImageUsageFlags::SAMPLED | vk::ImageUsageFlags::COLOR_ATTACHMENT,
+                    aspect: vk::ImageAspectFlags::COLOR
+                }
             }
 
             // Typical off-screen-rendered depth attachment
             else if usage == ImageUsage::OffscreenRenderSampleColorWriteDepth && format == TexturePixelFormat::Unorm16 {
-                if let Some(_) = init_data {
+                if init_data.is_some() {
                     return Err(String::from("Initialising off-screen render image not allowed"));
                 }
-                let (allocation, image, image_view) = Self::make_image_and_view(
-                    render_core,
-                    width,
-                    height,
-                    vk::Format::D16_UNORM,
-                    vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-                    vk::SharingMode::EXCLUSIVE,
-                    vk::ImageAspectFlags::DEPTH)?;
-                (allocation, image, image_view, vk::Format::D16_UNORM)
+                ImageCreationParams {
+                    format: vk::Format::D16_UNORM,
+                    usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+                    aspect: vk::ImageAspectFlags::DEPTH
+                }
             }
 
             // Typical initialised texture
             else if usage == ImageUsage::TextureSampleOnly && format == TexturePixelFormat::RGBA {
-                if init_data == None {
+                if init_data.is_none() {
                     return Err(String::from("Not initialising sample-only texture not allowed"));
                 }
-                let (allocation, image, image_view) = Self::make_image_and_view(
-                    render_core,
-                    width,
-                    height,
-                    vk::Format::R8G8B8A8_UNORM,
-                    vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
-                    vk::SharingMode::EXCLUSIVE,
-                    vk::ImageAspectFlags::COLOR)?;
-                (allocation, image, image_view, vk::Format::R8G8B8A8_UNORM)
+                ImageCreationParams {
+                    format: vk::Format::R8G8B8A8_UNORM,
+                    usage: vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
+                    aspect: vk::ImageAspectFlags::COLOR
+                }
             }
 
             // Unhandled cases
@@ -109,6 +98,12 @@ impl ImageWrapper {
                 return Err(String::from("Tried to create an image with an unhandled config"));
             }
         };
+
+        let (allocation, image, image_view) = Self::make_image_and_view(
+            render_core,
+            width,
+            height,
+            &creation_params)?;
 
         if let Some(data) = init_data {
             Self::initialise_read_only_color_texture(render_core, width, height, &image, data)?;
@@ -118,7 +113,7 @@ impl ImageWrapper {
             allocation,
             image,
             image_view,
-            format: vk_format
+            format: creation_params.format
         })
     }
 
@@ -126,23 +121,20 @@ impl ImageWrapper {
         render_core: &RenderCore,
         width: u32,
         height: u32,
-        format: vk::Format,
-        image_usage_flags: vk::ImageUsageFlags,
-        sharing_mode: vk::SharingMode,
-        aspect_flags: vk::ImageAspectFlags
+        creation_params: &ImageCreationParams
     ) -> Result<(vk_mem::Allocation, vk::Image, vk::ImageView), String> {
         let queue_families = [render_core.physical_device_properties.graphics_queue_family_index];
         let extent3d = vk::Extent3D { width, height, depth: 1 };
         let image_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
-            .format(format)
+            .format(creation_params.format)
             .extent(extent3d)
             .mip_levels(1)
             .array_layers(1)
             .samples(vk::SampleCountFlags::TYPE_1)
             .tiling(vk::ImageTiling::OPTIMAL)
-            .usage(image_usage_flags)
-            .sharing_mode(sharing_mode)
+            .usage(creation_params.usage)
+            .sharing_mode(vk::SharingMode::EXCLUSIVE)
             .queue_family_indices(&queue_families)
             .initial_layout(vk::ImageLayout::UNDEFINED);
         let allocation_info = vk_mem::AllocationCreateInfo {
@@ -152,7 +144,7 @@ impl ImageWrapper {
         let (image, allocation, _) = render_core.get_mem_allocator().create_image(&image_info, &allocation_info)
             .map_err(|e| format! ("Allocation error: {:?}", e))?;
         let subresource_range = vk::ImageSubresourceRange::builder()
-            .aspect_mask(aspect_flags)
+            .aspect_mask(creation_params.aspect)
             .base_mip_level(0)
             .level_count(1)
             .base_array_layer(0)
@@ -160,7 +152,7 @@ impl ImageWrapper {
         let image_view_create_info = vk::ImageViewCreateInfo::builder()
             .image(image)
             .view_type(vk::ImageViewType::TYPE_2D)
-            .format(format)
+            .format(creation_params.format)
             .subresource_range(*subresource_range);
         let image_view = render_core.device
             .create_image_view(&image_view_create_info, None)
@@ -193,8 +185,9 @@ impl ImageWrapper {
         staging_buffer.update_from_vec(render_core.get_mem_allocator(), init_data)?;
 
         // Allocate a single-use command buffer and begin recording
+        // Using the transfer queue for this - note that it doesn't support all access or pipeline stage flags
         let command_buffer_alloc_info = vk::CommandBufferAllocateInfo::builder()
-            .command_pool(render_core.graphics_command_buffer_pool)
+            .command_pool(render_core.transfer_command_buffer_pool)
             .command_buffer_count(1);
         let copy_command_buffer = render_core.device
             .allocate_command_buffers(&command_buffer_alloc_info)
@@ -257,7 +250,7 @@ impl ImageWrapper {
         let barrier = vk::ImageMemoryBarrier::builder()
             .image(*image)
             .src_access_mask(vk::AccessFlags::TRANSFER_WRITE)
-            .dst_access_mask(vk::AccessFlags::SHADER_READ)
+            .dst_access_mask(vk::AccessFlags::MEMORY_READ)
             .old_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
             .new_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
             .subresource_range(vk::ImageSubresourceRange {
@@ -271,7 +264,7 @@ impl ImageWrapper {
         render_core.device.cmd_pipeline_barrier(
             copy_command_buffer,
             vk::PipelineStageFlags::TRANSFER,
-            vk::PipelineStageFlags::FRAGMENT_SHADER,
+            vk::PipelineStageFlags::BOTTOM_OF_PIPE,
             vk::DependencyFlags::empty(),
             &[],
             &[],
@@ -288,13 +281,13 @@ impl ImageWrapper {
         ];
         let fence = render_core.device.create_fence(&vk::FenceCreateInfo::default(), None)
             .map_err(|e| format!("Error creating fence: {:?}", e))?;
-        render_core.device.queue_submit(render_core.graphics_queue, &submit_infos, fence)
+        render_core.device.queue_submit(render_core.transfer_queue, &submit_infos, fence)
             .map_err(|e| format!("Error submitting to queue: {:?}", e))?;
         render_core.device.wait_for_fences(&[fence], true, std::u64::MAX)
             .map_err(|e| format!("Error waiting for fence: {:?}", e))?;
         render_core.device.destroy_fence(fence, None);
         staging_buffer.destroy(render_core.get_mem_allocator())?;
-        render_core.device.free_command_buffers(render_core.graphics_command_buffer_pool, &[copy_command_buffer]);
+        render_core.device.free_command_buffers(render_core.transfer_command_buffer_pool, &[copy_command_buffer]);
 
         Ok(())
     }
