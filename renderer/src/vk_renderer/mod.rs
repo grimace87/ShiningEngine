@@ -2,9 +2,6 @@
 pub mod buffers;
 pub mod images;
 mod render_core;
-mod renderpass;
-mod pipeline;
-mod pipeline_set;
 mod per_image_resources;
 
 use crate::vk_renderer::{
@@ -39,8 +36,12 @@ impl RendererApi for VkRenderer {
         };
         let mut per_image_resources = vec![];
         let swapchain_image_count = render_core.image_views.len();
-        for image_index in 0..swapchain_image_count {
-            let resources = PerImageResources::new(&render_core, image_index, description, command_buffers[image_index]);
+        for swapchain_image_index in 0..swapchain_image_count {
+            let command_buffer = command_buffers[swapchain_image_index];
+            let resources = PerImageResources::new(&render_core, swapchain_image_index, description, command_buffer)?;
+            unsafe {
+                resources.record_command_buffer(&render_core, command_buffer)?;
+            }
             per_image_resources.push(resources);
         }
 
@@ -51,12 +52,11 @@ impl RendererApi for VkRenderer {
         })
     }
 
-    // TODO - Build command buffers such that all renderpasses are used, not just that represented by pipelines[0]
     fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, String> {
         unsafe {
-            let image_index = self.render_core.acquire_next_image()?;
-            self.per_image_resources[image_index].on_pre_render(&mut self.render_core, scene_info);
-            let command_buffer = self.per_image_resources[image_index].get_command_buffer();
+            let swapchain_image_index = self.render_core.acquire_next_image()?;
+            self.per_image_resources[swapchain_image_index].on_pre_render(&mut self.render_core, scene_info);
+            let command_buffer = self.per_image_resources[swapchain_image_index].get_command_buffer();
             self.render_core.submit_command_buffer(command_buffer)?;
             return self.render_core.present_image();
         }
@@ -81,8 +81,10 @@ impl RendererApi for VkRenderer {
             self.render_core.create_swapchain()?;
 
             let swapchain_image_count = self.render_core.image_views.len();
-            for image_index in 0..swapchain_image_count {
-                let resources = PerImageResources::new(&self.render_core, image_index, description, command_buffers[image_index]);
+            for swapchain_image_index in 0..swapchain_image_count {
+                let command_buffer = command_buffers[swapchain_image_index];
+                let resources = PerImageResources::new(&self.render_core, swapchain_image_index, description, command_buffer)?;
+                resources.record_command_buffer(&self.render_core, command_buffer)?;
                 self.per_image_resources.push(resources);
             }
         }
@@ -105,8 +107,12 @@ impl RendererApi for VkRenderer {
         };
 
         let swapchain_image_count = self.render_core.image_views.len();
-        for image_index in 0..swapchain_image_count {
-            let resources = PerImageResources::new(&self.render_core, image_index, description, command_buffers[image_index]);
+        for swapchain_image_index in 0..swapchain_image_count {
+            let command_buffer = command_buffers[swapchain_image_index];
+            let resources = PerImageResources::new(&self.render_core, swapchain_image_index, description, command_buffer)?;
+            unsafe {
+                resources.record_command_buffer(&self.render_core, command_buffer)?;
+            }
             self.per_image_resources.push(resources);
         }
         Ok(())

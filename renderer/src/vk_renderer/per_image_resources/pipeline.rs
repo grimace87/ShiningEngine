@@ -2,7 +2,7 @@
 use crate::vk_renderer::{
     RenderCore,
     buffers::BufferWrapper,
-    renderpass::RenderpassWrapper
+    per_image_resources::renderpass::RenderpassWrapper
 };
 
 use defs::{DrawingStep, Shader, VertexFormat};

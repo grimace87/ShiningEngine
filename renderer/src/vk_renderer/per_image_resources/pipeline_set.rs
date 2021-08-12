@@ -1,8 +1,10 @@
 
 use crate::vk_renderer::{
     RenderCore,
-    renderpass::RenderpassWrapper,
-    pipeline::PipelineWrapper
+    per_image_resources::{
+        renderpass::RenderpassWrapper,
+        pipeline::PipelineWrapper
+    }
 };
 
 use defs::{DrawingPass, SceneInfo};
@@ -18,7 +20,7 @@ pub struct PipelineSet {
 
 impl PipelineSet {
 
-    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass, command_buffer: &vk::CommandBuffer) -> Result<PipelineSet, String> {
+    pub fn new(render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass) -> Result<PipelineSet, String> {
 
         let pipelines = description.steps
             .iter()
@@ -27,17 +29,16 @@ impl PipelineSet {
 
         let mut pipeline_set = PipelineSet { pipelines };
         unsafe {
-            pipeline_set.create_resources(render_core, renderpass_wrapper, description, command_buffer)?;
+            pipeline_set.create_resources(render_core, renderpass_wrapper, description)?;
         }
 
         Ok(pipeline_set)
     }
 
-    unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass, command_buffer: &vk::CommandBuffer) -> Result<(), String> {
+    unsafe fn create_resources(&mut self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, description: &DrawingPass) -> Result<(), String> {
         for (i, pipeline) in self.pipelines.iter_mut().enumerate() {
             pipeline.create_resources(render_core, renderpass_wrapper, &description.steps[i])?;
         }
-        self.record_command_buffer(command_buffer, render_core, renderpass_wrapper)?;
         Ok(())
     }
 
@@ -47,7 +48,7 @@ impl PipelineSet {
         }
     }
 
-    unsafe fn record_command_buffer(&self, command_buffer: &vk::CommandBuffer, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper) -> Result<(), String> {
+    pub unsafe fn record_command_buffer(&self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, command_buffer: vk::CommandBuffer) -> Result<(), String> {
         let begin_info = vk::CommandBufferBeginInfo::builder();
         let clear_values = [
             vk::ClearValue {
@@ -71,19 +72,19 @@ impl PipelineSet {
             })
             .clear_values(&clear_values);
 
-        render_core.device.begin_command_buffer(*command_buffer, &begin_info)
+        render_core.device.begin_command_buffer(command_buffer, &begin_info)
             .map_err(|e| format!("{:?}", e))?;
-        render_core.device.cmd_begin_render_pass(*command_buffer, &renderpass_begin_info, vk::SubpassContents::INLINE);
+        render_core.device.cmd_begin_render_pass(command_buffer, &renderpass_begin_info, vk::SubpassContents::INLINE);
 
         // Draw calls for each pipeline (one pipeline per drawing step)
         for pipeline in self.pipelines.iter() {
             pipeline
-                .record_commands(*command_buffer, render_core)
+                .record_commands(command_buffer, render_core)
                 .unwrap();
         }
 
-        render_core.device.cmd_end_render_pass(*command_buffer);
-        render_core.device.end_command_buffer(*command_buffer)
+        render_core.device.cmd_end_render_pass(command_buffer);
+        render_core.device.end_command_buffer(command_buffer)
             .map_err(|e| format!("{:?}", e))?;
 
         Ok(())
