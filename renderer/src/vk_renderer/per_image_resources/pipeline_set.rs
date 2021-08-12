@@ -9,10 +9,7 @@ use crate::vk_renderer::{
 
 use defs::{DrawingPass, SceneInfo};
 
-use ash::{
-    vk,
-    version::DeviceV1_0
-};
+use ash::vk;
 
 pub struct PipelineSet {
     pipelines: Vec<PipelineWrapper>
@@ -48,45 +45,12 @@ impl PipelineSet {
         }
     }
 
-    pub unsafe fn record_command_buffer(&self, render_core: &RenderCore, renderpass_wrapper: &RenderpassWrapper, command_buffer: vk::CommandBuffer) -> Result<(), String> {
-        let begin_info = vk::CommandBufferBeginInfo::builder();
-        let clear_values = [
-            vk::ClearValue {
-                color: vk::ClearColorValue {
-                    float32: [0.0, 0.0, 0.0, 1.0]
-                }
-            },
-            vk::ClearValue {
-                depth_stencil: vk::ClearDepthStencilValue {
-                    depth: 1.0,
-                    stencil: 0
-                }
-            }
-        ];
-        let renderpass_begin_info = vk::RenderPassBeginInfo::builder()
-            .render_pass(renderpass_wrapper.renderpass)
-            .framebuffer(renderpass_wrapper.swapchain_framebuffer)
-            .render_area(vk::Rect2D {
-                offset: vk::Offset2D { x: 0, y: 0 },
-                extent: render_core.get_extent()?
-            })
-            .clear_values(&clear_values);
-
-        render_core.device.begin_command_buffer(command_buffer, &begin_info)
-            .map_err(|e| format!("{:?}", e))?;
-        render_core.device.cmd_begin_render_pass(command_buffer, &renderpass_begin_info, vk::SubpassContents::INLINE);
-
-        // Draw calls for each pipeline (one pipeline per drawing step)
+    pub unsafe fn record_command_buffer(&self, render_core: &RenderCore, command_buffer: vk::CommandBuffer) -> Result<(), String> {
         for pipeline in self.pipelines.iter() {
             pipeline
                 .record_commands(command_buffer, render_core)
                 .unwrap();
         }
-
-        render_core.device.cmd_end_render_pass(command_buffer);
-        render_core.device.end_command_buffer(command_buffer)
-            .map_err(|e| format!("{:?}", e))?;
-
         Ok(())
     }
 

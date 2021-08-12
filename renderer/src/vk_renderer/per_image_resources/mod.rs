@@ -15,8 +15,10 @@ use defs::{
     SceneInfo,
     DrawingDescription
 };
-
-use ash::vk;
+use ash::{
+    vk,
+    version::DeviceV1_0
+};
 
 pub struct PerImageResources {
     resources: Vec<PerPassResources>,
@@ -36,9 +38,14 @@ impl PerImageResources {
     }
 
     pub unsafe fn record_command_buffer(&self, render_core: &RenderCore, command_buffer: vk::CommandBuffer) -> Result<(), String> {
+        let begin_info = vk::CommandBufferBeginInfo::builder();
+        render_core.device.begin_command_buffer(command_buffer, &begin_info)
+            .map_err(|e| format!("{:?}", e))?;
         for resources in self.resources.iter() {
-            resources.renderpass_pipeline_set.record_command_buffer(render_core, &resources.renderpass, command_buffer)?;
+            resources.record_command_buffer(render_core, command_buffer)?;
         }
+        render_core.device.end_command_buffer(command_buffer)
+            .map_err(|e| format!("{:?}", e))?;
         Ok(())
     }
 
