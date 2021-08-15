@@ -9,6 +9,7 @@ use debug::make_debug_utils;
 use device::{PhysicalDeviceProperties, make_device_resources};
 
 use defs::{PresentResult, ResourcePreloads, VertexFormat, ImageUsage, TexturePixelFormat};
+use model::factory::StaticVertex;
 
 use ash::{
     vk,
@@ -201,7 +202,7 @@ impl RenderCore {
                     creation_data.vertex_count * vertex_size_bytes,
                     vk::BufferUsageFlags::VERTEX_BUFFER,
                     vk_mem::MemoryUsage::CpuToGpu)?;
-                buffer.update_from_vec(&self.mem_allocator, &creation_data.vertex_data)?;
+                buffer.update::<StaticVertex>(&self.mem_allocator, 0, creation_data.vertex_data.as_ptr(), creation_data.vertex_data.len())?;
                 buffer
             };
             self.vbo_objects.insert(*vbo_index, (creation_data.vertex_count, buffer));
@@ -209,10 +210,10 @@ impl RenderCore {
 
         // Textures
         for (texture_index, creation_data) in resource_preloads.texture_preloads.iter() {
-            let texture = match creation_data.data.as_ref() {
+            let texture = match creation_data.layer_data.as_ref() {
                 Some(data) => ImageWrapper::new(
                     self,
-                    ImageUsage::TextureSampleOnly,
+                    creation_data.usage,
                     creation_data.format,
                     creation_data.width,
                     creation_data.height,
@@ -220,7 +221,7 @@ impl RenderCore {
                 // TODO - One per swapchain image
                 None => ImageWrapper::new(
                     self,
-                    ImageUsage::OffscreenRenderSampleColorWriteDepth,
+                    creation_data.usage,
                     creation_data.format,
                     creation_data.width,
                     creation_data.height,

@@ -120,11 +120,15 @@ impl Camera for PlayerCamera {
         self.position_z += self.speed * time_step_secs * self.rotation.cos();
     }
 
-    fn get_matrix(&self) -> Matrix4<f32> {
+    fn get_view_matrix(&self) -> Matrix4<f32> {
         let rotation = Matrix4::from_angle_y(Rad(self.rotation));
         let translation = Matrix4::<f32>::from_translation(
             Vector3::<f32> { x: -self.position_x, y: -self.position_y, z: -self.position_z }
         );
-        self.perspective_projection * rotation * translation
+        rotation * translation
+    }
+
+    fn get_projection_matrix(&self) -> Matrix4<f32> {
+        self.perspective_projection
     }
 }

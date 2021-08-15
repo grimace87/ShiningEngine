@@ -43,18 +43,11 @@ impl BufferWrapper {
             .map_err(|e| format!("Error freeing buffer: {:?}", e))
     }
 
-    pub unsafe fn update<T: Sized>(&mut self, allocator: &vk_mem::Allocator, buffer_data: *const T, element_count: usize) -> Result<(), String> {
-        let dst_ptr = allocator.map_memory(&self.allocation)
+    pub unsafe fn update<T: Sized>(&mut self, allocator: &vk_mem::Allocator, dst_offset_elements: isize, src_ptr: *const T, element_count: usize) -> Result<(), String> {
+        let mut dst_ptr = allocator.map_memory(&self.allocation)
             .map_err(|e| format!("Failed to map buffer memory: {:?}", e))? as *mut T;
-        dst_ptr.copy_from_nonoverlapping(buffer_data as *const T, element_count);
-        allocator.unmap_memory(&self.allocation).unwrap();
-        Ok(())
-    }
-
-    pub unsafe fn update_from_vec<E: Sized>(&mut self, allocator: &vk_mem::Allocator, buffer_data: &Vec<E>) -> Result<(), String> {
-        let dst_ptr = allocator.map_memory(&self.allocation)
-            .map_err(|e| format!("Failed to map buffer memory: {:?}", e))? as *mut E;
-        dst_ptr.copy_from_nonoverlapping(buffer_data.as_ptr() as *const E, buffer_data.len());
+        dst_ptr = dst_ptr.offset(dst_offset_elements);
+        dst_ptr.copy_from_nonoverlapping(src_ptr, element_count);
         allocator.unmap_memory(&self.allocation).unwrap();
         Ok(())
     }
@@ -63,4 +56,3 @@ impl BufferWrapper {
         self.buffer
     }
 }
-

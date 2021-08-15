@@ -16,7 +16,11 @@ impl Camera for NullCamera {
 
     fn update(&mut self, _time_step_millis: u64, _controller: &dyn Control) {}
 
-    fn get_matrix(&self) -> Matrix4<f32> {
+    fn get_view_matrix(&self) -> Matrix4<f32> {
+        Matrix4::identity()
+    }
+
+    fn get_projection_matrix(&self) -> Matrix4<f32> {
         Matrix4::identity()
     }
 }

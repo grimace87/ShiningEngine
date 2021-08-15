@@ -1,7 +1,7 @@
 
 use crate::submenu::SubMenuScene;
 
-use defs::{SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, Control, VboCreationData, TextureCreationData, ResourcePreloads};
+use defs::{SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, Control, VboCreationData, TextureCreationData, ResourcePreloads, ImageUsage};
 use engine::util::{
     TextureCodec,
     decode_texture,
@@ -97,8 +97,8 @@ impl SceneInfo for StartMenuScene {
             index_data: None
         });
 
-        let menu_texture = decode_texture(MENU_TEXTURE_BYTES, TextureCodec::Png).unwrap();
-        let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png).unwrap();
+        let menu_texture = decode_texture(MENU_TEXTURE_BYTES, TextureCodec::Png, ImageUsage::TextureSampleOnly).unwrap();
+        let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png, ImageUsage::TextureSampleOnly).unwrap();
         let mut texture_loads = HashMap::<usize, TextureCreationData>::new();
         texture_loads.insert(TEXTURE_INDEX_BG, menu_texture);
         texture_loads.insert(TEXTURE_INDEX_FONT, font_texture);

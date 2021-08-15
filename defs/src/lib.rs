@@ -13,13 +13,15 @@ pub enum PresentResult {
 pub enum Shader {
     PlainPnt, // Position-Normal-Texture, R8G8B8A8 texture, no lighting
     Text,     // Position-Normal-Texture, R8 texture, no lighting
+    Cube,     // Position, cube texture, no lighting
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum ImageUsage {
     TextureSampleOnly,
     DepthBuffer,
-    OffscreenRenderSampleColorWriteDepth
+    OffscreenRenderSampleColorWriteDepth,
+    Skybox
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -56,7 +58,8 @@ pub trait Control {
 pub trait Camera {
     fn update_aspect(&mut self, aspect_ratio: f32);
     fn update(&mut self, time_step_millis: u64, controller: &dyn Control);
-    fn get_matrix(&self) -> Matrix4<f32>;
+    fn get_view_matrix(&self) -> Matrix4<f32>;
+    fn get_projection_matrix(&self) -> Matrix4<f32>;
 }
 
 pub trait RendererApi {
@@ -81,10 +84,11 @@ pub struct VboCreationData {
 }
 
 pub struct TextureCreationData {
-    pub data: Option<Vec<u8>>,
+    pub layer_data: Option<Vec<Vec<u8>>>,
     pub width: u32,
     pub height: u32,
-    pub format: TexturePixelFormat
+    pub format: TexturePixelFormat,
+    pub usage: ImageUsage
 }
 
 pub struct FramebufferCreationData {

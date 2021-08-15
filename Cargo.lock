@@ -956,6 +956,7 @@ dependencies = [
  "ash",
  "ash-window",
  "defs",
+ "model",
  "raw-window-handle",
  "vk-mem",
  "vk-shader-macros",

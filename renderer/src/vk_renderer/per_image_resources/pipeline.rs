@@ -67,7 +67,8 @@ impl PipelineWrapper {
         let vertex_shader_create_info = vk::ShaderModuleCreateInfo::builder()
             .code(match description.shader {
                 Shader::PlainPnt => vk_shader_macros::include_glsl!("shaders/vk/triangle.vert"),
-                Shader::Text => vk_shader_macros::include_glsl!("shaders/vk/text.vert")
+                Shader::Text => vk_shader_macros::include_glsl!("shaders/vk/text.vert"),
+                Shader::Cube => vk_shader_macros::include_glsl!("shaders/vk/cube.vert"),
             });
         let vertex_shader_module = render_core.device
             .create_shader_module(&vertex_shader_create_info, None)
@@ -75,7 +76,8 @@ impl PipelineWrapper {
         let fragment_shader_create_info = vk::ShaderModuleCreateInfo::builder()
             .code(match description.shader {
                 Shader::PlainPnt => vk_shader_macros::include_glsl!("shaders/vk/triangle.frag"),
-                Shader::Text => vk_shader_macros::include_glsl!("shaders/vk/text.frag")
+                Shader::Text => vk_shader_macros::include_glsl!("shaders/vk/text.frag"),
+                Shader::Cube => vk_shader_macros::include_glsl!("shaders/vk/cube.frag"),
             });
         let fragment_shader_module = render_core.device
             .create_shader_module(&fragment_shader_create_info, None)
@@ -134,7 +136,8 @@ impl PipelineWrapper {
         // Create uniform buffer
         let ubo_size_bytes: usize = match description.shader {
             Shader::PlainPnt => 4 * 16,
-            Shader::Text => 4 * 20
+            Shader::Text => 4 * 20,
+            Shader::Cube => 4 * 16
         };
         let uniform_buffer = {
             let uniform_buffer_data: Vec<f32> = vec![0.0; ubo_size_bytes];
@@ -144,7 +147,7 @@ impl PipelineWrapper {
                 ubo_size_bytes,
                 vk::BufferUsageFlags::UNIFORM_BUFFER,
                 vk_mem::MemoryUsage::CpuToGpu)?;
-            buffer.update_from_vec::<f32>(allocator, &uniform_buffer_data)?;
+            buffer.update::<f32>(allocator, 0, uniform_buffer_data.as_ptr(), uniform_buffer_data.len())?;
             buffer
         };
 
@@ -162,7 +165,8 @@ impl PipelineWrapper {
         // All the stuff around descriptors
         let ubo_stage_flags = match description.shader {
             Shader::PlainPnt => vk::ShaderStageFlags::VERTEX,
-            Shader::Text => vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT
+            Shader::Text => vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+            Shader::Cube => vk::ShaderStageFlags::VERTEX,
         };
         let descriptor_set_layout_binding_infos = [
             vk::DescriptorSetLayoutBinding::builder()
@@ -328,6 +332,6 @@ impl PipelineWrapper {
     }
 
     pub unsafe fn update_uniform_buffer(&mut self, render_core: &mut RenderCore, data_ptr: *const u8, size_bytes: usize) -> Result<(), String> {
-        self.uniform_buffer.update::<u8>(render_core.get_mem_allocator(), data_ptr, size_bytes)
+        self.uniform_buffer.update::<u8>(render_core.get_mem_allocator(), 0, data_ptr, size_bytes)
     }
 }

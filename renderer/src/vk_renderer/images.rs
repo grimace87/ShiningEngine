@@ -14,7 +14,9 @@ use defs::{TexturePixelFormat, ImageUsage};
 struct ImageCreationParams {
     format: vk::Format,
     usage: vk::ImageUsageFlags,
-    aspect: vk::ImageAspectFlags
+    aspect: vk::ImageAspectFlags,
+    view_type: vk::ImageViewType,
+    layer_count: u32
 }
 
 pub struct ImageWrapper {
@@ -41,55 +43,77 @@ impl ImageWrapper {
         format: TexturePixelFormat,
         width: u32,
         height: u32,
-        init_data: Option<&Vec<u8>>
+        init_layer_data: Option<&Vec<Vec<u8>>>
     ) -> Result<ImageWrapper, String> {
 
         let creation_params = {
             // Typical depth buffer
             if usage == ImageUsage::DepthBuffer && format == TexturePixelFormat::Unorm16 {
-                if init_data.is_some() {
+                if init_layer_data.is_some() {
                     return Err(String::from("Initialising depth buffer not allowed"));
                 }
                 ImageCreationParams {
                     format: vk::Format::D16_UNORM,
                     usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-                    aspect: vk::ImageAspectFlags::DEPTH
+                    aspect: vk::ImageAspectFlags::DEPTH,
+                    view_type: vk::ImageViewType::TYPE_2D,
+                    layer_count: 1
                 }
             }
 
             // Typical off-screen-rendered color attachment
             else if usage == ImageUsage::OffscreenRenderSampleColorWriteDepth && format == TexturePixelFormat::RGBA {
-                if init_data.is_some() {
+                if init_layer_data.is_some() {
                     return Err(String::from("Initialising off-screen render image not allowed"));
                 }
                 ImageCreationParams {
                     format: vk::Format::R8G8B8A8_UNORM,
                     usage: vk::ImageUsageFlags::SAMPLED | vk::ImageUsageFlags::COLOR_ATTACHMENT,
-                    aspect: vk::ImageAspectFlags::COLOR
+                    aspect: vk::ImageAspectFlags::COLOR,
+                    view_type: vk::ImageViewType::TYPE_2D,
+                    layer_count: 1
                 }
             }
 
             // Typical off-screen-rendered depth attachment
             else if usage == ImageUsage::OffscreenRenderSampleColorWriteDepth && format == TexturePixelFormat::Unorm16 {
-                if init_data.is_some() {
+                if init_layer_data.is_some() {
                     return Err(String::from("Initialising off-screen render image not allowed"));
                 }
                 ImageCreationParams {
                     format: vk::Format::D16_UNORM,
                     usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-                    aspect: vk::ImageAspectFlags::DEPTH
+                    aspect: vk::ImageAspectFlags::DEPTH,
+                    view_type: vk::ImageViewType::TYPE_2D,
+                    layer_count: 1
                 }
             }
 
             // Typical initialised texture
             else if usage == ImageUsage::TextureSampleOnly && format == TexturePixelFormat::RGBA {
-                if init_data.is_none() {
+                if init_layer_data.is_none() {
                     return Err(String::from("Not initialising sample-only texture not allowed"));
                 }
                 ImageCreationParams {
                     format: vk::Format::R8G8B8A8_UNORM,
                     usage: vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
-                    aspect: vk::ImageAspectFlags::COLOR
+                    aspect: vk::ImageAspectFlags::COLOR,
+                    view_type: vk::ImageViewType::TYPE_2D,
+                    layer_count: 1
+                }
+            }
+
+            // Typical sky box (cube map)
+            else if usage == ImageUsage::Skybox && format == TexturePixelFormat::RGBA {
+                if init_layer_data.is_none() {
+                    return Err(String::from("Not initialising sample-only texture not allowed"));
+                }
+                ImageCreationParams {
+                    format: vk::Format::R8G8B8A8_UNORM,
+                    usage: vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
+                    aspect: vk::ImageAspectFlags::COLOR,
+                    view_type: vk::ImageViewType::CUBE,
+                    layer_count: 6
                 }
             }
 
@@ -105,8 +129,8 @@ impl ImageWrapper {
             height,
             &creation_params)?;
 
-        if let Some(data) = init_data {
-            Self::initialise_read_only_color_texture(render_core, width, height, &image, data)?;
+        if let Some(layer_data) = init_layer_data {
+            Self::initialise_read_only_color_texture(render_core, width, height, &image, layer_data)?;
         }
 
         Ok(ImageWrapper {
@@ -125,12 +149,18 @@ impl ImageWrapper {
     ) -> Result<(vk_mem::Allocation, vk::Image, vk::ImageView), String> {
         let queue_families = [render_core.physical_device_properties.graphics_queue_family_index];
         let extent3d = vk::Extent3D { width, height, depth: 1 };
+        let flags = match creation_params.view_type {
+            vk::ImageViewType::CUBE => vk::ImageCreateFlags::CUBE_COMPATIBLE,
+            _ => vk::ImageCreateFlags::empty()
+        };
+
         let image_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
+            .flags(flags)
             .format(creation_params.format)
             .extent(extent3d)
             .mip_levels(1)
-            .array_layers(1)
+            .array_layers(creation_params.layer_count)
             .samples(vk::SampleCountFlags::TYPE_1)
             .tiling(vk::ImageTiling::OPTIMAL)
             .usage(creation_params.usage)
@@ -148,10 +178,10 @@ impl ImageWrapper {
             .base_mip_level(0)
             .level_count(1)
             .base_array_layer(0)
-            .layer_count(1);
+            .layer_count(creation_params.layer_count);
         let image_view_create_info = vk::ImageViewCreateInfo::builder()
             .image(image)
-            .view_type(vk::ImageViewType::TYPE_2D)
+            .view_type(creation_params.view_type)
             .format(creation_params.format)
             .subresource_range(*subresource_range);
         let image_view = render_core.device
@@ -172,17 +202,31 @@ impl ImageWrapper {
         width: u32,
         height: u32,
         image: &vk::Image,
-        init_data: &Vec<u8>) -> Result<(), String> {
+        layer_data: &Vec<Vec<u8>>) -> Result<(), String> {
 
-        let pixel_size_bytes: usize = 4;
+        if layer_data.is_empty() {
+            panic!("Passed empty layer data as ImageWrapper init data")
+        }
+        let layer_count = layer_data.len();
+        let layer_size_bytes = layer_data[0].len();
 
         // Staging buffer
+        let expected_data_size: usize = layer_count * 4 * width as usize * height as usize;
+        if expected_data_size != layer_count * layer_size_bytes {
+            panic!("Image data does not match expected size");
+        }
         let mut staging_buffer = BufferWrapper::new(
             render_core.get_mem_allocator(),
-            pixel_size_bytes * width as usize * height as usize,
+            layer_count * layer_size_bytes,
             vk::BufferUsageFlags::TRANSFER_SRC,
             vk_mem::MemoryUsage::CpuToGpu)?;
-        staging_buffer.update_from_vec(render_core.get_mem_allocator(), init_data)?;
+        for (layer_no, data) in layer_data.iter().enumerate() {
+            staging_buffer.update::<u8>(
+                render_core.get_mem_allocator(),
+                (layer_no * layer_size_bytes) as isize,
+                data.as_ptr() as *const u8,
+                layer_size_bytes)?;
+        }
 
         // Allocate a single-use command buffer and begin recording
         // Using the transfer queue for this - note that it doesn't support all access or pipeline stage flags
@@ -211,7 +255,7 @@ impl ImageWrapper {
                 base_mip_level: 0,
                 level_count: 1,
                 base_array_layer: 0,
-                layer_count: 1
+                layer_count: layer_count as u32
             })
             .build();
         render_core.device.cmd_pipeline_barrier(
@@ -229,7 +273,7 @@ impl ImageWrapper {
             aspect_mask: vk::ImageAspectFlags::COLOR,
             mip_level: 0,
             base_array_layer: 0,
-            layer_count: 1
+            layer_count: layer_count as u32
         };
         let region = vk::BufferImageCopy {
             buffer_offset: 0,
@@ -262,7 +306,7 @@ impl ImageWrapper {
                 base_mip_level: 0,
                 level_count: 1,
                 base_array_layer: 0,
-                layer_count: 1
+                layer_count: layer_count as u32
             })
             .build();
         render_core.device.cmd_pipeline_barrier(

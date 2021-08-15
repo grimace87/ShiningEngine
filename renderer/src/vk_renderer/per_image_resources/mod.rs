@@ -36,6 +36,9 @@ impl PerImageResources {
 
     pub unsafe fn record_command_buffer(&self, render_core: &RenderCore, description: &DrawingDescription, command_buffer: vk::CommandBuffer) -> Result<(), String> {
         let begin_info = vk::CommandBufferBeginInfo::builder();
+
+        // TODO - More sophisticated logic to clear all framebuffers in use once only
+        let mut _needing_clear_image = true;
         render_core.device.begin_command_buffer(command_buffer, &begin_info)
             .map_err(|e| format!("{:?}", e))?;
         for (pass_index, resources) in self.resources.iter().enumerate() {
