@@ -62,8 +62,8 @@ impl PerImageResources {
     }
 
     pub unsafe fn on_pre_render(&mut self, render_core: &mut RenderCore, scene_info: &dyn SceneInfo) {
-        for resources in self.resources.iter_mut() {
-            resources.renderpass_pipeline_set.update_uniform_buffer(render_core, scene_info).unwrap();
+        for (pass_index, resources) in self.resources.iter_mut().enumerate() {
+            resources.renderpass_pipeline_set.update_uniform_buffer(render_core, scene_info, pass_index).unwrap();
         }
     }
 

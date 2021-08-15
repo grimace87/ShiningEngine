@@ -129,5 +129,5 @@ pub trait SceneInfo {
     fn make_description(&self) -> DrawingDescription;
     fn update_aspect_ratio(&mut self, aspect_ratio: f32);
     fn update_camera(&mut self, time_step_millis: u64, controller: &dyn Control) -> Option<Box<dyn SceneInfo>>;
-    unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize) -> (*const u8, usize);
+    unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize, step_index: usize) -> (*const u8, usize);
 }

@@ -58,9 +58,9 @@ impl PipelineSet {
         Ok(())
     }
 
-    pub unsafe fn update_uniform_buffer(&mut self, render_core: &mut RenderCore, scene_info: &dyn SceneInfo) -> Result<(), String> {
-        for (i, pipeline) in self.pipelines.iter_mut().enumerate() {
-            let (data_ptr, size_bytes) = scene_info.get_ubo_data_ptr_and_size(i);
+    pub unsafe fn update_uniform_buffer(&mut self, render_core: &mut RenderCore, scene_info: &dyn SceneInfo, pass_index: usize) -> Result<(), String> {
+        for (step_index, pipeline) in self.pipelines.iter_mut().enumerate() {
+            let (data_ptr, size_bytes) = scene_info.get_ubo_data_ptr_and_size(pass_index, step_index);
             pipeline.update_uniform_buffer(render_core, data_ptr, size_bytes)?;
         }
         Ok(())
