@@ -39,7 +39,9 @@ pub unsafe fn create_swapchain(physical_device_struct: &PhysicalDeviceProperties
             return Err(String::from("FIFO presentation mode not supported by selected graphics queue family"));
         }
 
-        if surface_capabilities.min_image_count > MAX_SWAPCHAIN_SIZE || surface_capabilities.max_image_count < MIN_SWAPCHAIN_SIZE {
+        let max_too_small = surface_capabilities.max_image_count != 0 && surface_capabilities.max_image_count < MIN_SWAPCHAIN_SIZE;
+        let min_too_large = surface_capabilities.min_image_count > MAX_SWAPCHAIN_SIZE;
+        if max_too_small || min_too_large {
             return Err(String::from("Requested swapchain size is not supported"));
         }
 

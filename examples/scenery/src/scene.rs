@@ -15,8 +15,8 @@ use engine::{
 use cgmath::{Matrix4, Vector4, SquareMatrix, Vector3};
 use std::collections::HashMap;
 
-const MENU_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\SceneTerrain.mdl"));
-const RIVER_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "\\models\\River.mdl"));
+const MENU_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/models/SceneTerrain.mdl"));
+const RIVER_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/models/River.mdl"));
 const TERRAIN_TEXTURE_BYTES: &[u8] = include_bytes!("../../resources/textures/simple_outdoor_texture.jpg");
 const MUSICA_FONT_BYTES: &[u8] = include_bytes!("../../resources/textures/Musica.png");
 const SKYBOX_LEFT_BYTES: &[u8] = include_bytes!("../../resources/textures/bluecloud_lf.jpg");
