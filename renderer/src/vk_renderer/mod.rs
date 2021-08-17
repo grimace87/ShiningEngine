@@ -54,7 +54,10 @@ impl RendererApi for VkRenderer {
 
     fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, String> {
         unsafe {
-            let swapchain_image_index = self.render_core.acquire_next_image()?;
+            let (swapchain_image_index, up_to_date) = self.render_core.acquire_next_image()?;
+            if !up_to_date {
+                return Ok(PresentResult::SwapchainOutOfDate);
+            }
             self.per_image_resources[swapchain_image_index].on_pre_render(&mut self.render_core, scene_info);
             let command_buffer = self.per_image_resources[swapchain_image_index].get_command_buffer();
             self.render_core.submit_command_buffer(command_buffer)?;

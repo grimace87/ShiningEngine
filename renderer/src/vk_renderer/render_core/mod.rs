@@ -356,14 +356,18 @@ impl RenderCore {
     //
     // Acquires an image while signalling a semaphore, then waits on a fence to know that the
     // image is available to draw on.
-    pub unsafe fn acquire_next_image(&mut self) -> Result<usize, String> {
+    pub unsafe fn acquire_next_image(&mut self) -> Result<(usize, bool), String> {
         let sync_objects_index = (self.current_image_acquired + 1) % (self.image_views.len());
-        let (image_index, _) = self.swapchain_fn.acquire_next_image(
+        let result = self.swapchain_fn.acquire_next_image(
             self.swapchain,
             std::u64::MAX,
             self.sync_image_available[sync_objects_index],
-            vk::Fence::null()
-            ).map_err(|e| format!("Image acquire failure: {:?}", e))?;
+            vk::Fence::null());
+        let (image_index, _) = match result {
+            Err(vk::Result::ERROR_OUT_OF_DATE_KHR) => return Ok((0, false)),
+            Err(e) => return Err(format!("Image acquire failure: {:?}", e)),
+            Ok(t) => t
+        };
         self.current_image_acquired = image_index as usize;
         assert_eq!(sync_objects_index, image_index as usize);
 
@@ -375,7 +379,7 @@ impl RenderCore {
         self.device.reset_fences(&[self.sync_may_begin_rendering[self.current_image_acquired]])
             .map_err(|e| format!("Resetting fence error: {:?}", e))?;
 
-        Ok(self.current_image_acquired)
+        Ok((self.current_image_acquired, true))
     }
 
     pub unsafe fn submit_command_buffer(&self, command_buffer: vk::CommandBuffer) -> Result<(), String> {
@@ -405,7 +409,6 @@ impl RenderCore {
         return match self.swapchain_fn.queue_present(self.graphics_queue, &present_info) {
             Ok(_) => Ok(PresentResult::Ok),
             Err(vk::Result::ERROR_OUT_OF_DATE_KHR) => {
-                println!("YEEEEE!");
                 Ok(PresentResult::SwapchainOutOfDate)
             },
             Err(e) => Err(format!("Present error: {:?}", e))
