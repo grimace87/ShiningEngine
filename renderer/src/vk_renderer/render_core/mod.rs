@@ -2,11 +2,13 @@
 mod instance;
 mod debug;
 mod device;
+mod swapchain;
 
 use crate::vk_renderer::images::ImageWrapper;
 use instance::make_instance;
 use debug::make_debug_utils;
 use device::{PhysicalDeviceProperties, make_device_resources};
+use swapchain::{create_swapchain, create_swapchain_image_views};
 
 use defs::{PresentResult, ResourcePreloads, VertexFormat, ImageUsage, TexturePixelFormat};
 use model::factory::StaticVertex;
@@ -26,8 +28,6 @@ use vk_mem::AllocatorCreateFlags;
 use raw_window_handle::HasRawWindowHandle;
 use std::collections::HashMap;
 use crate::vk_renderer::buffers::BufferWrapper;
-
-pub const PROJ_VK_SWAPCHAIN_SIZE: usize = 2;
 
 /// Wraps resources that either never change while the app is running, or rarely change (perhaps
 /// when a window is resized or the surface becomes invalidated for some other reason).
@@ -63,17 +63,8 @@ pub struct RenderCore {
 impl Drop for RenderCore {
     fn drop(&mut self) {
         unsafe {
-            self.destroy_swapchain();
+            self.destroy_swapchain_resources();
             self.destroy_surface();
-            for semaphore in self.sync_rendering_finished.iter_mut() {
-                self.device.destroy_semaphore(*semaphore, None);
-            }
-            for fence in self.sync_may_begin_rendering.iter_mut() {
-                self.device.destroy_fence(*fence, None);
-            }
-            for semaphore in self.sync_image_available.iter_mut() {
-                self.device.destroy_semaphore(*semaphore, None);
-            }
             self.device.destroy_command_pool(self.transfer_command_buffer_pool, None);
             self.device.destroy_command_pool(self.graphics_command_buffer_pool, None);
             self.destroy_all_resources();
@@ -138,28 +129,6 @@ impl RenderCore {
             .create_command_pool(&transfer_pool_info, None)
             .map_err(|e| format!("{:?}", e))?;
 
-        // Synchronisation objects
-        let mut sync_image_available = vec![];
-        let mut sync_may_begin_rendering = vec![];
-        let mut sync_rendering_finished = vec![];
-        let semaphore_create_info = vk::SemaphoreCreateInfo::builder();
-        let fence_create_info = vk::FenceCreateInfo::builder()
-            .flags(vk::FenceCreateFlags::SIGNALED);
-        for _ in 0..PROJ_VK_SWAPCHAIN_SIZE {
-            let semaphore_available = device
-                .create_semaphore(&semaphore_create_info, None)
-                .map_err(|e| format!("{:?}", e))?;
-            let fence_begin_rendering = device
-                .create_fence(&fence_create_info, None)
-                .map_err(|e| format!("{:?}", e))?;
-            let semaphore_finished = device
-                .create_semaphore(&semaphore_create_info, None)
-                .map_err(|e| format!("{:?}", e))?;
-            sync_image_available.push(semaphore_available);
-            sync_may_begin_rendering.push(fence_begin_rendering);
-            sync_rendering_finished.push(semaphore_finished);
-        }
-
         let swapchain_fn = Swapchain::new(&instance, &device);
 
         Ok(
@@ -173,10 +142,10 @@ impl RenderCore {
                 mem_allocator,
                 graphics_command_buffer_pool,
                 transfer_command_buffer_pool,
-                sync_image_available,
-                sync_may_begin_rendering,
-                sync_rendering_finished,
-                current_image_acquired: PROJ_VK_SWAPCHAIN_SIZE - 1,
+                sync_image_available: vec![],
+                sync_may_begin_rendering: vec![],
+                sync_rendering_finished: vec![],
+                current_image_acquired: 0,
                 surface_fn,
                 surface,
                 swapchain_fn,
@@ -261,7 +230,16 @@ impl RenderCore {
         ash_window::create_surface(entry, instance, window_owner, None).unwrap()
     }
 
-    pub unsafe fn destroy_swapchain(&mut self) {
+    pub unsafe fn destroy_swapchain_resources(&mut self) {
+        for semaphore in self.sync_rendering_finished.iter() {
+            self.device.destroy_semaphore(*semaphore, None);
+        }
+        for fence in self.sync_may_begin_rendering.iter() {
+            self.device.destroy_fence(*fence, None);
+        }
+        for semaphore in self.sync_image_available.iter() {
+            self.device.destroy_semaphore(*semaphore, None);
+        }
         if let Some(image) = &self.depth_image {
             image.destroy(&self.device, &self.mem_allocator).unwrap();
         }
@@ -281,80 +259,16 @@ impl RenderCore {
 
     pub unsafe fn create_swapchain(&mut self) -> Result<(), String> {
 
-        // Make the swapchain; automatically creates the images (but not image views)
-        let surface_capabilities = self.surface_fn
-            .get_physical_device_surface_capabilities(self.physical_device_properties.physical_device, self.surface)
-            .map_err(|e| format!("{:?}", e))?;
-        let swapchain = {
-            let surface_present_modes = self.surface_fn
-                .get_physical_device_surface_present_modes(self.physical_device_properties.physical_device, self.surface)
-                .map_err(|e| format!("{:?}", e))?;
-            let surface_formats = self.surface_fn
-                .get_physical_device_surface_formats(self.physical_device_properties.physical_device, self.surface)
-                .map_err(|e| format!("{:?}", e))?;
-            let present_supported = self.surface_fn
-                .get_physical_device_surface_support(self.physical_device_properties.physical_device, self.physical_device_properties.graphics_queue_family_index, self.surface)
-                .map_err(|e| format!("{:?}", e))?;
-            if !present_supported {
-                return Err(String::from("Presentation not supported by selected graphics queue family"));
-            }
-            if !surface_present_modes.contains(&vk::PresentModeKHR::FIFO) {
-                return Err(String::from("FIFO presentation mode not supported by selected graphics queue family"));
-            }
-
-            if surface_capabilities.min_image_count > PROJ_VK_SWAPCHAIN_SIZE as u32 || surface_capabilities.max_image_count < PROJ_VK_SWAPCHAIN_SIZE as u32 {
-                return Err(String::from("Requested swapchain size is not supported"));
-            }
-
-            let surface_format = surface_formats.first().unwrap();
-            let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()
-                .surface(self.surface)
-                .min_image_count(PROJ_VK_SWAPCHAIN_SIZE as u32)
-                .image_color_space(surface_format.color_space)
-                .image_format(surface_format.format)
-                .image_extent(surface_capabilities.current_extent)
-                .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
-                .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
-                .pre_transform(surface_capabilities.current_transform)
-                .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
-                .present_mode(vk::PresentModeKHR::FIFO)
-                .clipped(true)
-                .image_array_layers(1);
-
-            self.swapchain_fn.create_swapchain(&swapchain_create_info, None)
-                .map_err(|e| format!("{:?}", e))?
-        };
-
-        // Make the image views over the images
-        let swapchain_images = self.swapchain_fn.get_swapchain_images(swapchain)
-            .map_err(|e| format!("{:?}", e))?;
-        let mut image_views = Vec::with_capacity(swapchain_images.len());
-        for image in swapchain_images.iter() {
-            let subresource_range = vk::ImageSubresourceRange::builder()
-                .aspect_mask(vk::ImageAspectFlags::COLOR)
-                .base_mip_level(0)
-                .level_count(1)
-                .base_array_layer(0)
-                .layer_count(1);
-            let image_view_create_info = vk::ImageViewCreateInfo::builder()
-                .image(*image)
-                .view_type(vk::ImageViewType::TYPE_2D)
-                .format(vk::Format::B8G8R8A8_UNORM)
-                .subresource_range(*subresource_range);
-            let image_view = self.device.create_image_view(&image_view_create_info, None)
-                .map_err(|e| format!("{:?}", e))?;
-            image_views.push(image_view);
-        }
-
-        if image_views.len() != self.sync_image_available.len() {
-            return Err(format!("Recreated swapchain has {} images; had {} before", image_views.len(), self.sync_image_available.len()));
-        }
-
-        self.swapchain = swapchain;
+        self.swapchain = create_swapchain(
+            &self.physical_device_properties,
+            &self.surface_fn,
+            self.surface,
+            &self.swapchain_fn,
+            self.swapchain)?;
+        let mut swapchain_image_views = create_swapchain_image_views(&self.device, &self.swapchain_fn, self.swapchain)?;
         self.image_views.clear();
-        for image in image_views.iter() {
-            self.image_views.push(*image);
-        }
+        self.image_views.append(&mut swapchain_image_views);
+        self.current_image_acquired = self.image_views.len() - 1;
 
         let extent = self.get_extent()?;
         let depth_image = ImageWrapper::new(
@@ -364,8 +278,30 @@ impl RenderCore {
             extent.width as u32,
             extent.height as u32,
             None)?;
-
         self.depth_image = Some(depth_image);
+
+        // Synchronisation objects
+        self.sync_image_available.clear();
+        self.sync_may_begin_rendering.clear();
+        self.sync_rendering_finished.clear();
+        let swapchain_size = self.image_views.len();
+        let semaphore_create_info = vk::SemaphoreCreateInfo::builder();
+        let fence_create_info = vk::FenceCreateInfo::builder()
+            .flags(vk::FenceCreateFlags::SIGNALED);
+        for _ in 0..swapchain_size {
+            let semaphore_available = self.device
+                .create_semaphore(&semaphore_create_info, None)
+                .map_err(|e| format!("{:?}", e))?;
+            let fence_begin_rendering = self.device
+                .create_fence(&fence_create_info, None)
+                .map_err(|e| format!("{:?}", e))?;
+            let semaphore_finished = self.device
+                .create_semaphore(&semaphore_create_info, None)
+                .map_err(|e| format!("{:?}", e))?;
+            self.sync_image_available.push(semaphore_available);
+            self.sync_may_begin_rendering.push(fence_begin_rendering);
+            self.sync_rendering_finished.push(semaphore_finished);
+        }
 
         Ok(())
     }

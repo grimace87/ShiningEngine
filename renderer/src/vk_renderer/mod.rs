@@ -75,7 +75,7 @@ impl RendererApi for VkRenderer {
         };
 
         unsafe {
-            self.render_core.destroy_swapchain();
+            self.render_core.destroy_swapchain_resources();
             self.render_core.destroy_surface();
             self.render_core.create_surface(&self.function_loader, window_owner);
             self.render_core.create_swapchain()?;
