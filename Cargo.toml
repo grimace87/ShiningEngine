@@ -5,7 +5,7 @@ members = [
     "defs",
     "renderer",
     "engine",
-    "platform_windows",
+    "platform_desktop",
     "examples/scenery",
     "examples/menu"
 ]

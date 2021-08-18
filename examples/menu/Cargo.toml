@@ -7,6 +7,6 @@ edition = "2018"
 [dependencies]
 cgmath = "0.18.0"
 defs = { path = "../../defs" }
-platform_windows = { path = "../../platform_windows" }
+platform_windows = { path = "../../platform_desktop" }
 renderer = { path = "../../renderer" }
 engine = { path = "../../engine" }
