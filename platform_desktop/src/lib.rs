@@ -75,7 +75,7 @@ impl PlatformWindows {
                             }
                         },
                         WindowEvent::Resized(_) => {
-                            engine.recreate_swapchain(&self.window).unwrap();
+                            engine.recreate_surface(&self.window).unwrap();
                         }
                         _ => {}
                     }

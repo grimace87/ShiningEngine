@@ -19,7 +19,7 @@ impl RendererApi for NullRenderer {
         Ok(PresentResult::Ok)
     }
 
-    fn recreate_swapchain(&mut self, _window_owner: &dyn HasRawWindowHandle, _description: &DrawingDescription) -> Result<(), String> {
+    fn recreate_surface(&mut self, _window_owner: &dyn HasRawWindowHandle, _description: &DrawingDescription) -> Result<(), String> {
         Ok(())
     }
 

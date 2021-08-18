@@ -65,7 +65,7 @@ pub trait Camera {
 pub trait RendererApi {
     fn new(window_owner: &dyn HasRawWindowHandle, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<Self, String> where Self : Sized;
     fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, String>;
-    fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String>;
+    fn recreate_surface(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String>;
     fn recreate_scene_resources(&mut self, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<(), String>;
     fn get_aspect_ratio(&self) -> f32;
 }

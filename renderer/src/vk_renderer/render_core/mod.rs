@@ -230,7 +230,7 @@ impl RenderCore {
         ash_window::create_surface(entry, instance, window_owner, None).unwrap()
     }
 
-    pub unsafe fn destroy_swapchain_resources(&mut self) {
+    unsafe fn destroy_swapchain_resources(&mut self) {
         for semaphore in self.sync_rendering_finished.iter() {
             self.device.destroy_semaphore(*semaphore, None);
         }
@@ -249,22 +249,22 @@ impl RenderCore {
         self.swapchain_fn.destroy_swapchain(self.swapchain, None);
     }
 
-    pub unsafe fn destroy_surface(&mut self) {
+    unsafe fn destroy_surface(&mut self) {
         self.surface_fn.destroy_surface(self.surface, None);
     }
 
-    pub unsafe fn create_surface(&mut self, entry: &Entry, window_owner: &dyn HasRawWindowHandle) {
+    unsafe fn create_surface(&mut self, entry: &Entry, window_owner: &dyn HasRawWindowHandle) {
         self.surface = RenderCore::make_new_surface(entry, &self.instance, window_owner);
     }
 
-    pub unsafe fn create_swapchain(&mut self) -> Result<(), String> {
+    unsafe fn create_swapchain(&mut self) -> Result<(), String> {
 
         self.swapchain = create_swapchain(
             &self.physical_device_properties,
             &self.surface_fn,
             self.surface,
             &self.swapchain_fn,
-            self.swapchain)?;
+            vk::SwapchainKHR::null())?;
         let mut swapchain_image_views = create_swapchain_image_views(&self.device, &self.swapchain_fn, self.swapchain)?;
         self.image_views.clear();
         self.image_views.append(&mut swapchain_image_views);
@@ -303,6 +303,14 @@ impl RenderCore {
             self.sync_rendering_finished.push(semaphore_finished);
         }
 
+        Ok(())
+    }
+
+    pub unsafe fn recreate_surface(&mut self, entry: &Entry, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
+        self.destroy_swapchain_resources();
+        self.destroy_surface();
+        self.create_surface(entry, window_owner);
+        self.create_swapchain()?;
         Ok(())
     }
 

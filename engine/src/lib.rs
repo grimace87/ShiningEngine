@@ -67,11 +67,11 @@ impl<R: 'static> Engine<R> where R : RendererApi {
         self.timer.pull_time_step_millis()
     }
 
-    pub fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
+    pub fn recreate_surface(&mut self, window_owner: &dyn HasRawWindowHandle) -> Result<(), String> {
 
         let aspect_ratio: f32;
 
-        self.renderer.recreate_swapchain(window_owner, &self.drawing_description)?;
+        self.renderer.recreate_surface(window_owner, &self.drawing_description)?;
         aspect_ratio = self.renderer.get_aspect_ratio();
 
         self.scene_host.update_aspect_ratio(aspect_ratio);
@@ -99,7 +99,7 @@ impl<R: 'static> Engine<R> where R : RendererApi {
         match self.renderer.draw_next_frame(self.scene_host.get_current()) {
             Ok(PresentResult::Ok) => return Ok(()),
             Ok(PresentResult::SwapchainOutOfDate) => {
-                self.renderer.recreate_swapchain(window_owner, &self.drawing_description).unwrap();
+                self.renderer.recreate_surface(window_owner, &self.drawing_description).unwrap();
                 updated_aspect_ratio = self.renderer.get_aspect_ratio();
             },
             Err(e) => return Err(format!("{}", e))

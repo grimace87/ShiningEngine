@@ -65,7 +65,7 @@ impl RendererApi for VkRenderer {
         }
     }
 
-    fn recreate_swapchain(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String> {
+    fn recreate_surface(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String> {
         self.render_core.wait_until_idle().unwrap();
 
         for resources in self.per_image_resources.iter_mut() {
@@ -78,11 +78,7 @@ impl RendererApi for VkRenderer {
         };
 
         unsafe {
-            self.render_core.destroy_swapchain_resources();
-            self.render_core.destroy_surface();
-            self.render_core.create_surface(&self.function_loader, window_owner);
-            self.render_core.create_swapchain()?;
-
+            self.render_core.recreate_surface(&self.function_loader, window_owner)?;
             let swapchain_image_count = self.render_core.image_views.len();
             for swapchain_image_index in 0..swapchain_image_count {
                 let command_buffer = command_buffers[swapchain_image_index];
