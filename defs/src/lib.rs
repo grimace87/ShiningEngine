@@ -14,6 +14,7 @@ pub enum Shader {
     PlainPnt, // Position-Normal-Texture, R8G8B8A8 texture, no lighting
     Text,     // Position-Normal-Texture, R8 texture, no lighting
     Cube,     // Position, cube texture, no lighting
+    Water,    // Position-Normal-Texture, R8G8B8A8 texture, no lighting, projective texture coords
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]

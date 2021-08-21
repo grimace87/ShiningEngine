@@ -215,7 +215,7 @@ impl SceneInfo for SceneryScene {
                             depth_test: true
                         },
                         DrawingStep {
-                            shader: Shader::PlainPnt,
+                            shader: Shader::Water,
                             vbo_index: VBO_INDEX_RIVER,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,

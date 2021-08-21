@@ -69,6 +69,7 @@ impl PipelineWrapper {
                 Shader::PlainPnt => vk_shader_macros::include_glsl!("shaders/vk/triangle.vert"),
                 Shader::Text => vk_shader_macros::include_glsl!("shaders/vk/text.vert"),
                 Shader::Cube => vk_shader_macros::include_glsl!("shaders/vk/cube.vert"),
+                Shader::Water => vk_shader_macros::include_glsl!("shaders/vk/water.vert"),
             });
         let vertex_shader_module = render_core.device
             .create_shader_module(&vertex_shader_create_info, None)
@@ -78,6 +79,7 @@ impl PipelineWrapper {
                 Shader::PlainPnt => vk_shader_macros::include_glsl!("shaders/vk/triangle.frag"),
                 Shader::Text => vk_shader_macros::include_glsl!("shaders/vk/text.frag"),
                 Shader::Cube => vk_shader_macros::include_glsl!("shaders/vk/cube.frag"),
+                Shader::Water => vk_shader_macros::include_glsl!("shaders/vk/water.frag"),
             });
         let fragment_shader_module = render_core.device
             .create_shader_module(&fragment_shader_create_info, None)
@@ -137,7 +139,8 @@ impl PipelineWrapper {
         let ubo_size_bytes: usize = match description.shader {
             Shader::PlainPnt => 4 * 16,
             Shader::Text => 4 * 20,
-            Shader::Cube => 4 * 16
+            Shader::Cube => 4 * 16,
+            Shader::Water => 4 * 16,
         };
         let uniform_buffer = {
             let uniform_buffer_data: Vec<f32> = vec![0.0; ubo_size_bytes];
@@ -167,6 +170,7 @@ impl PipelineWrapper {
             Shader::PlainPnt => vk::ShaderStageFlags::VERTEX,
             Shader::Text => vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
             Shader::Cube => vk::ShaderStageFlags::VERTEX,
+            Shader::Water => vk::ShaderStageFlags::VERTEX,
         };
         let descriptor_set_layout_binding_infos = [
             vk::DescriptorSetLayoutBinding::builder()
