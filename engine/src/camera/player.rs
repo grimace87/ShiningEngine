@@ -18,14 +18,14 @@ impl PlayerCamera {
     const PROJ_VK_NEAR_PLANE: f32 = 1.0;
     const PROJ_VK_FAR_PLANE: f32 = 100.0;
 
-    pub fn new(aspect_ratio: f32) -> PlayerCamera {
+    pub fn new(aspect_ratio: f32, x: f32, y: f32, z: f32, angle_rad: f32) -> PlayerCamera {
         PlayerCamera {
             speed: 0.0,
             angular_speed: 0.0,
-            rotation: std::f32::consts::PI,
-            position_x: 0.0,
-            position_y: -5.0,
-            position_z: -4.0,
+            rotation: angle_rad,
+            position_x: x,
+            position_y: y,
+            position_z: z,
             perspective_projection: Self::make_vulkan_perspective_matrix(aspect_ratio, Self::PROJ_VK_NEAR_PLANE, Self::PROJ_VK_FAR_PLANE)
         }
     }

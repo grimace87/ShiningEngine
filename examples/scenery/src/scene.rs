@@ -63,7 +63,7 @@ pub struct SceneryScene {
 impl SceneryScene {
     pub fn new() -> SceneryScene {
         SceneryScene {
-            camera: PlayerCamera::new(1.0),
+            camera: PlayerCamera::new(1.0, 10.0, -3.0, -15.0, std::f32::consts::FRAC_PI_6 * 5.0),
             text_generator: TextGenerator::from_resource(
                 include_str!("../../resources/font/Musica.fnt")
             ),
