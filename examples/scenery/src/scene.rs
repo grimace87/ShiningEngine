@@ -53,6 +53,8 @@ struct TextPaintUbo {
 pub struct SceneryScene {
     camera: PlayerCamera,
     text_generator: TextGenerator,
+    skybox_reflection_pass_ubo: MvpUbo,
+    terrain_reflection_pass_ubo: MvpUbo,
     skybox_pass_ubo: MvpUbo,
     terrain_pass_ubo: MvpUbo,
     river_pass_ubo: MvpUbo,
@@ -67,6 +69,12 @@ impl SceneryScene {
             text_generator: TextGenerator::from_resource(
                 include_str!("../../resources/font/Musica.fnt")
             ),
+            skybox_reflection_pass_ubo: MvpUbo {
+                matrix: Matrix4::identity()
+            },
+            terrain_reflection_pass_ubo: MvpUbo {
+                matrix: Matrix4::identity()
+            },
             skybox_pass_ubo: MvpUbo {
                 matrix: Matrix4::identity()
             },
@@ -247,7 +255,10 @@ impl SceneInfo for SceneryScene {
         self.camera.update(time_step_millis, controller);
         let p_matrix = self.camera.get_projection_matrix();
         let mut v_matrix = self.camera.get_view_matrix();
+        let mut v_inverted_matrix = self.camera.get_view_matrix();
+        v_inverted_matrix.w.y = -v_inverted_matrix.w.y;
         let pv_matrix = p_matrix * v_matrix;
+        let pv_inverted_matrix = p_matrix * v_inverted_matrix;
 
         self.river_phase += (time_step_millis as f64) * 0.001 * std::f64::consts::PI;
         if self.river_phase > std::f64::consts::TAU {
@@ -259,21 +270,26 @@ impl SceneInfo for SceneryScene {
 
         let red = 0.5 + 0.5 * pv_matrix.x.x;
         self.terrain_pass_ubo.matrix = pv_matrix.clone();
+        self.terrain_reflection_pass_ubo.matrix = pv_inverted_matrix.clone();
         self.text_paint_ubo.paint_color.x = red;
         self.text_paint_ubo.paint_color.z = 1.0 - red;
 
         v_matrix.w.x = 0.0;
         v_matrix.w.y = 0.0;
         v_matrix.w.z = 0.0;
+        v_inverted_matrix.w.x = 0.0;
+        v_inverted_matrix.w.y = 0.0;
+        v_inverted_matrix.w.z = 0.0;
         self.skybox_pass_ubo.matrix = p_matrix * v_matrix;
+        self.skybox_reflection_pass_ubo.matrix = p_matrix * v_inverted_matrix;
 
         None
     }
 
     unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize, step_index: usize) -> (*const u8, usize) {
         match (pass_index, step_index) {
-            (0, 0) => (&self.skybox_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
-            (0, 1) => (&self.terrain_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
+            (0, 0) => (&self.skybox_reflection_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
+            (0, 1) => (&self.terrain_reflection_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
             (1, 0) => (&self.skybox_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
             (1, 1) => (&self.terrain_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
             (1, 2) => (&self.river_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
