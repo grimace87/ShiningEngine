@@ -108,7 +108,7 @@ pub struct DrawingStep {
     pub vbo_index: usize,
     pub vbo_format: VertexFormat,
     pub draw_indexed: bool,
-    pub texture_index: usize,
+    pub texture_indices: Vec<usize>,
     pub depth_test: bool
 }
 

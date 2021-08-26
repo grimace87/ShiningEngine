@@ -19,8 +19,8 @@ pub struct PipelineWrapper {
     vertex_buffer: vk::Buffer,
     vertex_count: usize,
     uniform_buffer: BufferWrapper,
-    texture_image_view: vk::ImageView,
-    sampler: vk::Sampler,
+    texture_image_views: Vec<vk::ImageView>,
+    samplers: Vec<vk::Sampler>,
     descriptor_set_layout: vk::DescriptorSetLayout,
     descriptor_pool: vk::DescriptorPool,
     descriptor_set: vk::DescriptorSet,
@@ -37,8 +37,8 @@ impl PipelineWrapper {
             vertex_buffer: vk::Buffer::null(),
             vertex_count: 0,
             uniform_buffer: BufferWrapper::empty(),
-            texture_image_view: vk::ImageView::null(),
-            sampler: vk::Sampler::null(),
+            texture_image_views: vec![],
+            samplers: vec![],
             descriptor_set_layout: vk::DescriptorSetLayout::null(),
             descriptor_pool: vk::DescriptorPool::null(),
             descriptor_set: vk::DescriptorSet::null(),
@@ -55,7 +55,9 @@ impl PipelineWrapper {
             self.uniform_buffer.destroy(allocator).unwrap();
             render_core.device.destroy_descriptor_pool(self.descriptor_pool, None);
             render_core.device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
-            render_core.device.destroy_sampler(self.sampler, None);
+            for sampler in self.samplers.iter() {
+                render_core.device.destroy_sampler(*sampler, None);
+            }
             render_core.device.destroy_shader_module(self.fragment_shader_module, None);
             render_core.device.destroy_shader_module(self.vertex_shader_module, None);
         }
@@ -161,15 +163,22 @@ impl PipelineWrapper {
         };
 
         // Texture image
-        let texture_image_view = render_core.query_texture(description.texture_index)?.image_view;
+        let mut texture_image_views: Vec<vk::ImageView> = description.texture_indices.iter()
+            .map(|texture_index| render_core.query_texture(*texture_index).unwrap().image_view)
+            .collect();
 
-        // Sampler
+        // Samplers
         let sampler_info = vk::SamplerCreateInfo::builder()
             .min_filter(vk::Filter::LINEAR)
             .mag_filter(vk::Filter::LINEAR);
-        let sampler = render_core.device
-            .create_sampler(&sampler_info, None)
-            .map_err(|e| format!("Error creating sampler: {:?}", e))?;
+        let mut samplers: Vec<vk::Sampler> = texture_image_views.iter()
+            .map(|_|
+                render_core.device
+                    .create_sampler(&sampler_info, None)
+                    .map_err(|e| format!("Error creating sampler: {:?}", e))
+                    .unwrap()
+            )
+            .collect();
 
         // All the stuff around descriptors
         let ubo_stage_flags = match description.shader {
@@ -180,22 +189,26 @@ impl PipelineWrapper {
             Shader::CubeClipped => vk::ShaderStageFlags::VERTEX,
             Shader::Water => vk::ShaderStageFlags::VERTEX,
         };
-        let descriptor_set_layout_binding_infos = [
-            vk::DescriptorSetLayoutBinding::builder()
+        let descriptor_set_layout_binding_infos: Vec<vk::DescriptorSetLayoutBinding> = {
+            let mut bindings = vec![];
+            bindings.push(vk::DescriptorSetLayoutBinding::builder()
                 .binding(0)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                 .descriptor_count(1)
                 .stage_flags(ubo_stage_flags)
-                .build(),
-            vk::DescriptorSetLayoutBinding::builder()
-                .binding(1)
-                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .descriptor_count(1)
-                .stage_flags(vk::ShaderStageFlags::FRAGMENT)
-                .build()
-        ];
+                .build());
+            for index in 0..texture_image_views.len() {
+                bindings.push(vk::DescriptorSetLayoutBinding::builder()
+                    .binding(1 + index as u32)
+                    .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                    .descriptor_count(1)
+                    .stage_flags(vk::ShaderStageFlags::FRAGMENT)
+                    .build());
+            }
+            bindings
+        };
         let descriptor_set_layout_info = vk::DescriptorSetLayoutCreateInfo::builder()
-            .bindings(&descriptor_set_layout_binding_infos);
+            .bindings(descriptor_set_layout_binding_infos.as_slice());
         let descriptor_set_layout = render_core.device
             .create_descriptor_set_layout(&descriptor_set_layout_info, None)
             .map_err(|e| format!("Error creating descriptor set layout: {:?}", e))?;
@@ -206,7 +219,7 @@ impl PipelineWrapper {
             },
             vk::DescriptorPoolSize {
                 ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 1
+                descriptor_count: texture_image_views.len() as u32
             }
         ];
         let descriptor_pool_info = vk::DescriptorPoolCreateInfo::builder()
@@ -230,27 +243,32 @@ impl PipelineWrapper {
             offset: 0,
             range: ubo_size_bytes as u64
         }];
-        let image_infos = [vk::DescriptorImageInfo {
-            image_view: texture_image_view,
-            sampler,
-            image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL
-        }];
-        let descriptor_set_writes = [
-            vk::WriteDescriptorSet::builder()
+        let image_infos: Vec<_> = (0..texture_image_views.len())
+            .map(|index| vk::DescriptorImageInfo {
+                image_view: texture_image_views[index],
+                sampler: samplers[index],
+                image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL
+            })
+            .collect();
+        let descriptor_set_writes: Vec<vk::WriteDescriptorSet> = {
+            let mut writes = vec![];
+            writes.push(vk::WriteDescriptorSet::builder()
                 .dst_set(descriptor_set)
                 .dst_binding(0)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                 .buffer_info(&buffer_infos)
-                .build(),
-            vk::WriteDescriptorSet::builder()
-                .dst_set(descriptor_set)
-                .dst_binding(1)
-                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .buffer_info(&buffer_infos)
-                .image_info(&image_infos)
-                .build()
-        ];
-        render_core.device.update_descriptor_sets(&descriptor_set_writes, &[]);
+                .build());
+            for index in 0..texture_image_views.len() {
+                writes.push(vk::WriteDescriptorSet::builder()
+                    .dst_set(descriptor_set)
+                    .dst_binding(1 + index as u32)
+                    .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                    .image_info(image_infos.as_slice())
+                    .build());
+            }
+            writes
+        };
+        render_core.device.update_descriptor_sets(&descriptor_set_writes.as_slice(), &[]);
 
         // Viewport
         let viewports = [vk::Viewport {
@@ -324,8 +342,10 @@ impl PipelineWrapper {
         self.vertex_buffer = vbo_handle;
         self.vertex_count = vbo_vertex_count;
         self.uniform_buffer = uniform_buffer;
-        self.texture_image_view = texture_image_view;
-        self.sampler = sampler;
+        self.texture_image_views.clear();
+        self.texture_image_views.append(&mut texture_image_views);
+        self.samplers.clear();
+        self.samplers.append(&mut samplers);
         self.descriptor_set_layout = descriptor_set_layout;
         self.descriptor_pool = descriptor_pool;
         self.descriptor_set = descriptor_set;

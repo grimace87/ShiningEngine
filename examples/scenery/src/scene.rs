@@ -33,9 +33,11 @@ const VBO_INDEX_SKYBOX: usize = 3;
 
 const TEXTURE_INDEX_TERRAIN: usize = 0;
 const TEXTURE_INDEX_FONT: usize = 1;
-const TEXTURE_INDEX_PRE_RENDER_COLOR: usize = 2;
-const TEXTURE_INDEX_PRE_RENDER_DEPTH: usize = 3;
-const TEXTURE_INDEX_SKYBOX: usize = 4;
+const TEXTURE_INDEX_REFLECTION_COLOR: usize = 2;
+const TEXTURE_INDEX_REFLECTION_DEPTH: usize = 3;
+const TEXTURE_INDEX_REFRACTION_COLOR: usize = 4;
+const TEXTURE_INDEX_REFRACTION_DEPTH: usize = 5;
+const TEXTURE_INDEX_SKYBOX: usize = 6;
 
 const OFFSCREEN_RENDER_SIZE: u32 = 1024;
 
@@ -165,14 +167,28 @@ impl SceneInfo for SceneryScene {
         texture_loads.insert(TEXTURE_INDEX_TERRAIN, scene_texture);
         texture_loads.insert(TEXTURE_INDEX_FONT, font_texture);
         texture_loads.insert(TEXTURE_INDEX_SKYBOX, skybox_texture);
-        texture_loads.insert(TEXTURE_INDEX_PRE_RENDER_COLOR, TextureCreationData {
+        texture_loads.insert(TEXTURE_INDEX_REFLECTION_COLOR, TextureCreationData {
             layer_data: None,
             width: OFFSCREEN_RENDER_SIZE,
             height: OFFSCREEN_RENDER_SIZE,
             format: TexturePixelFormat::RGBA,
             usage: ImageUsage::OffscreenRenderSampleColorWriteDepth
         });
-        texture_loads.insert(TEXTURE_INDEX_PRE_RENDER_DEPTH, TextureCreationData {
+        texture_loads.insert(TEXTURE_INDEX_REFLECTION_DEPTH, TextureCreationData {
+            layer_data: None,
+            width: OFFSCREEN_RENDER_SIZE,
+            height: OFFSCREEN_RENDER_SIZE,
+            format: TexturePixelFormat::Unorm16,
+            usage: ImageUsage::OffscreenRenderSampleColorWriteDepth
+        });
+        texture_loads.insert(TEXTURE_INDEX_REFRACTION_COLOR, TextureCreationData {
+            layer_data: None,
+            width: OFFSCREEN_RENDER_SIZE,
+            height: OFFSCREEN_RENDER_SIZE,
+            format: TexturePixelFormat::RGBA,
+            usage: ImageUsage::OffscreenRenderSampleColorWriteDepth
+        });
+        texture_loads.insert(TEXTURE_INDEX_REFRACTION_DEPTH, TextureCreationData {
             layer_data: None,
             width: OFFSCREEN_RENDER_SIZE,
             height: OFFSCREEN_RENDER_SIZE,
@@ -191,8 +207,8 @@ impl SceneInfo for SceneryScene {
             passes: vec![
                 DrawingPass {
                     target: FramebufferTarget::Texture(FramebufferCreationData {
-                        color_texture_index: TEXTURE_INDEX_PRE_RENDER_COLOR,
-                        depth_texture_index: Some(TEXTURE_INDEX_PRE_RENDER_DEPTH),
+                        color_texture_index: TEXTURE_INDEX_REFLECTION_COLOR,
+                        depth_texture_index: Some(TEXTURE_INDEX_REFLECTION_DEPTH),
                         width: OFFSCREEN_RENDER_SIZE as usize,
                         height: OFFSCREEN_RENDER_SIZE as usize,
                         color_format: TexturePixelFormat::RGBA,
@@ -204,7 +220,7 @@ impl SceneInfo for SceneryScene {
                             vbo_index: VBO_INDEX_SKYBOX,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            texture_index: TEXTURE_INDEX_SKYBOX,
+                            texture_indices: vec![TEXTURE_INDEX_SKYBOX],
                             depth_test: false
                         },
                         DrawingStep {
@@ -212,7 +228,7 @@ impl SceneInfo for SceneryScene {
                             vbo_index: VBO_INDEX_SCENE,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            texture_index: TEXTURE_INDEX_TERRAIN,
+                            texture_indices: vec![TEXTURE_INDEX_TERRAIN],
                             depth_test: true
                         }
                     ]
@@ -225,7 +241,7 @@ impl SceneInfo for SceneryScene {
                             vbo_index: VBO_INDEX_SKYBOX,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            texture_index: TEXTURE_INDEX_SKYBOX,
+                            texture_indices: vec![TEXTURE_INDEX_SKYBOX],
                             depth_test: false
                         },
                         DrawingStep {
@@ -233,7 +249,7 @@ impl SceneInfo for SceneryScene {
                             vbo_index: VBO_INDEX_SCENE,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            texture_index: TEXTURE_INDEX_TERRAIN,
+                            texture_indices: vec![TEXTURE_INDEX_TERRAIN],
                             depth_test: true
                         },
                         DrawingStep {
@@ -243,7 +259,7 @@ impl SceneInfo for SceneryScene {
                             draw_indexed: false,
 
                             // TODO - One of these per swapchain image
-                            texture_index: TEXTURE_INDEX_PRE_RENDER_COLOR,
+                            texture_indices: vec![TEXTURE_INDEX_REFLECTION_COLOR],
 
                             depth_test: true
                         },
@@ -252,7 +268,7 @@ impl SceneInfo for SceneryScene {
                             vbo_index: VBO_INDEX_HUD,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            texture_index: TEXTURE_INDEX_FONT,
+                            texture_indices: vec![TEXTURE_INDEX_FONT],
                             depth_test: true
                         }
                     ]
