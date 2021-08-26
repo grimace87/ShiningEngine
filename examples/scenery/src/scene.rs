@@ -45,6 +45,14 @@ struct MvpUbo {
 }
 
 #[repr(C)]
+struct MvpClippingUbo {
+    matrix: Matrix4<f32>,
+    y_bias: f32,
+    y_plane_normal: f32,
+    unused: [f32; 2]
+}
+
+#[repr(C)]
 struct TextPaintUbo {
     camera_matrix: Matrix4<f32>,
     paint_color: Vector4<f32>
@@ -53,8 +61,8 @@ struct TextPaintUbo {
 pub struct SceneryScene {
     camera: PlayerCamera,
     text_generator: TextGenerator,
-    skybox_reflection_pass_ubo: MvpUbo,
-    terrain_reflection_pass_ubo: MvpUbo,
+    skybox_reflection_pass_ubo: MvpClippingUbo,
+    terrain_reflection_pass_ubo: MvpClippingUbo,
     skybox_pass_ubo: MvpUbo,
     terrain_pass_ubo: MvpUbo,
     river_pass_ubo: MvpUbo,
@@ -69,11 +77,17 @@ impl SceneryScene {
             text_generator: TextGenerator::from_resource(
                 include_str!("../../resources/font/Musica.fnt")
             ),
-            skybox_reflection_pass_ubo: MvpUbo {
-                matrix: Matrix4::identity()
+            skybox_reflection_pass_ubo: MvpClippingUbo {
+                matrix: Matrix4::identity(),
+                y_bias: 0.0,
+                y_plane_normal: -1.0,
+                unused: [0.0, 0.0]
             },
-            terrain_reflection_pass_ubo: MvpUbo {
-                matrix: Matrix4::identity()
+            terrain_reflection_pass_ubo: MvpClippingUbo {
+                matrix: Matrix4::identity(),
+                y_bias: 0.0,
+                y_plane_normal: -1.0,
+                unused: [0.0, 0.0]
             },
             skybox_pass_ubo: MvpUbo {
                 matrix: Matrix4::identity()
@@ -186,7 +200,7 @@ impl SceneInfo for SceneryScene {
                     }),
                     steps: vec![
                         DrawingStep {
-                            shader: Shader::Cube,
+                            shader: Shader::CubeClipped,
                             vbo_index: VBO_INDEX_SKYBOX,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
@@ -194,7 +208,7 @@ impl SceneInfo for SceneryScene {
                             depth_test: false
                         },
                         DrawingStep {
-                            shader: Shader::PlainPnt,
+                            shader: Shader::PlainPntClipped,
                             vbo_index: VBO_INDEX_SCENE,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
@@ -267,6 +281,8 @@ impl SceneInfo for SceneryScene {
         let deviation = self.river_phase.sin() as f32 * 0.01;
         let river_translation = Matrix4::<f32>::from_translation(Vector3 { x: 0.0, y: deviation, z: 0.0 });
         self.river_pass_ubo.matrix = river_translation * pv_matrix;
+        self.skybox_reflection_pass_ubo.y_bias = deviation;
+        self.terrain_reflection_pass_ubo.y_bias = deviation;
 
         let red = 0.5 + 0.5 * pv_matrix.x.x;
         self.terrain_pass_ubo.matrix = pv_matrix.clone();
@@ -288,8 +304,8 @@ impl SceneInfo for SceneryScene {
 
     unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize, step_index: usize) -> (*const u8, usize) {
         match (pass_index, step_index) {
-            (0, 0) => (&self.skybox_reflection_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
-            (0, 1) => (&self.terrain_reflection_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
+            (0, 0) => (&self.skybox_reflection_pass_ubo as *const MvpClippingUbo as *const u8, std::mem::size_of::<MvpClippingUbo>()),
+            (0, 1) => (&self.terrain_reflection_pass_ubo as *const MvpClippingUbo as *const u8, std::mem::size_of::<MvpClippingUbo>()),
             (1, 0) => (&self.skybox_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
             (1, 1) => (&self.terrain_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
             (1, 2) => (&self.river_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),

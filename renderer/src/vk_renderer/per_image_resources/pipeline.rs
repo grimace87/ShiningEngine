@@ -67,8 +67,10 @@ impl PipelineWrapper {
         let vertex_shader_create_info = vk::ShaderModuleCreateInfo::builder()
             .code(match description.shader {
                 Shader::PlainPnt => vk_shader_macros::include_glsl!("shaders/vk/triangle.vert"),
+                Shader::PlainPntClipped => vk_shader_macros::include_glsl!("shaders/vk/triangle_clipped.vert"),
                 Shader::Text => vk_shader_macros::include_glsl!("shaders/vk/text.vert"),
                 Shader::Cube => vk_shader_macros::include_glsl!("shaders/vk/cube.vert"),
+                Shader::CubeClipped => vk_shader_macros::include_glsl!("shaders/vk/cube_clipped.vert"),
                 Shader::Water => vk_shader_macros::include_glsl!("shaders/vk/water.vert"),
             });
         let vertex_shader_module = render_core.device
@@ -77,8 +79,10 @@ impl PipelineWrapper {
         let fragment_shader_create_info = vk::ShaderModuleCreateInfo::builder()
             .code(match description.shader {
                 Shader::PlainPnt => vk_shader_macros::include_glsl!("shaders/vk/triangle.frag"),
+                Shader::PlainPntClipped => vk_shader_macros::include_glsl!("shaders/vk/triangle.frag"),
                 Shader::Text => vk_shader_macros::include_glsl!("shaders/vk/text.frag"),
                 Shader::Cube => vk_shader_macros::include_glsl!("shaders/vk/cube.frag"),
+                Shader::CubeClipped => vk_shader_macros::include_glsl!("shaders/vk/cube.frag"),
                 Shader::Water => vk_shader_macros::include_glsl!("shaders/vk/water.frag"),
             });
         let fragment_shader_module = render_core.device
@@ -138,8 +142,10 @@ impl PipelineWrapper {
         // Create uniform buffer
         let ubo_size_bytes: usize = match description.shader {
             Shader::PlainPnt => 4 * 16,
+            Shader::PlainPntClipped => 4 * 16 + 4 * 4,
             Shader::Text => 4 * 20,
             Shader::Cube => 4 * 16,
+            Shader::CubeClipped => 4 * 16 + 4 * 4,
             Shader::Water => 4 * 16,
         };
         let uniform_buffer = {
@@ -168,8 +174,10 @@ impl PipelineWrapper {
         // All the stuff around descriptors
         let ubo_stage_flags = match description.shader {
             Shader::PlainPnt => vk::ShaderStageFlags::VERTEX,
+            Shader::PlainPntClipped => vk::ShaderStageFlags::VERTEX,
             Shader::Text => vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
             Shader::Cube => vk::ShaderStageFlags::VERTEX,
+            Shader::CubeClipped => vk::ShaderStageFlags::VERTEX,
             Shader::Water => vk::ShaderStageFlags::VERTEX,
         };
         let descriptor_set_layout_binding_infos = [

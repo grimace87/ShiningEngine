@@ -11,10 +11,12 @@ pub enum PresentResult {
 }
 
 pub enum Shader {
-    PlainPnt, // Position-Normal-Texture, R8G8B8A8 texture, no lighting
-    Text,     // Position-Normal-Texture, R8 texture, no lighting
-    Cube,     // Position, cube texture, no lighting
-    Water,    // Position-Normal-Texture, R8G8B8A8 texture, no lighting, projective texture coords
+    PlainPnt,        // Position-Normal-Texture, R8G8B8A8 texture, no lighting
+    PlainPntClipped, // Position-Normal-Texture, R8G8B8A8 texture, no lighting, clip Y
+    Text,            // Position-Normal-Texture, R8 texture, no lighting
+    Cube,            // Position, cube texture, no lighting
+    CubeClipped,     // Position, cube texture, no lighting, clip Y
+    Water,           // Position-Normal-Texture, R8G8B8A8 texture, no lighting, projective texture coords
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
