@@ -68,8 +68,7 @@ pub struct SceneryScene {
     skybox_pass_ubo: MvpUbo,
     terrain_pass_ubo: MvpUbo,
     river_pass_ubo: MvpUbo,
-    text_paint_ubo: TextPaintUbo,
-    river_phase: f64
+    text_paint_ubo: TextPaintUbo
 }
 
 impl SceneryScene {
@@ -103,8 +102,7 @@ impl SceneryScene {
             text_paint_ubo: TextPaintUbo {
                 camera_matrix: Matrix4::identity(),
                 paint_color: Vector4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 }
-            },
-            river_phase: 0.0
+            }
         }
     }
 }
@@ -290,15 +288,7 @@ impl SceneInfo for SceneryScene {
         let pv_matrix = p_matrix * v_matrix;
         let pv_inverted_matrix = p_matrix * v_inverted_matrix;
 
-        self.river_phase += (time_step_millis as f64) * 0.001 * std::f64::consts::PI;
-        if self.river_phase > std::f64::consts::TAU {
-            self.river_phase -= std::f64::consts::TAU;
-        }
-        let deviation = self.river_phase.sin() as f32 * 0.01;
-        let river_translation = Matrix4::<f32>::from_translation(Vector3 { x: 0.0, y: deviation, z: 0.0 });
-        self.river_pass_ubo.matrix = river_translation * pv_matrix;
-        self.skybox_reflection_pass_ubo.y_bias = deviation;
-        self.terrain_reflection_pass_ubo.y_bias = deviation;
+        self.river_pass_ubo.matrix = pv_matrix;
 
         let red = 0.5 + 0.5 * pv_matrix.x.x;
         self.terrain_pass_ubo.matrix = pv_matrix.clone();
