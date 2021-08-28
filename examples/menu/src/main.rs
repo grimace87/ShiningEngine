@@ -18,7 +18,9 @@ fn main() {
             std::process::exit(1);
         });
 
-    let engine: Engine<VkRenderer> = Engine::new_uninitialised(Box::from(StartMenuScene::new()));
+    let engine: Engine<VkRenderer> = Engine::new_uninitialised(
+        Box::from(StartMenuScene::new()),
+        vec![]);
 
     platform.run(engine)
         .unwrap_or_else(|e| {

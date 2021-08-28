@@ -91,7 +91,7 @@ impl SceneInfo for SubMenuScene {
                             vbo_index: VBO_INDEX_BG,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            texture_index: TEXTURE_INDEX_BG,
+                            texture_indices: vec![TEXTURE_INDEX_BG],
                             depth_test: true
                         },
                         DrawingStep {
@@ -99,7 +99,7 @@ impl SceneInfo for SubMenuScene {
                             vbo_index: VBO_INDEX_HUD_SUB,
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            texture_index: TEXTURE_INDEX_FONT,
+                            texture_indices: vec![TEXTURE_INDEX_FONT],
                             depth_test: true
                         }
                     ]

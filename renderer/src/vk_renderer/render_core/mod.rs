@@ -10,7 +10,7 @@ use debug::make_debug_utils;
 use device::{PhysicalDeviceProperties, make_device_resources};
 use swapchain::{create_swapchain, create_swapchain_image_views};
 
-use defs::{PresentResult, ResourcePreloads, VertexFormat, ImageUsage, TexturePixelFormat};
+use defs::{PresentResult, ResourcePreloads, VertexFormat, ImageUsage, TexturePixelFormat, FeatureDeclaration};
 use model::factory::StaticVertex;
 
 use ash::{
@@ -80,16 +80,16 @@ impl Drop for RenderCore {
 
 impl RenderCore {
 
-    pub fn new(entry: &Entry, window_owner: &dyn HasRawWindowHandle, resource_preloads: &ResourcePreloads) -> Result<RenderCore, String> {
+    pub fn new(entry: &Entry, window_owner: &dyn HasRawWindowHandle, features: &Vec<FeatureDeclaration>, resource_preloads: &ResourcePreloads) -> Result<RenderCore, String> {
         Ok(unsafe {
-            let mut core = Self::new_with_surface_without_swapchain(entry, window_owner)?;
+            let mut core = Self::new_with_surface_without_swapchain(entry, window_owner, features)?;
             core.create_swapchain()?;
             core.load_new_resources(resource_preloads).unwrap();
             core
         })
     }
 
-    unsafe fn new_with_surface_without_swapchain(entry: &Entry, window_owner: &dyn HasRawWindowHandle) -> Result<RenderCore, String> {
+    unsafe fn new_with_surface_without_swapchain(entry: &Entry, window_owner: &dyn HasRawWindowHandle, features: &Vec<FeatureDeclaration>) -> Result<RenderCore, String> {
 
         // Create instance
         let instance = make_instance(entry, window_owner)?;
@@ -100,7 +100,7 @@ impl RenderCore {
         let surface = RenderCore::make_new_surface(entry, &instance, window_owner);
 
         // Create device and queues
-        let (device, physical_device_properties, graphics_queue, transfer_queue) = make_device_resources(&instance, &surface_fn, &surface)?;
+        let (device, physical_device_properties, graphics_queue, transfer_queue) = make_device_resources(&instance, &surface_fn, &surface, features)?;
 
         // Create a memory allocator
         let allocator_info = vk_mem::AllocatorCreateInfo {

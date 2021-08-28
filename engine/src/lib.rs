@@ -16,7 +16,7 @@ use crate::{
         global::GlobalTimer
     }
 };
-use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, SceneManager, Control, KeyCode, InputState};
+use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, SceneManager, Control, KeyCode, InputState, FeatureDeclaration};
 use renderer::null::NullRenderer;
 
 use raw_window_handle::HasRawWindowHandle;
@@ -24,6 +24,7 @@ use std::marker::PhantomData;
 use crate::scene::SceneHost;
 
 pub struct Engine<R> where R : RendererApi {
+    declared_features: Vec<FeatureDeclaration>,
     scene_host: SceneHost,
     phantom_renderer: PhantomData<R>,
     renderer: Box<dyn RendererApi>,
@@ -34,8 +35,9 @@ pub struct Engine<R> where R : RendererApi {
 
 impl<R: 'static> Engine<R> where R : RendererApi {
 
-    pub fn new_uninitialised(scene_info: Box<dyn SceneInfo>) -> Engine<R> {
+    pub fn new_uninitialised(scene_info: Box<dyn SceneInfo>, features: Vec<FeatureDeclaration>) -> Engine<R> {
         Engine {
+            declared_features: features,
             scene_host: SceneHost::new(scene_info),
             phantom_renderer: PhantomData::default(),
             renderer: Box::new(NullRenderer::new()),
@@ -49,7 +51,7 @@ impl<R: 'static> Engine<R> where R : RendererApi {
 
         let resource_preloads = self.scene_host.get_current().make_preloads();
         let description = self.scene_host.get_current().make_description();
-        let renderer = R::new(window_owner, &resource_preloads, &description).unwrap();
+        let renderer = R::new(window_owner, &self.declared_features, &resource_preloads, &description).unwrap();
         let aspect_ratio = renderer.get_aspect_ratio();
         self.scene_host.update_aspect_ratio(aspect_ratio);
 

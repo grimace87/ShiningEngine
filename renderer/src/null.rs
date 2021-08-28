@@ -1,5 +1,5 @@
 
-use defs::{RendererApi, PresentResult, SceneInfo, DrawingDescription, ResourcePreloads};
+use defs::{RendererApi, PresentResult, SceneInfo, DrawingDescription, ResourcePreloads, FeatureDeclaration};
 use raw_window_handle::HasRawWindowHandle;
 
 pub struct NullRenderer;
@@ -11,7 +11,7 @@ impl NullRenderer {
 }
 
 impl RendererApi for NullRenderer {
-    fn new(_window_owner: &dyn HasRawWindowHandle, _resource_preloads: &ResourcePreloads, _description: &DrawingDescription) -> Result<Self, String> where Self: Sized {
+    fn new(_window_owner: &dyn HasRawWindowHandle, _features: &Vec<FeatureDeclaration>, _resource_preloads: &ResourcePreloads, _description: &DrawingDescription) -> Result<Self, String> where Self: Sized {
         Ok(NullRenderer)
     }
 

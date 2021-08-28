@@ -7,17 +7,19 @@ use ash::{
     version::{InstanceV1_0, DeviceV1_0}
 };
 use std::os::raw::c_char;
+use defs::FeatureDeclaration;
 
 #[derive(Copy, Clone)]
 pub struct PhysicalDeviceProperties {
     pub physical_device: vk::PhysicalDevice,
     pub graphics_queue_family_index: u32,
     pub transfer_queue_family_index: u32,
+    pub required_features: vk::PhysicalDeviceFeatures
 }
 
-pub unsafe fn make_device_resources(instance: &Instance, surface_fn: &Surface, surface: &vk::SurfaceKHR) -> Result<(Device, PhysicalDeviceProperties, vk::Queue, vk::Queue), String> {
+pub unsafe fn make_device_resources(instance: &Instance, surface_fn: &Surface, surface: &vk::SurfaceKHR, features: &Vec<FeatureDeclaration>) -> Result<(Device, PhysicalDeviceProperties, vk::Queue, vk::Queue), String> {
 
-    let physical_device_properties = select_physical_device(&instance, surface_fn, surface)?;
+    let physical_device_properties = select_physical_device(&instance, surface_fn, surface, features)?;
 
     // Find queue indices for graphics and transfer (ideally different but could be the same)
     let queue_family_properties = instance
@@ -58,7 +60,8 @@ pub unsafe fn make_device_resources(instance: &Instance, surface_fn: &Surface, s
     ];
     let device_create_info = vk::DeviceCreateInfo::builder()
         .queue_create_infos(&queue_infos)
-        .enabled_extension_names(&device_extensions);
+        .enabled_extension_names(&device_extensions)
+        .enabled_features(&physical_device_properties.required_features);
     let device = instance
         .create_device(physical_device_properties.physical_device, &device_create_info, None)
         .map_err(|e| format!("{:?}", e))?;
@@ -73,7 +76,8 @@ pub unsafe fn make_device_resources(instance: &Instance, surface_fn: &Surface, s
 unsafe fn select_physical_device(
     instance: &ash::Instance,
     surface_loader: &ash::extensions:: khr::Surface,
-    surface: &vk::SurfaceKHR
+    surface: &vk::SurfaceKHR,
+    features: &Vec<FeatureDeclaration>
 ) -> Result<PhysicalDeviceProperties, String> {
 
     let physical_devices = instance
@@ -88,12 +92,20 @@ unsafe fn select_physical_device(
         let queue_family_properties = instance.get_physical_device_queue_family_properties(*physical_device);
         let mut graphics_index: u32 = unset_value;
         let mut transfer_index: u32 = unset_value;
+        let mut feature_set_to_enable = vk::PhysicalDeviceFeatures::default();
         for (index, properties) in queue_family_properties.iter().enumerate() {
+
             let supports_graphics = properties.queue_flags.contains(vk::QueueFlags::GRAPHICS);
             let supports_surface = surface_loader
                 .get_physical_device_surface_support(*physical_device, index as u32, *surface)
                 .unwrap();
             let supports_transfer = properties.queue_flags.contains(vk::QueueFlags::TRANSFER);
+
+            let supported_features = instance.get_physical_device_features(*physical_device);
+            feature_set_to_enable = match make_feature_set_to_enable(features, &supported_features) {
+                Some(features) => features,
+                None => continue
+            };
 
             let graphics_and_surface = supports_graphics && supports_surface;
             if graphics_and_surface {
@@ -107,10 +119,29 @@ unsafe fn select_physical_device(
             return Ok(PhysicalDeviceProperties {
                 physical_device: *physical_device,
                 graphics_queue_family_index: graphics_index,
-                transfer_queue_family_index: transfer_index
+                transfer_queue_family_index: transfer_index,
+                required_features: feature_set_to_enable
             });
         }
     }
 
     Err(String::from("Could not find a suitable physical device"))
+}
+
+/// Return set of features to enable during device creation, knowing that all of those features
+/// are supported by the physical device. If they are not all supported, this returns None.
+fn make_feature_set_to_enable(features: &Vec<FeatureDeclaration>, supported_features: &vk::PhysicalDeviceFeatures) -> Option<vk::PhysicalDeviceFeatures> {
+    let mut features_to_enable = vk::PhysicalDeviceFeatures::default();
+    for feature in features.iter() {
+        match feature {
+            FeatureDeclaration::ClipPlanes => {
+                if supported_features.shader_clip_distance == vk::TRUE {
+                    features_to_enable.shader_clip_distance = vk::TRUE;
+                } else {
+                    return None;
+                }
+            }
+        }
+    }
+    Some(features_to_enable)
 }

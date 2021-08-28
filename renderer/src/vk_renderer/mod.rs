@@ -9,7 +9,7 @@ use crate::vk_renderer::{
     per_image_resources::PerImageResources
 };
 
-use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, ResourcePreloads};
+use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, ResourcePreloads, FeatureDeclaration};
 
 use ash::Entry;
 use raw_window_handle::HasRawWindowHandle;
@@ -22,13 +22,13 @@ pub struct VkRenderer {
 
 impl RendererApi for VkRenderer {
 
-    fn new(window_owner: &dyn HasRawWindowHandle, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<Self, String> {
+    fn new(window_owner: &dyn HasRawWindowHandle, features: &Vec<FeatureDeclaration>, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<Self, String> {
 
         // Vulkan core - instance, device, swapchain, queues, command pools
         let entry = unsafe {
             Entry::new().map_err(|e| format!("Entry creation failed: {:?}", e))?
         };
-        let render_core = RenderCore::new(&entry, window_owner, resource_preloads)?;
+        let render_core = RenderCore::new(&entry, window_owner, features, resource_preloads)?;
 
         // Per-swapchain-image resources - command buffers, whatever pipelines, buffers etc. are required
         let command_buffers = unsafe {
