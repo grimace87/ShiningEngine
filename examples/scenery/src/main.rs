@@ -6,7 +6,7 @@ use scene::SceneryScene;
 use platform_windows::PlatformWindows;
 use renderer::vk_renderer::VkRenderer;
 use engine::Engine;
-use defs::FeatureDeclaration;
+use defs::render::FeatureDeclaration;
 
 const APP_TITLE: &str = "Scenery Example";
 

@@ -16,7 +16,11 @@ use crate::{
         global::GlobalTimer
     }
 };
-use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, SceneManager, Control, KeyCode, InputState, FeatureDeclaration};
+use defs::{
+    DrawingDescription, SceneInfo, SceneManager,
+    control::{Control, KeyCode, InputState},
+    render::{RendererApi, PresentResult, FeatureDeclaration}
+};
 use renderer::null::NullRenderer;
 
 use raw_window_handle::HasRawWindowHandle;
@@ -43,7 +47,7 @@ impl<R: 'static> Engine<R> where R : RendererApi {
             renderer: Box::new(NullRenderer::new()),
             controller: Box::new(NullControl::new()),
             timer: Box::new(NullTimer::new()),
-            drawing_description: DrawingDescription::default(),
+            drawing_description: DrawingDescription { passes: Vec::new() },
         }
     }
 

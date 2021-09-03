@@ -4,7 +4,7 @@ use crate::vk_renderer::{
     per_image_resources::renderpass::RenderpassWrapper,
     per_image_resources::PipelineSet
 };
-use defs::DrawingPass;
+use defs::render::DrawingPass;
 use ash::{
     vk,
     version::DeviceV1_0

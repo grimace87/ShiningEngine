@@ -1,5 +1,9 @@
 
-use defs::{Camera, SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, Control, VboCreationData, ResourcePreloads};
+use defs::{
+    Camera,
+    control::Control,
+    render::{SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, VboCreationData, ResourcePreloads}
+};
 use engine::{
     camera::null::NullCamera,
     util::textbuffer::{TextGenerator, TextAlignment}

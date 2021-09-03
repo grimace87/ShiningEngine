@@ -1,5 +1,5 @@
 
-use defs::{KeyCode, InputState};
+use defs::control::{KeyCode, InputState};
 
 use winit::event::{VirtualKeyCode, ElementState};
 

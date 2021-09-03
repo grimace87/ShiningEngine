@@ -11,7 +11,11 @@ use crate::vk_renderer::{
         per_pass_resources::PerPassResources
     }
 };
-use defs::{SceneInfo, DrawingDescription, FramebufferTarget, FramebufferCreationData};
+use defs::{
+    SceneInfo,
+    DrawingDescription,
+    render::{FramebufferTarget, FramebufferCreationData}
+};
 use ash::{
     vk,
     version::DeviceV1_0

@@ -1,7 +1,10 @@
 
 use crate::submenu::SubMenuScene;
 
-use defs::{SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, Control, VboCreationData, TextureCreationData, ResourcePreloads, ImageUsage};
+use defs::{
+    control::Control,
+    render::{SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, VboCreationData, TextureCreationData, ResourcePreloads, ImageUsage}
+};
 use engine::util::{
     TextureCodec,
     decode_texture,

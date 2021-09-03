@@ -7,7 +7,7 @@ use crate::vk_renderer::{
     }
 };
 
-use defs::{DrawingPass, SceneInfo, FramebufferTarget};
+use defs::render::{DrawingPass, SceneInfo, FramebufferTarget};
 
 use ash::vk;
 

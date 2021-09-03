@@ -1,5 +1,10 @@
 
-use defs::{RendererApi, PresentResult, SceneInfo, DrawingDescription, ResourcePreloads, FeatureDeclaration};
+use defs::{
+    SceneInfo,
+    DrawingDescription,
+    ResourcePreloads,
+    render::{RendererApi, PresentResult, FeatureDeclaration}
+};
 use raw_window_handle::HasRawWindowHandle;
 
 pub struct NullRenderer;

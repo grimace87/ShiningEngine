@@ -9,7 +9,7 @@ use ash::{
     Device,
     version::DeviceV1_0
 };
-use defs::{TexturePixelFormat, ImageUsage};
+use defs::render::{TexturePixelFormat, ImageUsage};
 
 struct ImageCreationParams {
     format: vk::Format,

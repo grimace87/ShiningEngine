@@ -10,7 +10,10 @@ use debug::make_debug_utils;
 use device::{PhysicalDeviceProperties, make_device_resources};
 use swapchain::{create_swapchain, create_swapchain_image_views};
 
-use defs::{PresentResult, ResourcePreloads, VertexFormat, ImageUsage, TexturePixelFormat, FeatureDeclaration};
+use defs::{
+    render::{PresentResult, VertexFormat, ImageUsage, TexturePixelFormat, FeatureDeclaration},
+    ResourcePreloads
+};
 use model::factory::StaticVertex;
 
 use ash::{

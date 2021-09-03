@@ -1,5 +1,5 @@
 
-use defs::{Control, InputState, KeyCode};
+use defs::control::{Control, InputState, KeyCode};
 
 pub struct NullControl {}
 

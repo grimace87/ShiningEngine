@@ -1,5 +1,5 @@
 
-use defs::{Control, KeyCode, InputState};
+use defs::control::{Control, KeyCode, InputState};
 
 pub struct UserControl {
     dx: f32,

@@ -9,7 +9,10 @@ use crate::vk_renderer::{
     per_image_resources::PerImageResources
 };
 
-use defs::{RendererApi, PresentResult, DrawingDescription, SceneInfo, ResourcePreloads, FeatureDeclaration};
+use defs::{
+    ResourcePreloads,
+    render::{RendererApi, PresentResult, DrawingDescription, SceneInfo, FeatureDeclaration}
+};
 
 use ash::Entry;
 use raw_window_handle::HasRawWindowHandle;

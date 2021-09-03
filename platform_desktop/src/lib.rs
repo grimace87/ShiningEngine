@@ -5,7 +5,7 @@ use self::{
     control_translations::{translate_code, translate_state}
 };
 
-use defs::RendererApi;
+use defs::render::RendererApi;
 use engine::Engine;
 
 use winit::{

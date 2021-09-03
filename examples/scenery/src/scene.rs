@@ -1,5 +1,9 @@
 
-use defs::{Camera, SceneInfo, DrawingDescription, DrawingPass, DrawingStep, Shader, VertexFormat, Control, FramebufferTarget, ResourcePreloads, VboCreationData, TextureCreationData, FramebufferCreationData, TexturePixelFormat, ImageUsage};
+use defs::{
+    Camera, SceneInfo, DrawingDescription,
+    control::Control,
+    render::{Shader, VertexFormat, FramebufferTarget, ResourcePreloads, VboCreationData, TextureCreationData, FramebufferCreationData, TexturePixelFormat, ImageUsage, DrawingPass, DrawingStep}
+};
 use engine::{
     camera::player::PlayerCamera,
     util::{
@@ -12,7 +16,7 @@ use engine::{
     }
 };
 
-use cgmath::{Matrix4, Vector4, SquareMatrix, Vector3};
+use cgmath::{Matrix4, Vector4, SquareMatrix};
 use std::collections::HashMap;
 
 const MENU_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/models/SceneTerrain.mdl"));

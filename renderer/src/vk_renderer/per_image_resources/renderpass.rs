@@ -8,7 +8,7 @@ use ash::{
     vk,
     version::DeviceV1_0
 };
-use defs::{FramebufferTarget, FramebufferCreationData, TexturePixelFormat};
+use defs::render::{FramebufferTarget, FramebufferCreationData, TexturePixelFormat};
 
 pub struct RenderpassWrapper {
     pub renderpass: vk::RenderPass,

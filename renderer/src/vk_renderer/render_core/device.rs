@@ -7,7 +7,7 @@ use ash::{
     version::{InstanceV1_0, DeviceV1_0}
 };
 use std::os::raw::c_char;
-use defs::FeatureDeclaration;
+use defs::render::FeatureDeclaration;
 
 #[derive(Copy, Clone)]
 pub struct PhysicalDeviceProperties {

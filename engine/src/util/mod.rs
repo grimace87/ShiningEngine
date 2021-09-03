@@ -1,7 +1,7 @@
 
 pub mod textbuffer;
 
-use defs::{TexturePixelFormat, TextureCreationData, ImageUsage};
+use defs::render::{TexturePixelFormat, TextureCreationData, ImageUsage};
 use model::factory::{Model, StaticVertex};
 
 use image::{

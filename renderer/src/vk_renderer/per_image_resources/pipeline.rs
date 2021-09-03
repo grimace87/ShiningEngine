@@ -5,7 +5,7 @@ use crate::vk_renderer::{
     per_image_resources::renderpass::RenderpassWrapper
 };
 
-use defs::{DrawingStep, Shader, VertexFormat};
+use defs::render::{DrawingStep, Shader, VertexFormat};
 
 use ash::{
     vk,
