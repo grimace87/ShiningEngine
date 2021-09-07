@@ -1,6 +1,7 @@
 
 use collada::COLLADA;
 use collada::config::Config;
+use model::factory::FromFile;
 
 use std::{
     env,

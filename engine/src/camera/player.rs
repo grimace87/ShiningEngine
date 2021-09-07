@@ -1,8 +1,18 @@
 
-use defs::{Camera, Control};
+use defs::{
+    Camera,
+    control::Control
+};
+use cgmath::{
+    Matrix4,
+    Rad,
+    Vector3
+};
 
-use cgmath::{Matrix4, Rad, Vector3};
-
+/// PlayerCamera struct
+/// Camera object that responds to user input - namely forward, backwards, left and right. Uses
+/// a momentum mechanic such that it accelerates to a maximum speed over time and also decelerates
+/// over time. The momentum mechanic applies to both linear and angular velocities.
 pub struct PlayerCamera {
     speed: f32,
     angular_speed: f32,
@@ -15,9 +25,11 @@ pub struct PlayerCamera {
 
 impl PlayerCamera {
 
-    const PROJ_VK_NEAR_PLANE: f32 = 1.0;
-    const PROJ_VK_FAR_PLANE: f32 = 100.0;
+    /// Constant near and far plane distances used for the perspective projection
+    const NEAR_PLANE: f32 = 1.0;
+    const FAR_PLANE: f32 = 100.0;
 
+    /// Creates a new camera with zero speed and oriented at the supplied angle
     pub fn new(aspect_ratio: f32, x: f32, y: f32, z: f32, angle_rad: f32) -> PlayerCamera {
         PlayerCamera {
             speed: 0.0,
@@ -26,11 +38,20 @@ impl PlayerCamera {
             position_x: x,
             position_y: y,
             position_z: z,
-            perspective_projection: Self::make_vulkan_perspective_matrix(aspect_ratio, Self::PROJ_VK_NEAR_PLANE, Self::PROJ_VK_FAR_PLANE)
+            perspective_projection: Self::make_vulkan_perspective_matrix(
+                aspect_ratio,
+                Self::NEAR_PLANE,
+                Self::FAR_PLANE)
         }
     }
 
-    fn make_vulkan_perspective_matrix(aspect_ratio: f32, near_plane: f32, far_plane: f32) -> Matrix4<f32> {
+    /// Creates a projection matrix suitable for Vulkan. Note that OpenGL, DirectX, etc may need
+    /// alternate implementations due to differing up/down coordinates or clip volumes.
+    fn make_vulkan_perspective_matrix(
+        aspect_ratio: f32,
+        near_plane: f32,
+        far_plane: f32
+    ) -> Matrix4<f32> {
         let half_width = aspect_ratio;
         let half_height = 1.0;
         Matrix4::<f32>::new(
@@ -43,10 +64,16 @@ impl PlayerCamera {
 }
 
 impl Camera for PlayerCamera {
+
+    /// Updates the projection matrix to fit the new aspect ratio
     fn update_aspect(&mut self, aspect_ratio: f32) {
-        self.perspective_projection = Self::make_vulkan_perspective_matrix(aspect_ratio,Self::PROJ_VK_NEAR_PLANE, Self::PROJ_VK_FAR_PLANE);
+        self.perspective_projection = Self::make_vulkan_perspective_matrix(
+            aspect_ratio,
+            Self::NEAR_PLANE,
+            Self::FAR_PLANE);
     }
 
+    /// Move the camera as per the up/down/left/right inputs in the supplied controller
     fn update(&mut self, time_step_millis: u64, controller: &dyn Control) {
 
         let time_step_secs: f32 = 0.001 * time_step_millis as f32;
@@ -120,6 +147,7 @@ impl Camera for PlayerCamera {
         self.position_z += self.speed * time_step_secs * self.rotation.cos();
     }
 
+    /// Get the view matrix, based on the camera's position and orientation
     fn get_view_matrix(&self) -> Matrix4<f32> {
         let rotation = Matrix4::from_angle_y(Rad(self.rotation));
         let translation = Matrix4::<f32>::from_translation(
@@ -128,6 +156,7 @@ impl Camera for PlayerCamera {
         rotation * translation
     }
 
+    /// Get the stored perspective projection matrix
     fn get_projection_matrix(&self) -> Matrix4<f32> {
         self.perspective_projection
     }

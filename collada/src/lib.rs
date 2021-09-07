@@ -7,11 +7,20 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_xml_rs;
 
-use elements::{GeometryLibrary, VisualScenesLibrary, Matrix, Node};
-use config::Config;
-use model::factory::{Model, StaticVertex};
+use elements::{
+    GeometryLibrary,
+    VisualScenesLibrary,
+    Matrix,
+    Node
+};
+use model::types::{
+    Model,
+    StaticVertex
+};
 use serde_xml_rs::from_reader;
 
+/// COLLADA struct
+/// Target for deserialising root element of Collada XML file
 #[derive(Debug, Deserialize)]
 pub struct COLLADA {
     library_geometries: GeometryLibrary,
@@ -19,29 +28,35 @@ pub struct COLLADA {
 }
 
 impl COLLADA {
+
+    /// Create new instance from file data
     pub fn new(file_data: &[u8]) -> COLLADA {
         from_reader(file_data).unwrap()
     }
 
-    pub fn extract_models(&self, config: Config) -> Vec<Model> {
-        let mut pre_merge_models: Vec<Model> = vec![];
+    /// Translate the data held by this instance into instances of model::types::Model.
+    /// Alter behaviour of this translation according to the supplied configuration.
+    pub fn extract_models(&self, config: config::Config) -> Vec<Model<StaticVertex>> {
+        let mut pre_merge_models: Vec<Model<StaticVertex>> = vec![];
         for geometry in self.library_geometries.items.iter() {
             let mesh = &geometry.mesh;
             let mut vertex_data = mesh.get_vertex_data();
             if let Some(scene_matrix) = self.find_transform_for(&geometry.id) {
                 Self::transform_vertices(&mut vertex_data, scene_matrix);
             }
-            pre_merge_models.push(Model::new_from_components(String::from(&geometry.name), vertex_data));
+            let model_name = String::from(&geometry.name);
+            pre_merge_models.push(
+                Model::new_from_components(model_name, vertex_data));
         }
 
         if config.merges.is_empty() {
             return pre_merge_models;
         }
 
-        let mut merged_models: Vec<Model> = vec![];
+        let mut merged_models: Vec<Model<StaticVertex>> = vec![];
         for merge_config in config.merges.iter() {
             let name = &merge_config.name;
-            let mut source_models: Vec<Model> = vec![];
+            let mut source_models: Vec<Model<StaticVertex>> = vec![];
             for model_name in merge_config.geometries.iter() {
                 let model_index = pre_merge_models.iter()
                     .position(|m| m.name.eq(model_name))
@@ -58,6 +73,8 @@ impl COLLADA {
         merged_models
     }
 
+    /// Look up the transformation matrix for a given geometry.
+    /// For internal use.
     fn find_transform_for(&self, geometry_id: &String) -> Option<&Matrix> {
         let node = self.library_visual_scenes.visual_scene.nodes.iter().find(|n| {
             match n {
@@ -79,6 +96,8 @@ impl COLLADA {
         }
     }
 
+    /// Transform a set of vertices using a given matrix.
+    /// For internal use.
     fn transform_vertices(vertices: &mut Vec<StaticVertex>, matrix: &Matrix) {
         let m = matrix.decode_element_data();
         for vertex in vertices.iter_mut() {

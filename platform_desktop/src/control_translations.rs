@@ -1,8 +1,14 @@
 
-use defs::control::{KeyCode, InputState};
+use defs::control::{
+    KeyCode,
+    InputState
+};
+use winit::event::{
+    VirtualKeyCode,
+    ElementState
+};
 
-use winit::event::{VirtualKeyCode, ElementState};
-
+/// Translate Winit key codes into the abstract codes from the defs crate
 pub fn translate_code(winit_code: VirtualKeyCode) -> KeyCode {
     match winit_code {
         VirtualKeyCode::Left => KeyCode::Left,
@@ -13,6 +19,7 @@ pub fn translate_code(winit_code: VirtualKeyCode) -> KeyCode {
     }
 }
 
+/// Translate Winit element states into the abstract states from the defs crate
 pub fn translate_state(winit_state: ElementState) -> InputState {
     match winit_state {
         ElementState::Pressed => InputState::Pressed,

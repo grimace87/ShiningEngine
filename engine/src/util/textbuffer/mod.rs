@@ -1,9 +1,14 @@
 
-use model::factory::StaticVertex;
+use model::types::StaticVertex;
 
+/// The number of glyphs stored in the texture file
 const FONT_TEXTURE_GLYPH_COUNT: i32 = 128;
+
+/// The size (width and height) of the texture file, in pixels
 const FONT_TEXTURE_SIZE: f32 = 512.0;
 
+/// Glyph struct
+/// Properties of a glyph, as exported into the description file exported from Hiero
 #[derive(Copy, Clone)]
 struct Glyph {
     texture_s: f32,
@@ -16,6 +21,8 @@ struct Glyph {
 }
 
 impl Glyph {
+
+    /// Create a new instance with all fields set to zero
     fn new() -> Glyph {
         Glyph {
             texture_s: 0.0,
@@ -29,12 +36,17 @@ impl Glyph {
     }
 }
 
+/// TextAlignment enum
+/// The alignment options that can be specified along either the vertical or horizontal axis
 pub enum TextAlignment {
     Start,
     Centre,
     End
 }
 
+/// TextGenerator struct
+/// The full set of glyphs, and other information, decoded from a description file exported from
+/// Hiero. Can produce vertex buffers for text rendering based on the glyph data that it holds.
 pub struct TextGenerator {
     descent_to_baseline: f32,
     line_height: f32,
@@ -43,16 +55,15 @@ pub struct TextGenerator {
 
 impl TextGenerator {
 
+    /// Constant strings used internally when decoding the description file exported from Hiero
     const KEY_LINE_INFO: &'static str = "info";
     const KEY_LINE_COMMON: &'static str = "common";
     const KEY_LINE_PAGE: &'static str = "page";
     const KEY_LINE_CHARS: &'static str = "chars";
     const KEY_LINE_CHAR: &'static str = "char";
-
     const KEY_FIELD_LINE_HEIGHT: &'static str = "lineHeight";
     const KEY_FIELD_LINE_BASE: &'static str = "base";
     const KEY_FIELD_CHAR_COUNT: &'static str = "count";
-
     const KEY_FIELD_ID: &'static str = "id";
     const KEY_FIELD_X: &'static str = "x";
     const KEY_FIELD_Y: &'static str = "y";
@@ -62,8 +73,7 @@ impl TextGenerator {
     const KEY_FIELD_OFFSET_Y: &'static str = "yoffset";
     const KEY_FIELD_X_ADVANCE: &'static str = "xadvance";
 
-    const VERTICES_PER_CHAR: usize = 6;
-
+    /// Build a new instance, initialised fully from file data
     pub fn from_resource(file_data: &str) -> TextGenerator {
         let mut glyph_set = vec!();
         glyph_set.resize(FONT_TEXTURE_GLYPH_COUNT as usize, Glyph::new());
@@ -184,13 +194,24 @@ impl TextGenerator {
         }
     }
 
+    /// Generate data for a vertex buffer. Vertices use the format specified by the
+    /// model::types::StaticVertex struct, and there are 6 vertices per character.
+    /// Text will be drawn from (left, top) in an area sized by (box_width, box_height).
+    /// TODO - This comment does not describe how text fitting is affected by all parameters
     pub fn generate_vertex_buffer(
         &self,
-        for_text: &str, left: f32, top: f32, box_width: f32, box_height: f32, max_line_height: f32,
-        horizontal_alignment: TextAlignment, vertical_alignment: TextAlignment) -> Vec<StaticVertex> {
+        for_text: &str,
+        left: f32,
+        top: f32,
+        box_width: f32,
+        box_height: f32,
+        max_line_height: f32,
+        horizontal_alignment: TextAlignment,
+        vertical_alignment: TextAlignment
+    ) -> Vec<StaticVertex> {
 
         let text_chars: Vec<char> = for_text.chars().collect();
-        let vertex_count = text_chars.len() * Self::VERTICES_PER_CHAR;
+        let vertex_count = text_chars.len() * 6;
         let mut vertices: Vec<StaticVertex> = vec![StaticVertex::default(); vertex_count];
 
         let line_height_units = match box_height < max_line_height {
@@ -250,7 +271,8 @@ impl TextGenerator {
 
         // Start building the buffer
         let mut chars_rendered = 0;
-        let mut pen_y = top + margin_y_units + self.descent_to_baseline as f32 * units_per_font_pixel;
+        let mut pen_y =
+            top + margin_y_units + self.descent_to_baseline as f32 * units_per_font_pixel;
         let mut text_index: usize = 0;
         for (index, chars_on_line) in characters_per_line.iter().enumerate() {
             let line_width_units = unit_width_of_line[index];
@@ -267,7 +289,8 @@ impl TextGenerator {
 
                 let x_min = pen_x + glyph.offset_x as f32 * units_per_font_pixel;
                 let x_max = x_min + glyph.width as f32 * units_per_font_pixel;
-                let y_min = pen_y - (self.descent_to_baseline - glyph.offset_y) as f32 * units_per_font_pixel;
+                let y_min = pen_y -
+                    (self.descent_to_baseline - glyph.offset_y) as f32 * units_per_font_pixel;
                 let y_max = y_min + glyph.height as f32 * units_per_font_pixel;
 
                 let s_min = glyph.texture_s as f32 / FONT_TEXTURE_SIZE;
@@ -275,13 +298,25 @@ impl TextGenerator {
                 let t_min = glyph.texture_t as f32 / FONT_TEXTURE_SIZE;
                 let t_max = t_min + glyph.height as f32 / FONT_TEXTURE_SIZE;
 
-                let i = chars_rendered * Self::VERTICES_PER_CHAR;
-                vertices[i    ] = StaticVertex::from_components(x_min, y_min, 0.0, 0.0, 0.0, -1.0, s_min, t_min);
-                vertices[i + 1] = StaticVertex::from_components(x_min, y_max, 0.0, 0.0, 0.0, -1.0, s_min, t_max);
-                vertices[i + 2] = StaticVertex::from_components(x_max, y_max, 0.0, 0.0, 0.0, -1.0, s_max, t_max);
-                vertices[i + 3] = StaticVertex::from_components(x_max, y_max, 0.0, 0.0, 0.0, -1.0, s_max, t_max);
-                vertices[i + 4] = StaticVertex::from_components(x_max, y_min, 0.0, 0.0, 0.0, -1.0, s_max, t_min);
-                vertices[i + 5] = StaticVertex::from_components(x_min, y_min, 0.0, 0.0, 0.0, -1.0, s_min, t_min);
+                let i = chars_rendered * 6;
+                vertices[i    ] = StaticVertex::from_components(
+                    x_min, y_min, 0.0, 0.0, 0.0, -1.0, s_min, t_min
+                );
+                vertices[i + 1] = StaticVertex::from_components(
+                    x_min, y_max, 0.0, 0.0, 0.0, -1.0, s_min, t_max
+                );
+                vertices[i + 2] = StaticVertex::from_components(
+                    x_max, y_max, 0.0, 0.0, 0.0, -1.0, s_max, t_max
+                );
+                vertices[i + 3] = StaticVertex::from_components(
+                    x_max, y_max, 0.0, 0.0, 0.0, -1.0, s_max, t_max
+                );
+                vertices[i + 4] = StaticVertex::from_components(
+                    x_max, y_min, 0.0, 0.0, 0.0, -1.0, s_max, t_min
+                );
+                vertices[i + 5] = StaticVertex::from_components(
+                    x_min, y_min, 0.0, 0.0, 0.0, -1.0, s_min, t_min
+                );
 
                 pen_x += glyph.advance_x * units_per_font_pixel;
                 chars_rendered += 1;

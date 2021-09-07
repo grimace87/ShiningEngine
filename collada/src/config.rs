@@ -4,12 +4,17 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 
+/// Config struct
+/// Configuration for how Collada data is translated to model instances. The only currently-
+/// supported feature is merging models together under a new name.
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {
     pub merges: Vec<Merge>
 }
 
 impl Config {
+
+    /// Parse configuration options from a TOML file
     pub fn from_toml_file(path: &Path) -> Config {
         let mut collada_file = File::open(path)
             .expect("Failed to open a config file");
@@ -22,6 +27,9 @@ impl Config {
     }
 }
 
+/// Merge struct
+/// Defines a merge operation, taking geometries from Collada data by name and merging their
+/// vertices together under a new model name.
 #[derive(Debug, Deserialize)]
 pub struct Merge {
     pub name: String,

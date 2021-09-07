@@ -1,26 +1,34 @@
 
-use crate::vk_renderer::{
-    RenderCore,
-    images::ImageWrapper
+use defs::{
+    EngineError,
+    render::{
+        FramebufferTarget,
+        FramebufferCreationData,
+        TexturePixelFormat
+    }
 };
-
 use ash::{
     vk,
     version::DeviceV1_0
 };
-use defs::render::{FramebufferTarget, FramebufferCreationData, TexturePixelFormat};
 
+/// RenderpassWrapper struct
+/// Wraps resources related to renderpasses, including framebuffers. Resources need to be recreated
+/// if the swapchain is recreated.
 pub struct RenderpassWrapper {
     pub renderpass: vk::RenderPass,
     pub swapchain_framebuffer: vk::Framebuffer,
     pub custom_framebuffer: Option<vk::Framebuffer>
 }
 
-/// Wraps resources related to renderpasses, including framebuffers. Resources need to be recreated
-/// if the swapchain is recreated.
 impl RenderpassWrapper {
 
-    pub fn new(render_core: &RenderCore, image_index: usize, framebuffer_target: &FramebufferTarget) -> Result<RenderpassWrapper, String> {
+    /// Create a new instance, with all resources initialised
+    pub fn new(
+        render_core: &crate::vk_renderer::render_core::RenderCore,
+        image_index: usize,
+        framebuffer_target: &FramebufferTarget
+    ) -> Result<RenderpassWrapper, EngineError> {
         let mut wrapper = RenderpassWrapper {
             renderpass: vk::RenderPass::null(),
             swapchain_framebuffer: vk::Framebuffer::null(),
@@ -32,7 +40,8 @@ impl RenderpassWrapper {
         Ok(wrapper)
     }
 
-    pub fn destroy_resources(&self, render_core: &RenderCore) {
+    /// Destroy the resources held
+    pub fn destroy_resources(&self, render_core: &crate::vk_renderer::render_core::RenderCore) {
         unsafe {
             render_core.device.destroy_framebuffer(self.swapchain_framebuffer, None);
             if let Some(framebuffer) = self.custom_framebuffer.as_ref() {
@@ -42,18 +51,41 @@ impl RenderpassWrapper {
         }
     }
 
-    unsafe fn create_resources(&mut self, render_core: &RenderCore, image_index: usize, framebuffer_target: &FramebufferTarget) -> Result<(), String> {
+    /// Call one of the other create-resources functions, depending on whether to render into a
+    /// swapchain image or an offscreen target
+    unsafe fn create_resources(
+        &mut self,
+        render_core: &crate::vk_renderer::render_core::RenderCore,
+        image_index: usize,
+        framebuffer_target: &FramebufferTarget
+    ) -> Result<(), EngineError> {
         match framebuffer_target {
-            FramebufferTarget::Texture(creation_data) => self.create_offscreen_renderpass_resources(render_core, creation_data, true),
-            FramebufferTarget::DefaultFramebuffer => self.create_swapchain_renderpass_resources(render_core, image_index)
+            FramebufferTarget::Texture(creation_data) => {
+                self.create_offscreen_renderpass_resources(
+                    render_core,
+                    creation_data,
+                    true)
+            },
+            FramebufferTarget::DefaultFramebuffer => {
+                self.create_swapchain_renderpass_resources(
+                    render_core,
+                    image_index)
+            }
         }
     }
 
-    unsafe fn create_swapchain_renderpass_resources(&mut self, render_core: &RenderCore, image_index: usize) -> Result<(), String> {
+    /// Create all resources for rendering into a swapchain image
+    unsafe fn create_swapchain_renderpass_resources(
+        &mut self,
+        render_core: &crate::vk_renderer::render_core::RenderCore,
+        image_index: usize
+    ) -> Result<(), EngineError> {
 
         let depth_image = match render_core.get_depth_image() {
             Some(image) => image,
-            _ => return Err(String::from("Creating new renderpass wrapper with no depth image available"))
+            _ => return Err(EngineError::RenderError(
+                String::from("Creating new renderpass wrapper with no depth image available")
+            ))
         };
 
         // Define subpass with single colour attachment
@@ -106,7 +138,9 @@ impl RenderpassWrapper {
                 .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
                 .dst_subpass(0)
                 .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-                .dst_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_READ | vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+                .dst_access_mask(
+                    vk::AccessFlags::COLOR_ATTACHMENT_READ | vk::AccessFlags::COLOR_ATTACHMENT_WRITE
+                )
                 .build()
         ];
 
@@ -117,10 +151,16 @@ impl RenderpassWrapper {
             .dependencies(&subpass_dependencies);
         let renderpass = render_core.device
             .create_render_pass(&renderpass_info, None)
-            .map_err(|e| format!("{:?}", e))?;
+            .map_err(|e| {
+                EngineError::RenderError(format!("{:?}", e))
+            })?;
 
         // Create framebuffers for the swapchain image views for use in this renderpass
-        let framebuffer = self.create_swapchain_framebuffer(render_core, image_index, renderpass, depth_image)?;
+        let framebuffer = self.create_swapchain_framebuffer(
+            render_core,
+            image_index,
+            renderpass,
+            depth_image)?;
 
         self.renderpass = renderpass;
         self.swapchain_framebuffer = framebuffer;
@@ -129,18 +169,30 @@ impl RenderpassWrapper {
         Ok(())
     }
 
-    unsafe fn create_offscreen_renderpass_resources(&mut self, render_core: &RenderCore, config: &FramebufferCreationData, discard_existing_image_content: bool) -> Result<(), String> {
+    /// Create all resources for rendering into an offscreen framebuffer
+    unsafe fn create_offscreen_renderpass_resources(
+        &mut self,
+        render_core: &crate::vk_renderer::render_core::RenderCore,
+        config: &FramebufferCreationData,
+        discard_existing_image_content: bool
+    ) -> Result<(), EngineError> {
 
         // TODO - Something useful with this flag
         if !discard_existing_image_content {
-            panic!("Unhandled case RenderpassWrapper::create_offscreen_renderpass_resources with discard_existing_image_content set to false");
+            panic!(
+                "Unhandled case RenderpassWrapper::create_offscreen_renderpass_resources with \
+                discard_existing_image_content set to false"
+            );
         }
 
         // Get the texture to use for color attachment
-        let color_texture_image_view = render_core.query_texture(config.color_texture_index)?.image_view;
+        let color_texture_image_view = render_core
+            .query_texture(config.color_texture_index)?
+            .image_view;
         let color_format = match config.color_format {
             TexturePixelFormat::RGBA => vk::Format::R8G8B8A8_UNORM,
-            _ => return Err(format!("Cannot set color attachment tp {:?}", config.color_format))
+            _ => return Err(EngineError::RenderError(
+                format!("Cannot set color attachment tp {:?}", config.color_format)))
         };
 
         // Define subpass with single colour attachment and optionally depth attachment
@@ -163,7 +215,9 @@ impl RenderpassWrapper {
         let depth_texture_image_view = match config.depth_texture_index {
             Some(depth_texture_index) => {
                 // Get the texture to use for color attachment
-                let depth_texture_image_view = render_core.query_texture(depth_texture_index)?.image_view;
+                let depth_texture_image_view = render_core
+                    .query_texture(depth_texture_index)?
+                    .image_view;
                 match config.depth_format {
                     TexturePixelFormat::Unorm16 => {
                         attachments.push(vk::AttachmentDescription::builder()
@@ -177,7 +231,9 @@ impl RenderpassWrapper {
                             .samples(vk::SampleCountFlags::TYPE_1)
                             .build());
                     },
-                    _ => return Err(format!("Cannot set color attachment tp {:?}", config.color_format))
+                    _ => return Err(EngineError::RenderError(
+                        format!("Cannot set color attachment tp {:?}", config.color_format))
+                    )
                 };
                 Some(depth_texture_image_view)
             },
@@ -230,19 +286,36 @@ impl RenderpassWrapper {
             .dependencies(&subpass_dependencies);
         let renderpass = render_core.device
             .create_render_pass(&renderpass_info, None)
-            .map_err(|e| format!("{:?}", e))?;
+            .map_err(|e| {
+                EngineError::RenderError(format!("{:?}", e))
+            })?;
 
         // Create framebuffers for swapchain image views, or new framebuffers from scratch, for use in this renderpass
         self.renderpass = renderpass;
         self.swapchain_framebuffer = vk::Framebuffer::null();
-        self.custom_framebuffer = Some(Self::create_offscreen_framebuffer(render_core, renderpass, config, color_texture_image_view, depth_texture_image_view)?);
+        self.custom_framebuffer = Some(Self::create_offscreen_framebuffer(
+            render_core,
+            renderpass,
+            config,
+            color_texture_image_view,
+            depth_texture_image_view)?);
 
         Ok(())
     }
 
-    unsafe fn create_swapchain_framebuffer(&self, render_core: &RenderCore, image_index: usize, renderpass: vk::RenderPass, depth_image: &ImageWrapper) -> Result<vk::Framebuffer, String> {
+    /// Create a framebuffer for rendering into a swapchain image
+    unsafe fn create_swapchain_framebuffer(
+        &self,
+        render_core: &crate::vk_renderer::render_core::RenderCore,
+        image_index: usize,
+        renderpass: vk::RenderPass,
+        depth_image: &crate::vk_renderer::images::ImageWrapper
+    ) -> Result<vk::Framebuffer, EngineError> {
         let extent = render_core.get_extent()?;
-        let attachments_array = [render_core.image_views[image_index], depth_image.image_view];
+        let attachments_array = [
+            render_core.image_views[image_index],
+            depth_image.image_view
+        ];
         let framebuffer_info = vk::FramebufferCreateInfo::builder()
             .render_pass(renderpass)
             .attachments(&attachments_array)
@@ -251,11 +324,20 @@ impl RenderpassWrapper {
             .layers(1);
         let framebuffer = render_core.device
             .create_framebuffer(&framebuffer_info, None)
-            .map_err(|e| format!("{:?}", e))?;
+            .map_err(|e| {
+                EngineError::RenderError(format!("{:?}", e))
+            })?;
         Ok(framebuffer)
     }
 
-    unsafe fn create_offscreen_framebuffer(render_core: &RenderCore, renderpass: vk::RenderPass, config: &FramebufferCreationData, color_image: vk::ImageView, depth_image: Option<vk::ImageView>) -> Result<vk::Framebuffer, String> {
+    /// Create a framebuffer for rendering into an offscreen image
+    unsafe fn create_offscreen_framebuffer(
+        render_core: &crate::vk_renderer::render_core::RenderCore,
+        renderpass: vk::RenderPass,
+        config: &FramebufferCreationData,
+        color_image: vk::ImageView,
+        depth_image: Option<vk::ImageView>
+    ) -> Result<vk::Framebuffer, EngineError> {
 
         let width = config.width as u32;
         let height = config.height as u32;
@@ -274,6 +356,8 @@ impl RenderpassWrapper {
             .layers(1);
         render_core.device
             .create_framebuffer(&framebuffer_info, None)
-            .map_err(|e| format!("{:?}", e))
+            .map_err(|e| {
+                EngineError::RenderError(format!("{:?}", e))
+            })
     }
 }

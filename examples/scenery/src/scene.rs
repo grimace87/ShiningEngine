@@ -1,8 +1,22 @@
 
 use defs::{
-    Camera, SceneInfo, DrawingDescription,
+    Camera,
+    SceneInfo,
     control::Control,
-    render::{Shader, VertexFormat, FramebufferTarget, ResourcePreloads, VboCreationData, TextureCreationData, FramebufferCreationData, TexturePixelFormat, ImageUsage, DrawingPass, DrawingStep}
+    render::{
+        Shader,
+        VertexFormat,
+        FramebufferTarget,
+        ResourcePreloads,
+        VboCreationData,
+        TextureCreationData,
+        FramebufferCreationData,
+        TexturePixelFormat,
+        ImageUsage,
+        DrawingDescription,
+        DrawingPass,
+        DrawingStep
+    }
 };
 use engine::{
     camera::player::PlayerCamera,
@@ -12,7 +26,10 @@ use engine::{
         decode_texture_array,
         make_skybox_vertices,
         decode_model,
-        textbuffer::{TextGenerator, TextAlignment}
+        textbuffer::{
+            TextGenerator,
+            TextAlignment
+        }
     }
 };
 
@@ -78,7 +95,12 @@ pub struct SceneryScene {
 impl SceneryScene {
     pub fn new() -> SceneryScene {
         SceneryScene {
-            camera: PlayerCamera::new(1.0, 10.0, -3.0, -15.0, std::f32::consts::FRAC_PI_6 * 5.0),
+            camera: PlayerCamera::new(
+                1.0,
+                10.0,
+                -3.0,
+                -15.0,
+                std::f32::consts::FRAC_PI_6 * 5.0),
             text_generator: TextGenerator::from_resource(
                 include_str!("../../resources/font/Musica.fnt")
             ),
@@ -115,9 +137,12 @@ impl SceneInfo for SceneryScene {
 
     fn make_preloads(&self) -> ResourcePreloads {
 
-        let (scene_model_data, scene_vertex_count) = decode_model(MENU_MODEL_BYTES);
-        let (river_model_data, river_vertex_count) = decode_model(RIVER_MODEL_BYTES);
-        let (cube_vertex_data, cube_vertex_count) = make_skybox_vertices(20.0);
+        let (scene_model_data, scene_vertex_count) =
+            decode_model(MENU_MODEL_BYTES);
+        let (river_model_data, river_vertex_count) =
+            decode_model(RIVER_MODEL_BYTES);
+        let (cube_vertex_data, cube_vertex_count) =
+            make_skybox_vertices(20.0);
 
         let hud_data = self.text_generator.generate_vertex_buffer(
             "Ey, mate",
@@ -160,11 +185,28 @@ impl SceneInfo for SceneryScene {
             index_data: None
         });
 
-        let scene_texture = decode_texture(TERRAIN_TEXTURE_BYTES, TextureCodec::Jpeg, ImageUsage::TextureSampleOnly).unwrap();
-        let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png, ImageUsage::TextureSampleOnly).unwrap();
-        let skybox_texture = decode_texture_array(vec![
-            SKYBOX_LEFT_BYTES, SKYBOX_RIGHT_BYTES, SKYBOX_DOWN_BYTES, SKYBOX_UP_BYTES, SKYBOX_FRONT_BYTES, SKYBOX_BACK_BYTES
-        ], TextureCodec::Jpeg, ImageUsage::Skybox).unwrap();
+        let scene_texture = decode_texture(
+            TERRAIN_TEXTURE_BYTES,
+            TextureCodec::Jpeg,
+            ImageUsage::TextureSampleOnly)
+            .unwrap();
+        let font_texture = decode_texture(
+            MUSICA_FONT_BYTES,
+            TextureCodec::Png,
+            ImageUsage::TextureSampleOnly)
+            .unwrap();
+        let skybox_texture = decode_texture_array(
+            vec![
+                SKYBOX_LEFT_BYTES,
+                SKYBOX_RIGHT_BYTES,
+                SKYBOX_DOWN_BYTES,
+                SKYBOX_UP_BYTES,
+                SKYBOX_FRONT_BYTES,
+                SKYBOX_BACK_BYTES
+            ],
+            TextureCodec::Jpeg,
+            ImageUsage::Skybox)
+            .unwrap();
         let mut texture_loads = HashMap::<usize, TextureCreationData>::new();
         texture_loads.insert(TEXTURE_INDEX_TERRAIN, scene_texture);
         texture_loads.insert(TEXTURE_INDEX_FONT, font_texture);
@@ -283,7 +325,11 @@ impl SceneInfo for SceneryScene {
         self.camera.update_aspect(aspect_ratio);
     }
 
-    fn update_camera(&mut self, time_step_millis: u64, controller: &dyn Control) -> Option<Box<dyn SceneInfo>> {
+    fn update_camera(
+        &mut self,
+        time_step_millis: u64,
+        controller: &dyn Control
+    ) -> Option<Box<dyn SceneInfo>> {
         self.camera.update(time_step_millis, controller);
         let p_matrix = self.camera.get_projection_matrix();
         let mut v_matrix = self.camera.get_view_matrix();
@@ -312,14 +358,30 @@ impl SceneInfo for SceneryScene {
         None
     }
 
-    unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize, step_index: usize) -> (*const u8, usize) {
+    unsafe fn get_ubo_data_ptr_and_size(
+        &self,
+        pass_index: usize,
+        step_index: usize
+    ) -> (*const u8, usize) {
         match (pass_index, step_index) {
-            (0, 0) => (&self.skybox_reflection_pass_ubo as *const MvpClippingUbo as *const u8, std::mem::size_of::<MvpClippingUbo>()),
-            (0, 1) => (&self.terrain_reflection_pass_ubo as *const MvpClippingUbo as *const u8, std::mem::size_of::<MvpClippingUbo>()),
-            (1, 0) => (&self.skybox_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
-            (1, 1) => (&self.terrain_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
-            (1, 2) => (&self.river_pass_ubo as *const MvpUbo as *const u8, std::mem::size_of::<MvpUbo>()),
-            (1, 3) => (&self.text_paint_ubo as *const TextPaintUbo as *const u8, std::mem::size_of::<TextPaintUbo>()),
+            (0, 0) => (
+                &self.skybox_reflection_pass_ubo as *const MvpClippingUbo as *const u8,
+                std::mem::size_of::<MvpClippingUbo>()),
+            (0, 1) => (
+                &self.terrain_reflection_pass_ubo as *const MvpClippingUbo as *const u8,
+                std::mem::size_of::<MvpClippingUbo>()),
+            (1, 0) => (
+                &self.skybox_pass_ubo as *const MvpUbo as *const u8,
+                std::mem::size_of::<MvpUbo>()),
+            (1, 1) => (
+                &self.terrain_pass_ubo as *const MvpUbo as *const u8,
+                std::mem::size_of::<MvpUbo>()),
+            (1, 2) => (
+                &self.river_pass_ubo as *const MvpUbo as *const u8,
+                std::mem::size_of::<MvpUbo>()),
+            (1, 3) => (
+                &self.text_paint_ubo as *const TextPaintUbo as *const u8,
+                std::mem::size_of::<TextPaintUbo>()),
             _ => panic!("Cannot get UBO for SceneryScene")
         }
     }

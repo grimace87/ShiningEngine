@@ -1,6 +1,9 @@
 
+use defs::EngineError;
 use ash::vk;
 
+/// BufferWrapper struct
+/// Wraps up a Vulkan Buffer and its memory allocation that backs it
 pub struct BufferWrapper {
     pub buffer: ash::vk::Buffer,
     allocation: vk_mem::Allocation
@@ -8,12 +11,13 @@ pub struct BufferWrapper {
 
 impl BufferWrapper {
 
+    /// Create a new buffer and back it with memory
     pub unsafe fn new(
         allocator: &vk_mem::Allocator,
         size_bytes: usize,
         buffer_usage: vk::BufferUsageFlags,
         mem_usage: vk_mem::MemoryUsage
-    ) -> Result<BufferWrapper, String> {
+    ) -> Result<BufferWrapper, EngineError> {
         let buffer_create_info = ash::vk::BufferCreateInfo::builder()
             .size(size_bytes as u64)
             .usage(buffer_usage)
@@ -22,8 +26,11 @@ impl BufferWrapper {
             usage: mem_usage,
             ..Default::default()
         };
-        let (buffer, allocation, _) = allocator.create_buffer(&buffer_create_info, &memory_create_info)
-            .map_err(|e| format!("Failed to create buffer: {:?}", e))?;
+        let (buffer, allocation, _) = allocator
+            .create_buffer(&buffer_create_info, &memory_create_info)
+            .map_err(|e| {
+                EngineError::RenderError(format!("Failed to create buffer: {:?}", e))
+            })?;
 
         Ok(BufferWrapper {
             buffer,
@@ -31,6 +38,7 @@ impl BufferWrapper {
         })
     }
 
+    /// Return a new instance, with no buffer or memory associated with it
     pub fn empty() -> BufferWrapper {
         BufferWrapper {
             buffer: vk::Buffer::null(),
@@ -38,20 +46,34 @@ impl BufferWrapper {
         }
     }
 
-    pub unsafe fn destroy(&self, allocator: &vk_mem::Allocator) -> Result<(), String> {
+    /// Clean up the contained resources
+    pub unsafe fn destroy(&self, allocator: &vk_mem::Allocator) -> Result<(), EngineError> {
         allocator.destroy_buffer(self.buffer, &self.allocation)
-            .map_err(|e| format!("Error freeing buffer: {:?}", e))
+            .map_err(|e| {
+                EngineError::RenderError(format!("Error freeing buffer: {:?}", e))
+            })
     }
 
-    pub unsafe fn update<T: Sized>(&mut self, allocator: &vk_mem::Allocator, dst_offset_elements: isize, src_ptr: *const T, element_count: usize) -> Result<(), String> {
-        let mut dst_ptr = allocator.map_memory(&self.allocation)
-            .map_err(|e| format!("Failed to map buffer memory: {:?}", e))? as *mut T;
+    /// Map the backed memory, then update it from a host-owned pointer
+    pub unsafe fn update<T: Sized>(
+        &mut self,
+        allocator: &vk_mem::Allocator,
+        dst_offset_elements: isize,
+        src_ptr: *const T,
+        element_count: usize
+    ) -> Result<(), EngineError> {
+        let mut dst_ptr = allocator
+            .map_memory(&self.allocation)
+            .map_err(|e| {
+                EngineError::RenderError(format!("Failed to map buffer memory: {:?}", e))
+            })? as *mut T;
         dst_ptr = dst_ptr.offset(dst_offset_elements);
         dst_ptr.copy_from_nonoverlapping(src_ptr, element_count);
         allocator.unmap_memory(&self.allocation).unwrap();
         Ok(())
     }
 
+    /// Getter for the buffer within
     pub fn buffer(&self) -> vk::Buffer {
         self.buffer
     }

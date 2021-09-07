@@ -10,8 +10,15 @@ use crate::vk_renderer::{
 };
 
 use defs::{
-    ResourcePreloads,
-    render::{RendererApi, PresentResult, DrawingDescription, SceneInfo, FeatureDeclaration}
+    EngineError,
+    SceneInfo,
+    render::{
+        RendererApi,
+        PresentResult,
+        ResourcePreloads,
+        DrawingDescription,
+        FeatureDeclaration
+    }
 };
 
 use ash::Entry;
@@ -25,11 +32,13 @@ pub struct VkRenderer {
 
 impl RendererApi for VkRenderer {
 
-    fn new(window_owner: &dyn HasRawWindowHandle, features: &Vec<FeatureDeclaration>, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<Self, String> {
+    fn new(window_owner: &dyn HasRawWindowHandle, features: &Vec<FeatureDeclaration>, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<Self, EngineError> {
 
         // Vulkan core - instance, device, swapchain, queues, command pools
         let entry = unsafe {
-            Entry::new().map_err(|e| format!("Entry creation failed: {:?}", e))?
+            Entry::new().map_err(|e| {
+                EngineError::RenderError(format!("Entry creation failed: {:?}", e))
+            })?
         };
         let render_core = RenderCore::new(&entry, window_owner, features, resource_preloads)?;
 
@@ -55,7 +64,7 @@ impl RendererApi for VkRenderer {
         })
     }
 
-    fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, String> {
+    fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, EngineError> {
         unsafe {
             let (swapchain_image_index, up_to_date) = self.render_core.acquire_next_image()?;
             if !up_to_date {
@@ -68,7 +77,7 @@ impl RendererApi for VkRenderer {
         }
     }
 
-    fn recreate_surface(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), String> {
+    fn recreate_surface(&mut self, window_owner: &dyn HasRawWindowHandle, description: &DrawingDescription) -> Result<(), EngineError> {
         self.render_core.wait_until_idle().unwrap();
 
         for resources in self.per_image_resources.iter_mut() {
@@ -93,7 +102,7 @@ impl RendererApi for VkRenderer {
         Ok(())
     }
 
-    fn recreate_scene_resources(&mut self, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<(), String> {
+    fn recreate_scene_resources(&mut self, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<(), EngineError> {
         self.render_core.wait_until_idle().unwrap();
         unsafe {
             self.render_core.load_new_resources(resource_preloads).unwrap();

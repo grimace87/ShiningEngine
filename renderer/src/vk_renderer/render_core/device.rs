@@ -1,13 +1,22 @@
 
+use defs::{
+    EngineError,
+    render::FeatureDeclaration
+};
 use ash::{
     vk,
     Instance,
     Device,
-    extensions::khr::{Surface, Swapchain},
-    version::{InstanceV1_0, DeviceV1_0}
+    extensions::khr::{
+        Surface,
+        Swapchain
+    },
+    version::{
+        InstanceV1_0,
+        DeviceV1_0
+    }
 };
 use std::os::raw::c_char;
-use defs::render::FeatureDeclaration;
 
 #[derive(Copy, Clone)]
 pub struct PhysicalDeviceProperties {
@@ -17,9 +26,17 @@ pub struct PhysicalDeviceProperties {
     pub required_features: vk::PhysicalDeviceFeatures
 }
 
-pub unsafe fn make_device_resources(instance: &Instance, surface_fn: &Surface, surface: &vk::SurfaceKHR, features: &Vec<FeatureDeclaration>) -> Result<(Device, PhysicalDeviceProperties, vk::Queue, vk::Queue), String> {
+/// All device-related initialisation - chooses a physical device, creates the logical device, and
+/// creates a single graphics queue and single transfer queue
+pub unsafe fn make_device_resources(
+    instance: &Instance,
+    surface_fn: &Surface,
+    surface: &vk::SurfaceKHR,
+    features: &Vec<FeatureDeclaration>
+) -> Result<(Device, PhysicalDeviceProperties, vk::Queue, vk::Queue), EngineError> {
 
-    let physical_device_properties = select_physical_device(&instance, surface_fn, surface, features)?;
+    let physical_device_properties =
+        select_physical_device(&instance, surface_fn, surface, features)?;
 
     // Find queue indices for graphics and transfer (ideally different but could be the same)
     let queue_family_properties = instance
@@ -28,11 +45,13 @@ pub unsafe fn make_device_resources(instance: &Instance, surface_fn: &Surface, s
         let mut found_graphics_queue_index = None;
         let mut found_transfer_queue_index = None;
         for (index, queue_family) in queue_family_properties.iter().enumerate() {
-            if queue_family.queue_count > 0 && queue_family.queue_flags.contains(vk::QueueFlags::GRAPHICS) {
+            let graphics_flag = queue_family.queue_flags.contains(vk::QueueFlags::GRAPHICS);
+            if queue_family.queue_count > 0 && graphics_flag {
                 found_graphics_queue_index = Some(index as u32);
             }
-            if queue_family.queue_count > 0 && queue_family.queue_flags.contains(vk::QueueFlags::TRANSFER) {
-                if found_transfer_queue_index.is_none() || !queue_family.queue_flags.contains(vk::QueueFlags::GRAPHICS) {
+            let transfer_flag = queue_family.queue_flags.contains(vk::QueueFlags::TRANSFER);
+            if queue_family.queue_count > 0 && transfer_flag {
+                if found_transfer_queue_index.is_none() || !graphics_flag {
                     found_transfer_queue_index = Some(index as u32);
                 }
             }
@@ -63,8 +82,13 @@ pub unsafe fn make_device_resources(instance: &Instance, surface_fn: &Surface, s
         .enabled_extension_names(&device_extensions)
         .enabled_features(&physical_device_properties.required_features);
     let device = instance
-        .create_device(physical_device_properties.physical_device, &device_create_info, None)
-        .map_err(|e| format!("{:?}", e))?;
+        .create_device(
+            physical_device_properties.physical_device,
+            &device_create_info,
+            None)
+        .map_err(|e| {
+            EngineError::RenderError(format!("{:?}", e))
+        })?;
 
     // Get queues
     let graphics_queue = device.get_device_queue(graphics_queue_family_index, 0);
@@ -73,36 +97,47 @@ pub unsafe fn make_device_resources(instance: &Instance, surface_fn: &Surface, s
     Ok((device, physical_device_properties, graphics_queue, transfer_queue))
 }
 
+/// Selects the physical device to use, so long as there is one that supports everything needed
 unsafe fn select_physical_device(
     instance: &ash::Instance,
     surface_loader: &ash::extensions:: khr::Surface,
     surface: &vk::SurfaceKHR,
     features: &Vec<FeatureDeclaration>
-) -> Result<PhysicalDeviceProperties, String> {
+) -> Result<PhysicalDeviceProperties, EngineError> {
 
     let physical_devices = instance
         .enumerate_physical_devices()
-        .map_err(|e| format!("{:?}", e))?;
+        .map_err(|e| {
+            EngineError::RenderError(format!("{:?}", e))
+        })?;
     if physical_devices.is_empty() {
-        return Err(String::from("No physical devices found"));
+        return Err(EngineError::RenderError(
+            String::from("No physical devices found")));
     }
 
     let unset_value: u32 = u32::MAX;
     for physical_device in physical_devices.iter() {
-        let queue_family_properties = instance.get_physical_device_queue_family_properties(*physical_device);
+        let queue_family_properties =
+            instance.get_physical_device_queue_family_properties(*physical_device);
         let mut graphics_index: u32 = unset_value;
         let mut transfer_index: u32 = unset_value;
-        let mut feature_set_to_enable = vk::PhysicalDeviceFeatures::default();
+        let mut features_to_enable = vk::PhysicalDeviceFeatures::default();
         for (index, properties) in queue_family_properties.iter().enumerate() {
 
-            let supports_graphics = properties.queue_flags.contains(vk::QueueFlags::GRAPHICS);
+            let supports_graphics =
+                properties.queue_flags.contains(vk::QueueFlags::GRAPHICS);
             let supports_surface = surface_loader
-                .get_physical_device_surface_support(*physical_device, index as u32, *surface)
+                .get_physical_device_surface_support(
+                    *physical_device,
+                    index as u32,
+                    *surface)
                 .unwrap();
-            let supports_transfer = properties.queue_flags.contains(vk::QueueFlags::TRANSFER);
+            let supports_transfer =
+                properties.queue_flags.contains(vk::QueueFlags::TRANSFER);
 
-            let supported_features = instance.get_physical_device_features(*physical_device);
-            feature_set_to_enable = match make_feature_set_to_enable(features, &supported_features) {
+            let supported_features =
+                instance.get_physical_device_features(*physical_device);
+            features_to_enable = match make_feature_set_to_enable(features, &supported_features) {
                 Some(features) => features,
                 None => continue
             };
@@ -120,17 +155,21 @@ unsafe fn select_physical_device(
                 physical_device: *physical_device,
                 graphics_queue_family_index: graphics_index,
                 transfer_queue_family_index: transfer_index,
-                required_features: feature_set_to_enable
+                required_features: features_to_enable
             });
         }
     }
 
-    Err(String::from("Could not find a suitable physical device"))
+    Err(EngineError::RenderError(
+        String::from("Could not find a suitable physical device")))
 }
 
 /// Return set of features to enable during device creation, knowing that all of those features
 /// are supported by the physical device. If they are not all supported, this returns None.
-fn make_feature_set_to_enable(features: &Vec<FeatureDeclaration>, supported_features: &vk::PhysicalDeviceFeatures) -> Option<vk::PhysicalDeviceFeatures> {
+fn make_feature_set_to_enable(
+    features: &Vec<FeatureDeclaration>,
+    supported_features: &vk::PhysicalDeviceFeatures
+) -> Option<vk::PhysicalDeviceFeatures> {
     let mut features_to_enable = vk::PhysicalDeviceFeatures::default();
     for feature in features.iter() {
         match feature {

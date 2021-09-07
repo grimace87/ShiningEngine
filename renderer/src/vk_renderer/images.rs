@@ -1,16 +1,19 @@
 
-use crate::vk_renderer::{
-    render_core::RenderCore,
-    buffers::BufferWrapper
+use defs::{
+    EngineError,
+    render::{
+        TexturePixelFormat,
+        ImageUsage
+    }
 };
-
 use ash::{
     vk,
     Device,
     version::DeviceV1_0
 };
-use defs::render::{TexturePixelFormat, ImageUsage};
 
+/// ImageCreationParams struct
+/// Description for creating an image; should cover all use cases needed by the engine
 struct ImageCreationParams {
     format: vk::Format,
     usage: vk::ImageUsageFlags,
@@ -19,6 +22,9 @@ struct ImageCreationParams {
     layer_count: u32
 }
 
+/// ImageWrapper struct
+/// Wraps a Vulkan image, image view, the format used by the image, and the memory allocation
+/// backing the image
 pub struct ImageWrapper {
     allocation: vk_mem::Allocation,
     pub image: vk::Image,
@@ -28,6 +34,7 @@ pub struct ImageWrapper {
 
 impl ImageWrapper {
 
+    /// Create a new instance with nothing useful in it
     pub fn empty() -> ImageWrapper {
         ImageWrapper {
             allocation: vk_mem::Allocation::null(),
@@ -37,20 +44,22 @@ impl ImageWrapper {
         }
     }
 
+    /// Create a new instance, fully initialised
     pub unsafe fn new(
-        render_core: &RenderCore,
+        render_core: &crate::vk_renderer::render_core::RenderCore,
         usage: ImageUsage,
         format: TexturePixelFormat,
         width: u32,
         height: u32,
         init_layer_data: Option<&Vec<Vec<u8>>>
-    ) -> Result<ImageWrapper, String> {
+    ) -> Result<ImageWrapper, EngineError> {
 
-        let creation_params = {
+        let creation_params = match (usage, format) {
             // Typical depth buffer
-            if usage == ImageUsage::DepthBuffer && format == TexturePixelFormat::Unorm16 {
+            (ImageUsage::DepthBuffer, TexturePixelFormat::Unorm16) => {
                 if init_layer_data.is_some() {
-                    return Err(String::from("Initialising depth buffer not allowed"));
+                    return Err(EngineError::RenderError(
+                        String::from("Initialising depth buffer not allowed")));
                 }
                 ImageCreationParams {
                     format: vk::Format::D16_UNORM,
@@ -59,12 +68,13 @@ impl ImageWrapper {
                     view_type: vk::ImageViewType::TYPE_2D,
                     layer_count: 1
                 }
-            }
+            },
 
             // Typical off-screen-rendered color attachment
-            else if usage == ImageUsage::OffscreenRenderSampleColorWriteDepth && format == TexturePixelFormat::RGBA {
+            (ImageUsage::OffscreenRenderSampleColorWriteDepth, TexturePixelFormat::RGBA) => {
                 if init_layer_data.is_some() {
-                    return Err(String::from("Initialising off-screen render image not allowed"));
+                    return Err(EngineError::RenderError(
+                        String::from("Initialising off-screen render image not allowed")));
                 }
                 ImageCreationParams {
                     format: vk::Format::R8G8B8A8_UNORM,
@@ -73,12 +83,13 @@ impl ImageWrapper {
                     view_type: vk::ImageViewType::TYPE_2D,
                     layer_count: 1
                 }
-            }
+            },
 
             // Typical off-screen-rendered depth attachment
-            else if usage == ImageUsage::OffscreenRenderSampleColorWriteDepth && format == TexturePixelFormat::Unorm16 {
+            (ImageUsage::OffscreenRenderSampleColorWriteDepth, TexturePixelFormat::Unorm16) => {
                 if init_layer_data.is_some() {
-                    return Err(String::from("Initialising off-screen render image not allowed"));
+                    return Err(EngineError::RenderError(
+                        String::from("Initialising off-screen render image not allowed")));
                 }
                 ImageCreationParams {
                     format: vk::Format::D16_UNORM,
@@ -87,12 +98,13 @@ impl ImageWrapper {
                     view_type: vk::ImageViewType::TYPE_2D,
                     layer_count: 1
                 }
-            }
+            },
 
             // Typical initialised texture
-            else if usage == ImageUsage::TextureSampleOnly && format == TexturePixelFormat::RGBA {
+            (ImageUsage::TextureSampleOnly, TexturePixelFormat::RGBA) => {
                 if init_layer_data.is_none() {
-                    return Err(String::from("Not initialising sample-only texture not allowed"));
+                    return Err(EngineError::RenderError(
+                        String::from("Not initialising sample-only texture not allowed")));
                 }
                 ImageCreationParams {
                     format: vk::Format::R8G8B8A8_UNORM,
@@ -101,12 +113,13 @@ impl ImageWrapper {
                     view_type: vk::ImageViewType::TYPE_2D,
                     layer_count: 1
                 }
-            }
+            },
 
             // Typical sky box (cube map)
-            else if usage == ImageUsage::Skybox && format == TexturePixelFormat::RGBA {
+            (ImageUsage::Skybox, TexturePixelFormat::RGBA) => {
                 if init_layer_data.is_none() {
-                    return Err(String::from("Not initialising sample-only texture not allowed"));
+                    return Err(EngineError::RenderError(
+                        String::from("Not initialising sample-only texture not allowed")));
                 }
                 ImageCreationParams {
                     format: vk::Format::R8G8B8A8_UNORM,
@@ -115,11 +128,12 @@ impl ImageWrapper {
                     view_type: vk::ImageViewType::CUBE,
                     layer_count: 6
                 }
-            }
+            },
 
             // Unhandled cases
-            else {
-                return Err(String::from("Tried to create an image with an unhandled config"));
+            _ => {
+                return Err(EngineError::RenderError(
+                    String::from("Tried to create an image with an unhandled config")));
             }
         };
 
@@ -130,7 +144,12 @@ impl ImageWrapper {
             &creation_params)?;
 
         if let Some(layer_data) = init_layer_data {
-            Self::initialise_read_only_color_texture(render_core, width, height, &image, layer_data)?;
+            Self::initialise_read_only_color_texture(
+                render_core,
+                width,
+                height,
+                &image,
+                layer_data)?;
         }
 
         Ok(ImageWrapper {
@@ -141,13 +160,16 @@ impl ImageWrapper {
         })
     }
 
+    /// Create the image and image view
     unsafe fn make_image_and_view(
-        render_core: &RenderCore,
+        render_core: &crate::vk_renderer::render_core::RenderCore,
         width: u32,
         height: u32,
         creation_params: &ImageCreationParams
-    ) -> Result<(vk_mem::Allocation, vk::Image, vk::ImageView), String> {
-        let queue_families = [render_core.physical_device_properties.graphics_queue_family_index];
+    ) -> Result<(vk_mem::Allocation, vk::Image, vk::ImageView), EngineError> {
+        let queue_families = [
+            render_core.physical_device_properties.graphics_queue_family_index
+        ];
         let extent3d = vk::Extent3D { width, height, depth: 1 };
         let flags = match creation_params.view_type {
             vk::ImageViewType::CUBE => vk::ImageCreateFlags::CUBE_COMPATIBLE,
@@ -171,8 +193,12 @@ impl ImageWrapper {
             usage: vk_mem::MemoryUsage::GpuOnly,
             ..Default::default()
         };
-        let (image, allocation, _) = render_core.get_mem_allocator().create_image(&image_info, &allocation_info)
-            .map_err(|e| format! ("Allocation error: {:?}", e))?;
+        let (image, allocation, _) = render_core
+            .get_mem_allocator()
+            .create_image(&image_info, &allocation_info)
+            .map_err(|e| {
+                EngineError::RenderError(format! ("Allocation error: {:?}", e))
+            })?;
         let subresource_range = vk::ImageSubresourceRange::builder()
             .aspect_mask(creation_params.aspect)
             .base_mip_level(0)
@@ -186,23 +212,35 @@ impl ImageWrapper {
             .subresource_range(*subresource_range);
         let image_view = render_core.device
             .create_image_view(&image_view_create_info, None)
-            .map_err(|e| format!("{:?}", e))?;
+            .map_err(|e| {
+                EngineError::RenderError(format!("{:?}", e))
+            })?;
 
         Ok((allocation, image, image_view))
     }
 
-    pub unsafe fn destroy(&self, device: &Device, allocator: &vk_mem::Allocator) -> Result<(), String> {
+    /// Destroy all resources held by the instance
+    pub unsafe fn destroy(
+        &self,
+        device: &Device,
+        allocator: &vk_mem::Allocator
+    ) -> Result<(), EngineError> {
         device.destroy_image_view(self.image_view, None);
         allocator.destroy_image(self.image, &self.allocation)
-            .map_err(|e| format!("Error freeing image: {:?}", e))
+            .map_err(|e| {
+                EngineError::RenderError(format!("Error freeing image: {:?}", e))
+            })
     }
 
+    /// Initialise the image's memory with texture data; uses a staging buffer to allocate device-
+    /// local memory and transitions the image into the optimal layout for reading in samplers in
+    /// shaders
     unsafe fn initialise_read_only_color_texture(
-        render_core: &RenderCore,
+        render_core: &crate::vk_renderer::render_core::RenderCore,
         width: u32,
         height: u32,
         image: &vk::Image,
-        layer_data: &Vec<Vec<u8>>) -> Result<(), String> {
+        layer_data: &Vec<Vec<u8>>) -> Result<(), EngineError> {
 
         if layer_data.is_empty() {
             panic!("Passed empty layer data as ImageWrapper init data")
@@ -215,7 +253,7 @@ impl ImageWrapper {
         if expected_data_size != layer_count * layer_size_bytes {
             panic!("Image data does not match expected size");
         }
-        let mut staging_buffer = BufferWrapper::new(
+        let mut staging_buffer = crate::vk_renderer::buffers::BufferWrapper::new(
             render_core.get_mem_allocator(),
             layer_count * layer_size_bytes,
             vk::BufferUsageFlags::TRANSFER_SRC,
@@ -235,11 +273,15 @@ impl ImageWrapper {
             .command_buffer_count(1);
         let copy_command_buffer = render_core.device
             .allocate_command_buffers(&command_buffer_alloc_info)
-            .map_err(|e| format!("Error allocating command buffer: {:?}", e))?[0];
+            .map_err(|e| {
+                EngineError::RenderError(format!("Error allocating command buffer: {:?}", e))
+            })?[0];
         let command_begin_info = vk::CommandBufferBeginInfo::builder()
             .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
         render_core.device.begin_command_buffer(copy_command_buffer, &command_begin_info)
-            .map_err(|e| format!("Error starting copy command buffer: {:?}", e))?;
+            .map_err(|e| {
+                EngineError::RenderError(format!("Error starting copy command buffer: {:?}", e))
+            })?;
 
         // Initial memory dependency
         let barrier = vk::ImageMemoryBarrier::builder()
@@ -321,21 +363,36 @@ impl ImageWrapper {
 
         // Finish recording commands, create a fence, run the command, wait for fence, clean up
         render_core.device.end_command_buffer(copy_command_buffer)
-            .map_err(|e| format!("Error ending command buffer: {:?}", e))?;
+            .map_err(|e| {
+                EngineError::RenderError(format!("Error ending command buffer: {:?}", e))
+            })?;
         let submit_infos = [
             vk::SubmitInfo::builder()
                 .command_buffers(&[copy_command_buffer])
                 .build()
         ];
-        let fence = render_core.device.create_fence(&vk::FenceCreateInfo::default(), None)
-            .map_err(|e| format!("Error creating fence: {:?}", e))?;
-        render_core.device.queue_submit(render_core.transfer_queue, &submit_infos, fence)
-            .map_err(|e| format!("Error submitting to queue: {:?}", e))?;
-        render_core.device.wait_for_fences(&[fence], true, std::u64::MAX)
-            .map_err(|e| format!("Error waiting for fence: {:?}", e))?;
-        render_core.device.destroy_fence(fence, None);
+        let fence = render_core.device
+            .create_fence(&vk::FenceCreateInfo::default(), None)
+            .map_err(|e| {
+                EngineError::RenderError(format!("Error creating fence: {:?}", e))
+            })?;
+        render_core.device
+            .queue_submit(render_core.transfer_queue, &submit_infos, fence)
+            .map_err(|e| {
+                EngineError::RenderError(format!("Error submitting to queue: {:?}", e))
+            })?;
+        render_core.device
+            .wait_for_fences(&[fence], true, std::u64::MAX)
+            .map_err(|e| {
+                EngineError::RenderError(format!("Error waiting for fence: {:?}", e))
+            })?;
+        render_core.device
+            .destroy_fence(fence, None);
         staging_buffer.destroy(render_core.get_mem_allocator())?;
-        render_core.device.free_command_buffers(render_core.transfer_command_buffer_pool, &[copy_command_buffer]);
+        render_core.device
+            .free_command_buffers(
+            render_core.transfer_command_buffer_pool,
+            &[copy_command_buffer]);
 
         Ok(())
     }

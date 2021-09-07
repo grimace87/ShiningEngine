@@ -1,17 +1,22 @@
 
-use model::factory::StaticVertex;
+use model::types::StaticVertex;
 
+/// Recognised values for the semantic attribute found in Collada XML
 const SEMANTIC_VERTEX: &str = "VERTEX";
 const SEMANTIC_POSITION: &str = "POSITION";
 const SEMANTIC_NORMAL: &str = "NORMAL";
 const SEMANTIC_TEX_COORD: &str = "TEXCOORD";
 
+/// GeometryLibrary struct
+/// Representation for a library_geometries XML tag
 #[derive(Debug, Deserialize)]
 pub struct GeometryLibrary {
     #[serde(rename = "geometry", default)]
     pub items: Vec<Geometry>
 }
 
+/// Geometry struct
+/// Representation for items under a geometry XML tag
 #[derive(Debug, Deserialize)]
 pub struct Geometry {
     pub id: String,
@@ -19,6 +24,8 @@ pub struct Geometry {
     pub mesh: Mesh
 }
 
+/// Mesh struct
+/// Representation for a mesh XML tag
 #[derive(Debug, Deserialize)]
 pub struct Mesh {
     vertices: Vertices,
@@ -29,6 +36,8 @@ pub struct Mesh {
 }
 
 impl Mesh {
+
+    /// Translate data within a mesh tag into a vector of StaticVertex instances
     pub fn get_vertex_data(&self) -> Vec<StaticVertex> {
         let interleaved_indices = self.decode_triangle_indices();
         let position_data = self.decode_position_data();
@@ -59,6 +68,7 @@ impl Mesh {
         vertices
     }
 
+    /// Retrieve the index data from this mesh as a vector of unsigned integers
     fn decode_triangle_indices(&self) -> Vec<usize> {
         let value_string = &self.triangles.polygons.values;
         let numbers: Result<Vec<usize>, _> = value_string.split(' ')
@@ -67,8 +77,11 @@ impl Mesh {
         numbers.expect("Failed to parse integer array for triangles")
     }
 
+    /// Retrieve the position data from this mesh as a vector of single-precision floating-point
+    /// numbers
     fn decode_position_data(&self) -> Vec<f32> {
-        let vertex_input = self.triangles.inputs.iter().find(|input| input.semantic.as_str() == SEMANTIC_VERTEX)
+        let vertex_input = self.triangles.inputs.iter()
+            .find(|input| input.semantic.as_str() == SEMANTIC_VERTEX)
             .expect("No VERTEX input found for triangles");
         if self.vertices.id.as_str() != &vertex_input.source[1..vertex_input.source.len()] {
             panic!("Mesh vertices id does not match triangles vertex input source");
@@ -78,7 +91,8 @@ impl Mesh {
         }
         let position_source_id = &self.vertices.input.source;
         let position_source_id = &position_source_id[1..position_source_id.len()];
-        let position_source = self.sources.iter().find(|source| source.id.as_str() == position_source_id)
+        let position_source = self.sources.iter()
+            .find(|source| source.id.as_str() == position_source_id)
             .expect("Did not find position source for mesh");
         if position_source.technique_common.accessor.params.len() != 3 {
             panic!("Position source does not have 3 parameters");
@@ -90,12 +104,16 @@ impl Mesh {
         numbers.expect("Failed to parse float array for position data")
     }
 
+    /// Retrieve the normal data from this mesh as a vector of single-precision floating-point
+    /// numbers
     fn decode_normal_data(&self) -> Vec<f32> {
-        let normal_input = self.triangles.inputs.iter().find(|input| input.semantic.as_str() == SEMANTIC_NORMAL)
+        let normal_input = self.triangles.inputs.iter()
+            .find(|input| input.semantic.as_str() == SEMANTIC_NORMAL)
             .expect("No NORMAL input found for triangles");
         let normal_source_id = &normal_input.source;
         let normal_source_id = &normal_source_id[1..normal_source_id.len()];
-        let normal_source = self.sources.iter().find(|source| source.id.as_str() == normal_source_id)
+        let normal_source = self.sources.iter()
+            .find(|source| source.id.as_str() == normal_source_id)
             .expect("Did not find normal source for mesh");
         if normal_source.technique_common.accessor.params.len() != 3 {
             panic!("Normal source does not have 3 parameters");
@@ -107,12 +125,16 @@ impl Mesh {
         numbers.expect("Failed to parse float array for normal data")
     }
 
+    /// Retrieve the texture coordinate data from this mesh as a vector of single-precision
+    /// floating-point numbers
     fn decode_tex_coord_data(&self) -> Vec<f32> {
-        let tex_coord_input = self.triangles.inputs.iter().find(|input| input.semantic.as_str() == SEMANTIC_TEX_COORD)
+        let tex_coord_input = self.triangles.inputs.iter()
+            .find(|input| input.semantic.as_str() == SEMANTIC_TEX_COORD)
             .expect("No TEXCOORD input found for triangles");
         let tex_coord_source_id = &tex_coord_input.source;
         let tex_coord_source_id = &tex_coord_source_id[1..tex_coord_source_id.len()];
-        let tex_coord_source = self.sources.iter().find(|source| source.id.as_str() == tex_coord_source_id)
+        let tex_coord_source = self.sources.iter()
+            .find(|source| source.id.as_str() == tex_coord_source_id)
             .expect("Did not find tex coord source for mesh");
         if tex_coord_source.technique_common.accessor.params.len() != 2 {
             panic!("Tex coord source does not have 2 parameters");
@@ -125,12 +147,16 @@ impl Mesh {
     }
 }
 
+/// Vertices struct
+/// Representation for a vertices XML tag
 #[derive(Debug, Deserialize)]
 struct Vertices {
     id: String,
     input: Input
 }
 
+/// Input struct
+/// Representation for an input XML tag
 #[derive(Debug, Deserialize)]
 struct Input {
     semantic: String,
@@ -140,6 +166,8 @@ struct Input {
     offset: i32
 }
 
+/// Triangles struct
+/// Representation for a triangles XML tag
 #[derive(Debug, Deserialize)]
 struct Triangles {
     count: i32,
@@ -151,6 +179,8 @@ struct Triangles {
     polygons: IntegerArray
 }
 
+/// IntegerArray struct
+/// Representation for a polygons XML tag
 #[derive(Debug, Deserialize, Default)]
 struct IntegerArray {
 
@@ -158,6 +188,8 @@ struct IntegerArray {
     values: String
 }
 
+/// Source struct
+/// Representation for items under a source XML tag
 #[derive(Debug, Deserialize)]
 struct Source {
     id: String,
@@ -167,6 +199,8 @@ struct Source {
     float_data: FloatArray
 }
 
+/// FloatArray struct
+/// Representation for a float_data XML tag
 #[derive(Debug, Deserialize, Default)]
 struct FloatArray {
     id: String,
@@ -176,11 +210,15 @@ struct FloatArray {
     values: String
 }
 
+/// TechniqueCommon struct
+/// Representation for a technique_common XML tag
 #[derive(Debug, Deserialize)]
 struct TechniqueCommon {
     accessor: Accessor
 }
 
+/// Accessor struct
+/// Representation for a accessor XML tag
 #[derive(Debug, Deserialize)]
 struct Accessor {
     source: String,
@@ -191,6 +229,8 @@ struct Accessor {
     params: Vec<Param>
 }
 
+/// Param struct
+/// Representation for items under a param XML tag
 #[derive(Debug, Deserialize)]
 struct Param {
     name: String,
@@ -199,11 +239,15 @@ struct Param {
     param_type: String
 }
 
+/// VisualScenesLibrary struct
+/// Representation for a library_visual_scenes XML tag
 #[derive(Debug, Deserialize)]
 pub struct VisualScenesLibrary {
     pub visual_scene: VisualScene
 }
 
+/// VisualScene struct
+/// Representation for a visual_scene XML tag
 #[derive(Debug, Deserialize)]
 pub struct VisualScene {
     id: String,
@@ -213,6 +257,8 @@ pub struct VisualScene {
     pub nodes: Vec<Node>
 }
 
+/// Node struct
+/// Representation for items under a nodes XML tag
 #[derive(Debug, Deserialize)]
 pub struct Node {
     pub id: String,
@@ -233,6 +279,8 @@ pub struct Node {
     pub instance_light: Option<Instance>
 }
 
+/// Matrix struct
+/// Representation for a matrix XML tag
 #[derive(Debug, Deserialize)]
 pub struct Matrix {
     sid: String,
@@ -250,6 +298,8 @@ impl Matrix {
     }
 }
 
+/// Instance struct
+/// Representation for an instance_geometry, instance_camera, or instance_light XML tag
 #[derive(Debug, Deserialize)]
 pub struct Instance {
     pub url: String

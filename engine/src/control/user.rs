@@ -1,12 +1,20 @@
 
-use defs::control::{Control, KeyCode, InputState};
+use defs::control::{
+    Control,
+    KeyCode,
+    InputState
+};
 
+/// UserControl struct
+/// Handles left/right/up/down inputs from a keyboard
 pub struct UserControl {
     dx: f32,
     dy: f32
 }
 
 impl UserControl {
+
+    /// Construct new instance, initially with no inputs signalled
     pub fn new() -> UserControl {
         UserControl {
             dx: 0.0,
@@ -16,10 +24,11 @@ impl UserControl {
 }
 
 impl Control for UserControl {
-    fn update(&mut self) {
 
-    }
+    /// No-op; nothing can be done internally here
+    fn update(&mut self) {}
 
+    /// Update internal fields in response to individual keystroke events
     fn process_keyboard_event(&mut self, keycode: KeyCode, state: InputState) {
         match keycode {
             KeyCode::Left => {
@@ -50,10 +59,12 @@ impl Control for UserControl {
         }
     }
 
+    /// Retrieve the left/right input position
     fn get_dx(&self) -> f32 {
         self.dx
     }
 
+    /// Retrieve the up/down input position; positive is considered to be 'up'
     fn get_dy(&self) -> f32 {
         self.dy
     }

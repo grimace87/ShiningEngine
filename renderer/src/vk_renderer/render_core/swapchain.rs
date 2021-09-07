@@ -1,4 +1,5 @@
 
+use defs::EngineError;
 use ash::{
     vk,
     Device,
@@ -8,18 +9,31 @@ use ash::{
     },
     version::DeviceV1_0
 };
-use crate::vk_renderer::render_core::device::PhysicalDeviceProperties;
 use std::cmp::max;
 
 pub const MIN_SWAPCHAIN_SIZE: u32 = 2;
 pub const MAX_SWAPCHAIN_SIZE: u32 = 3;
 
-pub unsafe fn create_swapchain(physical_device_struct: &PhysicalDeviceProperties, surface_fn: &Surface, surface: vk::SurfaceKHR, swapchain_fn: &Swapchain, previous_swapchain: vk::SwapchainKHR) -> Result<vk::SwapchainKHR, String> {
+/// Create a swapchain; ensures that it is supported by the device and surface
+pub unsafe fn create_swapchain(
+    physical_device_struct: &crate::vk_renderer::render_core::device::PhysicalDeviceProperties,
+    surface_fn: &Surface,
+    surface: vk::SurfaceKHR,
+    swapchain_fn: &Swapchain,
+    previous_swapchain: vk::SwapchainKHR
+) -> Result<vk::SwapchainKHR, EngineError> {
 
     let physical_device = physical_device_struct.physical_device;
 
     // Check for support and get some known-supported parameters
-    let (min_image_count, current_extent, current_transform) = validate_basic_requirements(physical_device_struct, surface_fn, surface)?;
+    let (
+        min_image_count,
+        current_extent,
+        current_transform
+    ) = validate_basic_requirements(
+        physical_device_struct,
+        surface_fn,
+        surface)?;
     let present_mode = choose_present_mode(physical_device, surface_fn, surface)?;
     let surface_format = choose_surface_format(physical_device, surface_fn, surface)?;
 
@@ -39,15 +53,24 @@ pub unsafe fn create_swapchain(physical_device_struct: &PhysicalDeviceProperties
         .image_array_layers(1)
         .old_swapchain(previous_swapchain);
     let swapchain = swapchain_fn.create_swapchain(&swapchain_create_info, None)
-        .map_err(|e| format!("{:?}", e))?;
+        .map_err(|e| {
+            EngineError::RenderError(format!("{:?}", e))
+        })?;
 
     Ok(swapchain)
 }
 
-pub unsafe fn create_swapchain_image_views(device: &Device, swapchain_fn: &Swapchain, swapchain: vk::SwapchainKHR) -> Result<Vec<vk::ImageView>, String> {
+/// Create the image views for the swapchain
+pub unsafe fn create_swapchain_image_views(
+    device: &Device,
+    swapchain_fn: &Swapchain,
+    swapchain: vk::SwapchainKHR
+) -> Result<Vec<vk::ImageView>, EngineError> {
     // Make the image views over the images
     let swapchain_images = swapchain_fn.get_swapchain_images(swapchain)
-        .map_err(|e| format!("{:?}", e))?;
+        .map_err(|e| {
+            EngineError::RenderError(format!("{:?}", e))
+        })?;
     let mut image_views = Vec::with_capacity(swapchain_images.len());
     for image in swapchain_images.iter() {
         let subresource_range = vk::ImageSubresourceRange::builder()
@@ -62,7 +85,9 @@ pub unsafe fn create_swapchain_image_views(device: &Device, swapchain_fn: &Swapc
             .format(vk::Format::B8G8R8A8_UNORM)
             .subresource_range(*subresource_range);
         let image_view = device.create_image_view(&image_view_create_info, None)
-            .map_err(|e| format!("{:?}", e))?;
+            .map_err(|e| {
+                EngineError::RenderError(format!("{:?}", e))
+            })?;
         image_views.push(image_view);
     }
 
@@ -87,47 +112,81 @@ pub unsafe fn create_swapchain_image_views(device: &Device, swapchain_fn: &Swapc
     Ok(image_views)
 }
 
-unsafe fn validate_basic_requirements(physical_device_struct: &PhysicalDeviceProperties, surface_fn: &Surface, surface: vk::SurfaceKHR) -> Result<(u32, vk::Extent2D, vk::SurfaceTransformFlagsKHR), String> {
+/// Validates that the physical device and surface supported everything needed
+unsafe fn validate_basic_requirements(
+    physical_device_struct: &crate::vk_renderer::render_core::device::PhysicalDeviceProperties,
+    surface_fn: &Surface,
+    surface: vk::SurfaceKHR
+) -> Result<(u32, vk::Extent2D, vk::SurfaceTransformFlagsKHR), EngineError> {
     let physical_device = physical_device_struct.physical_device;
     let graphics_queue_family_index = physical_device_struct.graphics_queue_family_index;
 
     let present_supported = surface_fn
         .get_physical_device_surface_support(physical_device, graphics_queue_family_index, surface)
-        .map_err(|e| format!("{:?}", e))?;
+        .map_err(|e| {
+            EngineError::RenderError(format!("{:?}", e))
+        })?;
     if !present_supported {
-        return Err(String::from("Presentation not supported by selected graphics queue family"));
+        return Err(EngineError::RenderError(
+            String::from("Presentation not supported by selected graphics queue family")));
     }
 
     let surface_capabilities = surface_fn
         .get_physical_device_surface_capabilities(physical_device, surface)
-        .map_err(|e| format!("{:?}", e))?;
+        .map_err(|e| {
+            EngineError::RenderError(format!("{:?}", e))
+        })?;
 
-    let max_too_small = surface_capabilities.max_image_count != 0 && surface_capabilities.max_image_count < MIN_SWAPCHAIN_SIZE;
+    let max_too_small = surface_capabilities.max_image_count != 0 &&
+        surface_capabilities.max_image_count < MIN_SWAPCHAIN_SIZE;
     let min_too_large = surface_capabilities.min_image_count > MAX_SWAPCHAIN_SIZE;
     if max_too_small || min_too_large {
-        return Err(String::from("Requested swapchain size is not supported"));
+        return Err(EngineError::RenderError(
+            String::from("Requested swapchain size is not supported")));
     }
 
-    let images_to_request = max(MIN_SWAPCHAIN_SIZE, surface_capabilities.min_image_count);
-    Ok((images_to_request, surface_capabilities.current_extent, surface_capabilities.current_transform))
+    let images_to_request =
+        max(MIN_SWAPCHAIN_SIZE, surface_capabilities.min_image_count);
+    Ok((
+        images_to_request,
+        surface_capabilities.current_extent,
+        surface_capabilities.current_transform
+    ))
 }
 
-unsafe fn choose_present_mode(physical_device: vk::PhysicalDevice, surface_fn: &Surface, surface: vk::SurfaceKHR) -> Result<vk::PresentModeKHR, String> {
+/// Select a present mode, ensuring it is supported (FIFO is considered the preferred option)
+unsafe fn choose_present_mode(
+    physical_device: vk::PhysicalDevice,
+    surface_fn: &Surface,
+    surface: vk::SurfaceKHR
+) -> Result<vk::PresentModeKHR, EngineError> {
     let surface_present_modes = surface_fn
         .get_physical_device_surface_present_modes(physical_device, surface)
-        .map_err(|e| format!("{:?}", e))?;
+        .map_err(|e| {
+            EngineError::RenderError(format!("{:?}", e))
+        })?;
     if !surface_present_modes.contains(&vk::PresentModeKHR::FIFO) {
-        return Err(String::from("FIFO presentation mode not supported by selected graphics queue family"));
+        return Err(EngineError::RenderError(
+            String::from(
+                "FIFO presentation mode not supported by selected graphics queue family")));
     }
     Ok(vk::PresentModeKHR::FIFO)
 }
 
-unsafe fn choose_surface_format(physical_device: vk::PhysicalDevice, surface_fn: &Surface, surface: vk::SurfaceKHR) -> Result<vk::SurfaceFormatKHR, String> {
+/// Select a supported surface format
+unsafe fn choose_surface_format(
+    physical_device: vk::PhysicalDevice,
+    surface_fn: &Surface,
+    surface: vk::SurfaceKHR
+) -> Result<vk::SurfaceFormatKHR, EngineError> {
     let surface_formats = surface_fn
         .get_physical_device_surface_formats(physical_device, surface)
-        .map_err(|e| format!("{:?}", e))?;
+        .map_err(|e| {
+            EngineError::RenderError(format!("{:?}", e))
+        })?;
     if surface_formats.is_empty() {
-        return Err(String::from("No surface formats supported"));
+        return Err(EngineError::RenderError(
+            String::from("No surface formats supported")));
     }
     let index_of_desired = surface_formats.iter().position(|f| {
         f.color_space == vk::ColorSpaceKHR::SRGB_NONLINEAR && f.format == vk::Format::B8G8R8A8_UNORM

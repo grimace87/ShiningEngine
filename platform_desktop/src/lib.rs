@@ -1,28 +1,45 @@
 
 mod control_translations;
 
-use self::{
-    control_translations::{translate_code, translate_state}
+use defs::{
+    render::RendererApi,
+    EngineError
 };
-
-use defs::render::RendererApi;
 use engine::Engine;
-
 use winit::{
-    event_loop::{EventLoop, ControlFlow},
-    event::{Event, WindowEvent, KeyboardInput, VirtualKeyCode, ElementState},
-    window::{Window, WindowBuilder},
+    event_loop::{
+        EventLoop,
+        ControlFlow
+    },
+    event::{
+        Event,
+        WindowEvent,
+        KeyboardInput,
+        VirtualKeyCode,
+        ElementState
+    },
+    window::{
+        Window,
+        WindowBuilder
+    },
     dpi::LogicalSize,
     platform::run_return::EventLoopExtRunReturn
 };
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+use raw_window_handle::{
+    HasRawWindowHandle,
+    RawWindowHandle
+};
 
+/// PlatformWindows struct
+/// Container for the window resources when running on a Windows OS
 pub struct PlatformWindows {
     window: Window,
     event_loop: Option<EventLoop<()>>
 }
 
 unsafe impl HasRawWindowHandle for PlatformWindows {
+
+    /// Retrieve the raw window handle
     fn raw_window_handle(&self) -> RawWindowHandle {
         self.window.raw_window_handle()
     }
@@ -30,15 +47,15 @@ unsafe impl HasRawWindowHandle for PlatformWindows {
 
 impl PlatformWindows {
 
-    pub fn new_window(app_title: &str) -> Result<PlatformWindows, String> {
+    /// Create a new window with the supplied title
+    pub fn new_window(app_title: &str) -> Result<PlatformWindows, EngineError> {
 
         // Ready the Winit window and event loop
         let event_loop = EventLoop::new();
         let window: Window = WindowBuilder::new()
             .with_title(app_title)
             .with_inner_size(LogicalSize::new(800, 600))
-            .build(&event_loop)
-            .map_err(|os_err| format!("{:?}", os_err))?;
+            .build(&event_loop)?;
 
         Ok(PlatformWindows {
             window,
@@ -46,7 +63,9 @@ impl PlatformWindows {
         })
     }
 
-    pub fn run<R: 'static>(&mut self, mut engine: Engine<R>) -> Result<(), String> where R : RendererApi {
+    /// Start the event loop running; this will block the caller until the loop has exited
+    pub fn run<R: 'static>(&mut self, mut engine: Engine<R>) -> Result<(), EngineError>
+        where R : RendererApi {
 
         engine.initialise(self);
 
@@ -67,7 +86,14 @@ impl PlatformWindows {
                                             *control_flow = ControlFlow::Exit
                                         },
                                         (Some(keycode), state) => {
-                                            engine.process_keyboard_event(translate_code(keycode), translate_state(state))
+                                            engine.process_keyboard_event(
+                                                crate::control_translations::translate_code(
+                                                    keycode
+                                                ),
+                                                crate::control_translations::translate_state(
+                                                    state
+                                                )
+                                            )
                                         },
                                         _ => {}
                                     }

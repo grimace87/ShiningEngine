@@ -14,7 +14,7 @@ fn main() {
 
     let mut platform = PlatformWindows::new_window(APP_TITLE)
         .unwrap_or_else(|e| {
-            println!("Error creating window: {}", e);
+            println!("Error creating window: {:?}", e);
             std::process::exit(1);
         });
 
@@ -24,7 +24,7 @@ fn main() {
 
     platform.run(engine)
         .unwrap_or_else(|e| {
-            println!("Error while running: {}", e);
+            println!("Error while running: {:?}", e);
             std::process::exit(1);
         });
 }
