@@ -64,7 +64,7 @@ impl COLLADA {
                 let model = pre_merge_models.remove(model_index);
                 source_models.push(model);
             }
-            let merged_model = Model::merge(name, source_models);
+            let merged_model = Model::merge(name.as_str(), source_models);
             merged_models.push(merged_model);
         }
         for unmerged_model in pre_merge_models.into_iter() {
@@ -103,12 +103,12 @@ impl COLLADA {
         for vertex in vertices.iter_mut() {
 
             // Transform positions
-            let x = vertex.x;
-            let y = vertex.y;
-            let z = vertex.z;
-            vertex.x = x * m[0] + y * m[1] + z * m[2] + m[3];
-            vertex.y = x * m[4] + y * m[5] + z * m[6] + m[7];
-            vertex.z = x * m[8] + y * m[9] + z * m[10] + m[11];
+            let x = vertex.px;
+            let y = vertex.py;
+            let z = vertex.pz;
+            vertex.px = x * m[0] + y * m[1] + z * m[2] + m[3];
+            vertex.py = x * m[4] + y * m[5] + z * m[6] + m[7];
+            vertex.pz = x * m[8] + y * m[9] + z * m[10] + m[11];
 
             // Transform normals
             let x = vertex.nx;

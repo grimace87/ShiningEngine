@@ -8,10 +8,10 @@ pub struct GlobalTimer {
     last_update_time: Instant
 }
 
-impl GlobalTimer {
+impl Default for GlobalTimer {
 
     /// Construct a new instance initialised as having started at the present time
-    pub fn new() -> GlobalTimer {
+    fn default() -> GlobalTimer {
         GlobalTimer {
             last_update_time: Instant::now()
         }

@@ -117,12 +117,8 @@ impl TextGenerator {
                 // Nothing to get from info line
             } else if line_key == Self::KEY_LINE_COMMON {
                 // Get line height and base integers from common line
-                loop {
-                    let next_word = match word_iter.next() {
-                        Some(word) => word,
-                        None => break
-                    };
-                    let sign_pos = match next_word.find("=") {
+                while let Some(next_word) = word_iter.next() {
+                    let sign_pos = match next_word.find('=') {
                         Some(pos) => pos,
                         None => continue
                     };
@@ -137,13 +133,9 @@ impl TextGenerator {
                 // Nothing to get from page line
             } else if line_key == Self::KEY_LINE_CHARS {
                 // Get count integer from chars line
-                loop {
-                    let next_word = match word_iter.next() {
-                        Some(word) => word,
-                        None => break
-                    };
+                while let Some(next_word) = word_iter.next() {
                     if next_word.starts_with(Self::KEY_FIELD_CHAR_COUNT) {
-                        let sign_pos = match next_word.find("=") {
+                        let sign_pos = match next_word.find('=') {
                             Some(pos) => pos,
                             None => continue
                         };
@@ -153,12 +145,8 @@ impl TextGenerator {
                 }
             } else if line_key == Self::KEY_LINE_CHAR {
                 // Get all fields for this glyph, then add to glyph set
-                loop {
-                    let next_word = match word_iter.next() {
-                        Some(word) => word,
-                        None => break
-                    };
-                    let sign_pos = match next_word.find("=") {
+                while let Some(next_word) = word_iter.next() {
+                    let sign_pos = match next_word.find('=') {
                         Some(pos) => pos,
                         None => continue
                     };
@@ -201,10 +189,8 @@ impl TextGenerator {
     pub fn generate_vertex_buffer(
         &self,
         for_text: &str,
-        left: f32,
-        top: f32,
-        box_width: f32,
-        box_height: f32,
+        left_top: (f32, f32),
+        box_size: (f32, f32),
         max_line_height: f32,
         horizontal_alignment: TextAlignment,
         vertical_alignment: TextAlignment
@@ -214,8 +200,8 @@ impl TextGenerator {
         let vertex_count = text_chars.len() * 6;
         let mut vertices: Vec<StaticVertex> = vec![StaticVertex::default(); vertex_count];
 
-        let line_height_units = match box_height < max_line_height {
-            true => box_height,
+        let line_height_units = match box_size.1 < max_line_height {
+            true => box_size.1,
             false => max_line_height
         };
         let units_per_font_pixel = line_height_units / self.line_height as f32;
@@ -239,7 +225,7 @@ impl TextGenerator {
                 units_in_line_up_to_word_end = units_across_this_line - advance;
                 current_word_begun_at = index + 1;
                 units_into_this_word = 0.0;
-            } else if units_across_this_line > box_width {
+            } else if units_across_this_line > box_size.0 {
                 if index - current_word_begun_at + 1 == chars_for_this_line {
                     characters_per_line.push(index - current_word_begun_at);
                     current_word_begun_at = index;
@@ -265,23 +251,23 @@ impl TextGenerator {
         let total_text_height_units = characters_per_line.len() as f32 * line_height_units;
         let margin_y_units: f32 = match vertical_alignment {
             TextAlignment::Start => 0.0,
-            TextAlignment::Centre => 0.5 * (box_height - total_text_height_units),
-            TextAlignment::End => box_height - total_text_height_units
+            TextAlignment::Centre => 0.5 * (box_size.1 - total_text_height_units),
+            TextAlignment::End => box_size.1 - total_text_height_units
         };
 
         // Start building the buffer
         let mut chars_rendered = 0;
         let mut pen_y =
-            top + margin_y_units + self.descent_to_baseline as f32 * units_per_font_pixel;
+            left_top.1 + margin_y_units + self.descent_to_baseline as f32 * units_per_font_pixel;
         let mut text_index: usize = 0;
         for (index, chars_on_line) in characters_per_line.iter().enumerate() {
             let line_width_units = unit_width_of_line[index];
             let margin_x_units: f32 = match horizontal_alignment {
                 TextAlignment::Start => 0.0,
-                TextAlignment::End => box_width - line_width_units,
-                TextAlignment::Centre => 0.5 * (box_width - line_width_units)
+                TextAlignment::End => box_size.0 - line_width_units,
+                TextAlignment::Centre => 0.5 * (box_size.0 - line_width_units)
             };
-            let mut pen_x = left + margin_x_units;
+            let mut pen_x = left_top.0 + margin_x_units;
             for _i in 0..(*chars_on_line as i32) {
                 let char = text_chars[text_index];
                 text_index += 1;
@@ -300,22 +286,22 @@ impl TextGenerator {
 
                 let i = chars_rendered * 6;
                 vertices[i    ] = StaticVertex::from_components(
-                    x_min, y_min, 0.0, 0.0, 0.0, -1.0, s_min, t_min
+                    (x_min, y_min, 0.0), (0.0, 0.0, -1.0), (s_min, t_min)
                 );
                 vertices[i + 1] = StaticVertex::from_components(
-                    x_min, y_max, 0.0, 0.0, 0.0, -1.0, s_min, t_max
+                    (x_min, y_max, 0.0), (0.0, 0.0, -1.0), (s_min, t_max)
                 );
                 vertices[i + 2] = StaticVertex::from_components(
-                    x_max, y_max, 0.0, 0.0, 0.0, -1.0, s_max, t_max
+                    (x_max, y_max, 0.0), (0.0, 0.0, -1.0), (s_max, t_max)
                 );
                 vertices[i + 3] = StaticVertex::from_components(
-                    x_max, y_max, 0.0, 0.0, 0.0, -1.0, s_max, t_max
+                    (x_max, y_max, 0.0), (0.0, 0.0, -1.0), (s_max, t_max)
                 );
                 vertices[i + 4] = StaticVertex::from_components(
-                    x_max, y_min, 0.0, 0.0, 0.0, -1.0, s_max, t_min
+                    (x_max, y_min, 0.0), (0.0, 0.0, -1.0), (s_max, t_min)
                 );
                 vertices[i + 5] = StaticVertex::from_components(
-                    x_min, y_min, 0.0, 0.0, 0.0, -1.0, s_min, t_min
+                    (x_min, y_min, 0.0), (0.0, 0.0, -1.0), (s_min, t_min)
                 );
 
                 pen_x += glyph.advance_x * units_per_font_pixel;

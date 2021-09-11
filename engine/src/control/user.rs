@@ -12,10 +12,10 @@ pub struct UserControl {
     dy: f32
 }
 
-impl UserControl {
+impl Default for UserControl {
 
     /// Construct new instance, initially with no inputs signalled
-    pub fn new() -> UserControl {
+    fn default() -> UserControl {
         UserControl {
             dx: 0.0,
             dy: 0.0

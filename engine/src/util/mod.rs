@@ -51,7 +51,7 @@ pub fn decode_texture(image_file_bytes: &[u8], codec: TextureCodec, usage: Image
         layer_data: Some(vec![data]),
         width,
         height,
-        format: TexturePixelFormat::RGBA,
+        format: TexturePixelFormat::Rgba,
         usage
     })
 }
@@ -74,7 +74,7 @@ pub fn decode_texture_array(image_file_bytes: Vec<&[u8]>, codec: TextureCodec, u
         layer_data: Some(layer_data),
         width,
         height,
-        format: TexturePixelFormat::RGBA,
+        format: TexturePixelFormat::Rgba,
         usage
     })
 }
@@ -95,52 +95,52 @@ pub fn make_skybox_vertices(size: f32) -> (Vec<StaticVertex>, usize) {
     let vertices = vec![
 
         // Left (negative X)
-        StaticVertex::from_components(neg, neg, neg, pos, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, pos, neg, pos, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, pos, pos, pos, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, pos, pos, pos, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, neg, pos, pos, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, neg, neg, pos, 0.0, 0.0, 0.0, 0.0),
+        StaticVertex::from_components((neg, neg, neg), (pos, 0.0, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, pos, neg), (pos, 0.0, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, pos, pos), (pos, 0.0, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, pos, pos), (pos, 0.0, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, neg, pos), (pos, 0.0, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, neg, neg), (pos, 0.0, 0.0), (0.0, 0.0)),
 
         // Right (positive X)
-        StaticVertex::from_components(pos, neg, neg, neg, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, neg, pos, neg, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, pos, pos, neg, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, pos, pos, neg, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, pos, neg, neg, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, neg, neg, neg, 0.0, 0.0, 0.0, 0.0),
+        StaticVertex::from_components((pos, neg, neg), (neg, 0.0, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((pos, neg, pos), (neg, 0.0, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((pos, pos, pos), (neg, 0.0, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((pos, pos, pos), (neg, 0.0, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((pos, pos, neg), (neg, 0.0, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((pos, neg, neg), (neg, 0.0, 0.0), (0.0, 0.0)),
 
         // Up (negative Y)
-        StaticVertex::from_components(pos, neg, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, neg, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, neg, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, neg, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, neg, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, neg, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
+        StaticVertex::from_components((pos, neg, pos), (0.0, pos, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((pos, neg, neg), (0.0, pos, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, neg, neg), (0.0, pos, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, neg, neg), (0.0, pos, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, neg, pos), (0.0, pos, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((pos, neg, pos), (0.0, pos, 0.0), (0.0, 0.0)),
 
         // Down (positive Y)
-        StaticVertex::from_components(pos, pos, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, pos, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, pos, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, pos, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, pos, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, pos, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
+        StaticVertex::from_components((pos, pos, pos), (0.0, neg, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, pos, pos), (0.0, neg, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, pos, neg), (0.0, neg, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((neg, pos, neg), (0.0, neg, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((pos, pos, neg), (0.0, neg, 0.0), (0.0, 0.0)),
+        StaticVertex::from_components((pos, pos, pos), (0.0, neg, 0.0), (0.0, 0.0)),
 
         // Forward (negative Z)
-        StaticVertex::from_components(pos, pos, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, pos, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, neg, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, neg, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, neg, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, pos, neg, 0.0, 0.0, 0.0, 0.0, 0.0),
+        StaticVertex::from_components((pos, pos, neg), (0.0, 0.0, pos), (0.0, 0.0)),
+        StaticVertex::from_components((neg, pos, neg), (0.0, 0.0, pos), (0.0, 0.0)),
+        StaticVertex::from_components((neg, neg, neg), (0.0, 0.0, pos), (0.0, 0.0)),
+        StaticVertex::from_components((neg, neg, neg), (0.0, 0.0, pos), (0.0, 0.0)),
+        StaticVertex::from_components((pos, neg, neg), (0.0, 0.0, pos), (0.0, 0.0)),
+        StaticVertex::from_components((pos, pos, neg), (0.0, 0.0, pos), (0.0, 0.0)),
 
         // Behind (positive Z)
-        StaticVertex::from_components(pos, pos, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, neg, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, neg, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, neg, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(neg, pos, pos, 0.0, 0.0, 0.0, 0.0, 0.0),
-        StaticVertex::from_components(pos, pos, pos, 0.0, 0.0, 0.0, 0.0, 0.0)
+        StaticVertex::from_components((pos, pos, pos), (0.0, 0.0, neg), (0.0, 0.0)),
+        StaticVertex::from_components((pos, neg, pos), (0.0, 0.0, neg), (0.0, 0.0)),
+        StaticVertex::from_components((neg, neg, pos), (0.0, 0.0, neg), (0.0, 0.0)),
+        StaticVertex::from_components((neg, neg, pos), (0.0, 0.0, neg), (0.0, 0.0)),
+        StaticVertex::from_components((neg, pos, pos), (0.0, 0.0, neg), (0.0, 0.0)),
+        StaticVertex::from_components((pos, pos, pos), (0.0, 0.0, neg), (0.0, 0.0))
     ];
     let vertex_count = vertices.len();
     (vertices, vertex_count)
@@ -155,22 +155,22 @@ pub fn map_ui_rects(source: Vec<[f32; 8]>) -> Vec<StaticVertex> {
     for s in source {
         let set = [
             StaticVertex::from_components(
-                s[0], s[1], 0.0, 0.0, -1.0, 0.0, s[4], s[5]
+                (s[0], s[1], 0.0), (0.0, -1.0, 0.0), (s[4], s[5])
             ),
             StaticVertex::from_components(
-                s[0], s[3], 0.0, 0.0, -1.0, 0.0, s[4], s[7]
+                (s[0], s[3], 0.0), (0.0, -1.0, 0.0), (s[4], s[7])
             ),
             StaticVertex::from_components(
-                s[2], s[3], 0.0, 0.0, -1.0, 0.0, s[6], s[7]
+                (s[2], s[3], 0.0), (0.0, -1.0, 0.0), (s[6], s[7])
             ),
             StaticVertex::from_components(
-                s[2], s[3], 0.0, 0.0, -1.0, 0.0, s[6], s[7]
+                (s[2], s[3], 0.0), (0.0, -1.0, 0.0), (s[6], s[7])
             ),
             StaticVertex::from_components(
-                s[2], s[1], 0.0, 0.0, -1.0, 0.0, s[6], s[5]
+                (s[2], s[1], 0.0), (0.0, -1.0, 0.0), (s[6], s[5])
             ),
             StaticVertex::from_components(
-                s[0], s[1], 0.0, 0.0, -1.0, 0.0, s[4], s[5]
+                (s[0], s[1], 0.0), (0.0, -1.0, 0.0,), (s[4], s[5])
             )
         ];
         all_rects.extend_from_slice(&set);

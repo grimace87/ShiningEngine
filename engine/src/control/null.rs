@@ -9,10 +9,10 @@ use defs::control::{
 /// Empty control implementation; does nothing
 pub struct NullControl {}
 
-impl NullControl {
+impl Default for NullControl {
 
     /// Construct a new instance
-    pub fn new() -> NullControl {
+    fn default() -> NullControl {
         NullControl {}
     }
 }

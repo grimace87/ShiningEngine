@@ -47,6 +47,7 @@ pub trait SceneInfo {
 
     /// Get a pointer to the uniform data, and the data size in bytes, ready for upload into the
     /// renderer implementation
+    /// # Safety - should ensure size covers the actual data
     unsafe fn get_ubo_data_ptr_and_size(
         &self,
         pass_index: usize,

@@ -32,7 +32,7 @@ pub unsafe fn make_device_resources(
     instance: &Instance,
     surface_fn: &Surface,
     surface: &vk::SurfaceKHR,
-    features: &Vec<FeatureDeclaration>
+    features: &[FeatureDeclaration]
 ) -> Result<(Device, PhysicalDeviceProperties, vk::Queue, vk::Queue), EngineError> {
 
     let physical_device_properties =
@@ -102,7 +102,7 @@ unsafe fn select_physical_device(
     instance: &ash::Instance,
     surface_loader: &ash::extensions:: khr::Surface,
     surface: &vk::SurfaceKHR,
-    features: &Vec<FeatureDeclaration>
+    features: &[FeatureDeclaration]
 ) -> Result<PhysicalDeviceProperties, EngineError> {
 
     let physical_devices = instance
@@ -167,7 +167,7 @@ unsafe fn select_physical_device(
 /// Return set of features to enable during device creation, knowing that all of those features
 /// are supported by the physical device. If they are not all supported, this returns None.
 fn make_feature_set_to_enable(
-    features: &Vec<FeatureDeclaration>,
+    features: &[FeatureDeclaration],
     supported_features: &vk::PhysicalDeviceFeatures
 ) -> Option<vk::PhysicalDeviceFeatures> {
     let mut features_to_enable = vk::PhysicalDeviceFeatures::default();

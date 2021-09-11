@@ -32,7 +32,7 @@ pub struct VkRenderer {
 
 impl RendererApi for VkRenderer {
 
-    fn new(window_owner: &dyn HasRawWindowHandle, features: &Vec<FeatureDeclaration>, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<Self, EngineError> {
+    fn new(window_owner: &dyn HasRawWindowHandle, features: &[FeatureDeclaration], resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<Self, EngineError> {
 
         // Vulkan core - instance, device, swapchain, queues, command pools
         let entry = unsafe {
@@ -47,12 +47,11 @@ impl RendererApi for VkRenderer {
             render_core.regenerate_command_buffers()?
         };
         let mut per_image_resources = vec![];
-        let swapchain_image_count = render_core.image_views.len();
-        for swapchain_image_index in 0..swapchain_image_count {
-            let command_buffer = command_buffers[swapchain_image_index];
-            let resources = PerImageResources::new(&render_core, swapchain_image_index, description, command_buffer)?;
+        assert_eq!(command_buffers.len(), render_core.image_views.len());
+        for (swapchain_image_index, command_buffer) in command_buffers.iter().enumerate() {
+            let resources = PerImageResources::new(&render_core, swapchain_image_index, description, *command_buffer)?;
             unsafe {
-                resources.record_command_buffer(&render_core, description, command_buffer)?;
+                resources.record_command_buffer(&render_core, description, *command_buffer)?;
             }
             per_image_resources.push(resources);
         }
@@ -73,7 +72,7 @@ impl RendererApi for VkRenderer {
             self.per_image_resources[swapchain_image_index].on_pre_render(&mut self.render_core, scene_info);
             let command_buffer = self.per_image_resources[swapchain_image_index].get_command_buffer();
             self.render_core.submit_command_buffer(command_buffer)?;
-            return self.render_core.present_image();
+            self.render_core.present_image()
         }
     }
 
@@ -91,11 +90,10 @@ impl RendererApi for VkRenderer {
 
         unsafe {
             self.render_core.recreate_surface(&self.function_loader, window_owner)?;
-            let swapchain_image_count = self.render_core.image_views.len();
-            for swapchain_image_index in 0..swapchain_image_count {
-                let command_buffer = command_buffers[swapchain_image_index];
-                let resources = PerImageResources::new(&self.render_core, swapchain_image_index, description, command_buffer)?;
-                resources.record_command_buffer(&self.render_core, description, command_buffer)?;
+            assert_eq!(command_buffers.len(), self.render_core.image_views.len());
+            for (swapchain_image_index, command_buffer) in command_buffers.iter().enumerate() {
+                let resources = PerImageResources::new(&self.render_core, swapchain_image_index, description, *command_buffer)?;
+                resources.record_command_buffer(&self.render_core, description, *command_buffer)?;
                 self.per_image_resources.push(resources);
             }
         }
@@ -117,12 +115,11 @@ impl RendererApi for VkRenderer {
             self.render_core.regenerate_command_buffers()?
         };
 
-        let swapchain_image_count = self.render_core.image_views.len();
-        for swapchain_image_index in 0..swapchain_image_count {
-            let command_buffer = command_buffers[swapchain_image_index];
-            let resources = PerImageResources::new(&self.render_core, swapchain_image_index, description, command_buffer)?;
+        assert_eq!(command_buffers.len(), self.render_core.image_views.len());
+        for (swapchain_image_index, command_buffer) in command_buffers.iter().enumerate() {
+            let resources = PerImageResources::new(&self.render_core, swapchain_image_index, description, *command_buffer)?;
             unsafe {
-                resources.record_command_buffer(&self.render_core, description, command_buffer)?;
+                resources.record_command_buffer(&self.render_core, description, *command_buffer)?;
             }
             self.per_image_resources.push(resources);
         }

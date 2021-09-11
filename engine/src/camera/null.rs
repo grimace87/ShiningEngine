@@ -12,10 +12,10 @@ use cgmath::{
 /// Camera implementation that does nothing.
 pub struct NullCamera {}
 
-impl NullCamera {
+impl Default for NullCamera {
 
     /// Object with no fields
-    pub fn new() -> NullCamera {
+    fn default() -> NullCamera {
         NullCamera {}
     }
 }

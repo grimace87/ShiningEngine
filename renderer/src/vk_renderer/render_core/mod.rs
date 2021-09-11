@@ -93,7 +93,7 @@ impl RenderCore {
     pub fn new(
         entry: &Entry,
         window_owner: &dyn HasRawWindowHandle,
-        features: &Vec<FeatureDeclaration>,
+        features: &[FeatureDeclaration],
         resource_preloads: &ResourcePreloads
     ) -> Result<RenderCore, EngineError> {
         Ok(unsafe {
@@ -109,7 +109,7 @@ impl RenderCore {
     unsafe fn new_with_surface_without_swapchain(
         entry: &Entry,
         window_owner: &dyn HasRawWindowHandle,
-        features: &Vec<FeatureDeclaration>
+        features: &[FeatureDeclaration]
     ) -> Result<RenderCore, EngineError> {
 
         // Create instance
@@ -232,7 +232,7 @@ impl RenderCore {
                     creation_data.format,
                     creation_data.width,
                     creation_data.height,
-                    Some(data))?,
+                    Some(data.as_slice()))?,
                 // TODO - One per swapchain image
                 None => crate::vk_renderer::images::ImageWrapper::new(
                     self,

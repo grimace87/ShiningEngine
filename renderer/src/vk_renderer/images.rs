@@ -51,7 +51,7 @@ impl ImageWrapper {
         format: TexturePixelFormat,
         width: u32,
         height: u32,
-        init_layer_data: Option<&Vec<Vec<u8>>>
+        init_layer_data: Option<&[Vec<u8>]>
     ) -> Result<ImageWrapper, EngineError> {
 
         let creation_params = match (usage, format) {
@@ -71,7 +71,7 @@ impl ImageWrapper {
             },
 
             // Typical off-screen-rendered color attachment
-            (ImageUsage::OffscreenRenderSampleColorWriteDepth, TexturePixelFormat::RGBA) => {
+            (ImageUsage::OffscreenRenderSampleColorWriteDepth, TexturePixelFormat::Rgba) => {
                 if init_layer_data.is_some() {
                     return Err(EngineError::RenderError(
                         String::from("Initialising off-screen render image not allowed")));
@@ -101,7 +101,7 @@ impl ImageWrapper {
             },
 
             // Typical initialised texture
-            (ImageUsage::TextureSampleOnly, TexturePixelFormat::RGBA) => {
+            (ImageUsage::TextureSampleOnly, TexturePixelFormat::Rgba) => {
                 if init_layer_data.is_none() {
                     return Err(EngineError::RenderError(
                         String::from("Not initialising sample-only texture not allowed")));
@@ -116,7 +116,7 @@ impl ImageWrapper {
             },
 
             // Typical sky box (cube map)
-            (ImageUsage::Skybox, TexturePixelFormat::RGBA) => {
+            (ImageUsage::Skybox, TexturePixelFormat::Rgba) => {
                 if init_layer_data.is_none() {
                     return Err(EngineError::RenderError(
                         String::from("Not initialising sample-only texture not allowed")));
@@ -240,7 +240,7 @@ impl ImageWrapper {
         width: u32,
         height: u32,
         image: &vk::Image,
-        layer_data: &Vec<Vec<u8>>) -> Result<(), EngineError> {
+        layer_data: &[Vec<u8>]) -> Result<(), EngineError> {
 
         if layer_data.is_empty() {
             panic!("Passed empty layer data as ImageWrapper init data")
@@ -323,8 +323,7 @@ impl ImageWrapper {
             buffer_image_height: 0,
             image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
             image_extent: vk::Extent3D { width, height, depth: 1 },
-            image_subresource,
-            ..Default::default()
+            image_subresource
         };
         render_core.device.cmd_copy_buffer_to_image(
             copy_command_buffer,

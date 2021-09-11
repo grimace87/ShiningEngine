@@ -146,10 +146,8 @@ impl SceneInfo for SceneryScene {
 
         let hud_data = self.text_generator.generate_vertex_buffer(
             "Ey, mate",
-            -1.0,
-            -1.0,
-            2.0,
-            1.0,
+            (-1.0, -1.0),
+            (2.0, 1.0),
             0.125,
             TextAlignment::Start,
             TextAlignment::Start);
@@ -215,7 +213,7 @@ impl SceneInfo for SceneryScene {
             layer_data: None,
             width: OFFSCREEN_RENDER_SIZE,
             height: OFFSCREEN_RENDER_SIZE,
-            format: TexturePixelFormat::RGBA,
+            format: TexturePixelFormat::Rgba,
             usage: ImageUsage::OffscreenRenderSampleColorWriteDepth
         });
         texture_loads.insert(TEXTURE_INDEX_REFLECTION_DEPTH, TextureCreationData {
@@ -229,7 +227,7 @@ impl SceneInfo for SceneryScene {
             layer_data: None,
             width: OFFSCREEN_RENDER_SIZE,
             height: OFFSCREEN_RENDER_SIZE,
-            format: TexturePixelFormat::RGBA,
+            format: TexturePixelFormat::Rgba,
             usage: ImageUsage::OffscreenRenderSampleColorWriteDepth
         });
         texture_loads.insert(TEXTURE_INDEX_REFRACTION_DEPTH, TextureCreationData {
@@ -255,7 +253,7 @@ impl SceneInfo for SceneryScene {
                         depth_texture_index: Some(TEXTURE_INDEX_REFLECTION_DEPTH),
                         width: OFFSCREEN_RENDER_SIZE as usize,
                         height: OFFSCREEN_RENDER_SIZE as usize,
-                        color_format: TexturePixelFormat::RGBA,
+                        color_format: TexturePixelFormat::Rgba,
                         depth_format: TexturePixelFormat::Unorm16
                     }),
                     steps: vec![
@@ -341,8 +339,8 @@ impl SceneInfo for SceneryScene {
         self.river_pass_ubo.matrix = pv_matrix;
 
         let red = 0.5 + 0.5 * pv_matrix.x.x;
-        self.terrain_pass_ubo.matrix = pv_matrix.clone();
-        self.terrain_reflection_pass_ubo.matrix = pv_inverted_matrix.clone();
+        self.terrain_pass_ubo.matrix = pv_matrix;
+        self.terrain_reflection_pass_ubo.matrix = pv_inverted_matrix;
         self.text_paint_ubo.paint_color.x = red;
         self.text_paint_ubo.paint_color.z = 1.0 - red;
 

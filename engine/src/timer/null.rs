@@ -3,10 +3,10 @@
 /// Timer which does nothing, always returning zero elapsed time
 pub struct NullTimer {}
 
-impl NullTimer {
+impl Default for NullTimer {
 
     /// Construct a new instance; currently an empty struct
-    pub fn new() -> NullTimer {
+    fn default() -> NullTimer {
         NullTimer {}
     }
 }

@@ -51,9 +51,9 @@ impl<R: 'static> Engine<R> where R : RendererApi {
             declared_features: features,
             scene_host: crate::scene::SceneHost::new(scene_info),
             phantom_renderer: PhantomData::default(),
-            renderer: Box::new(NullRenderer::new()),
-            controller: Box::new(crate::control::null::NullControl::new()),
-            timer: Box::new(crate::timer::null::NullTimer::new()),
+            renderer: Box::new(NullRenderer::default()),
+            controller: Box::new(crate::control::null::NullControl::default()),
+            timer: Box::new(crate::timer::null::NullTimer::default()),
             drawing_description: DrawingDescription { passes: Vec::new() },
         }
     }
@@ -70,8 +70,8 @@ impl<R: 'static> Engine<R> where R : RendererApi {
         self.scene_host.update_aspect_ratio(aspect_ratio);
 
         self.renderer = Box::new(renderer);
-        self.controller = Box::new(crate::control::user::UserControl::new());
-        self.timer = Box::new(crate::timer::global::GlobalTimer::new());
+        self.controller = Box::new(crate::control::user::UserControl::default());
+        self.timer = Box::new(crate::timer::global::GlobalTimer::default());
         self.drawing_description = description;
     }
 
@@ -127,7 +127,7 @@ impl<R: 'static> Engine<R> where R : RendererApi {
                 self.renderer.recreate_surface(window_owner, &self.drawing_description)?;
                 updated_aspect_ratio = self.renderer.get_aspect_ratio();
             },
-            Err(e) => return Err(e.into())
+            Err(e) => return Err(e)
         };
 
         self.scene_host.update_aspect_ratio(updated_aspect_ratio);

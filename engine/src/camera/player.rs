@@ -96,13 +96,11 @@ impl Camera for PlayerCamera {
                     let unclamped_speed = self.angular_speed - accel * time_step_secs * dx;
                     unclamped_speed.min(max_speed).max(-max_speed)
                 }
+            } else if dx < deadzone {
+                (self.angular_speed + decel * time_step_secs).min(0.0)
             } else {
-                if dx < deadzone {
-                    (self.angular_speed + decel * time_step_secs).min(0.0)
-                } else {
-                    let unclamped_speed = self.angular_speed - accel * time_step_secs * dx;
-                    unclamped_speed.min(max_speed).max(-max_speed)
-                }
+                let unclamped_speed = self.angular_speed - accel * time_step_secs * dx;
+                unclamped_speed.min(max_speed).max(-max_speed)
             }
         };
 
@@ -133,13 +131,11 @@ impl Camera for PlayerCamera {
                     let unclamped_speed = self.speed + accel * time_step_secs * dy;
                     unclamped_speed.min(max_speed).max(max_reverse_speed)
                 }
+            } else if dy > -deadzone {
+                (self.speed + decel * time_step_secs).min(0.0)
             } else {
-                if dy > -deadzone {
-                    (self.speed + decel * time_step_secs).min(0.0)
-                } else {
-                    let unclamped_speed = self.speed + accel * time_step_secs * dy;
-                    unclamped_speed.min(max_speed).max(max_reverse_speed)
-                }
+                let unclamped_speed = self.speed + accel * time_step_secs * dy;
+                unclamped_speed.min(max_speed).max(max_reverse_speed)
             }
         };
 

@@ -222,13 +222,12 @@ impl PipelineWrapper {
             Shader::Water => vk::ShaderStageFlags::VERTEX,
         };
         let descriptor_set_layout_binding_infos: Vec<vk::DescriptorSetLayoutBinding> = {
-            let mut bindings = vec![];
-            bindings.push(vk::DescriptorSetLayoutBinding::builder()
+            let mut bindings = vec![vk::DescriptorSetLayoutBinding::builder()
                 .binding(0)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                 .descriptor_count(1)
                 .stage_flags(ubo_stage_flags)
-                .build());
+                .build()];
             for index in 0..texture_image_views.len() {
                 bindings.push(vk::DescriptorSetLayoutBinding::builder()
                     .binding(1 + index as u32)
@@ -289,13 +288,12 @@ impl PipelineWrapper {
             })
             .collect();
         let descriptor_set_writes: Vec<vk::WriteDescriptorSet> = {
-            let mut writes = vec![];
-            writes.push(vk::WriteDescriptorSet::builder()
+            let mut writes = vec![vk::WriteDescriptorSet::builder()
                 .dst_set(descriptor_set)
                 .dst_binding(0)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                 .buffer_info(&buffer_infos)
-                .build());
+                .build()];
             for index in 0..texture_image_views.len() {
                 writes.push(vk::WriteDescriptorSet::builder()
                     .dst_set(descriptor_set)

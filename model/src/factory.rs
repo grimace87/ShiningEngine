@@ -8,7 +8,16 @@ use std::{
 const VERTEX_SIZE_BYTES: usize = 32;
 
 pub trait FromFile<E> where E : Sized {
+
+    /// # Safety
+    ///
+    /// Bytes should come from a file previously written by write_to_binary_file, and which used
+    /// the same generic type
     unsafe fn new_from_bytes(bytes: &[u8]) -> Result<Self, String> where Self : Sized;
+
+    /// # Safety
+    ///
+    /// Should be fine?
     unsafe fn write_to_binary_file(&self, file_path: &Path) -> Result<(), String>;
 }
 

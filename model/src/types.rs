@@ -17,7 +17,7 @@ impl<E> Model<E> {
     }
 
     /// Merge a set of models into a new model under a new name
-    pub fn merge(name: &String, source_models: Vec<Model<E>>) -> Model<E> {
+    pub fn merge(name: &str, source_models: Vec<Model<E>>) -> Model<E> {
         let mut all_vertices = vec![];
         for model in source_models.into_iter() {
             for vertex in model.vertices.into_iter() {
@@ -25,7 +25,7 @@ impl<E> Model<E> {
             }
         }
         Model {
-            name: name.clone(),
+            name: name.to_string(),
             vertices: all_vertices
         }
     }
@@ -37,30 +37,25 @@ impl<E> Model<E> {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct StaticVertex {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
+    pub px: f32,
+    pub py: f32,
+    pub pz: f32,
     pub nx: f32,
     pub ny: f32,
     pub nz: f32,
-    pub u: f32,
-    pub v: f32
+    pub tu: f32,
+    pub tv: f32
 }
 
 impl StaticVertex {
 
     /// Construct a new instance from individual components
     pub fn from_components(
-        x: f32,
-        y: f32,
-        z: f32,
-        nx: f32,
-        ny: f32,
-        nz: f32,
-        u: f32,
-        v: f32
+        p: (f32, f32, f32),
+        n: (f32, f32, f32),
+        t: (f32, f32)
     ) -> StaticVertex {
-        StaticVertex { x, y, z, nx, ny, nz, u, v }
+        StaticVertex { px: p.0, py: p.1, pz: p.2, nx: n.0, ny: n.1, nz: n.2, tu: t.0, tv: t.1 }
     }
 }
 
@@ -69,6 +64,6 @@ impl Default for StaticVertex {
     /// Construct a new instance with position at the origin, texture coordinates at the origin,
     /// and a normal vector pointing in the positive Z direction.
     fn default() -> Self {
-        StaticVertex { x: 0.0, y: 0.0, z: 0.0, nx: 0.0, ny: 0.0, nz: 1.0, u: 0.0, v: 0.0 }
+        StaticVertex { px: 0.0, py: 0.0, pz: 0.0, nx: 0.0, ny: 0.0, nz: 1.0, tu: 0.0, tv: 0.0 }
     }
 }

@@ -79,25 +79,22 @@ impl PlatformWindows {
                             *control_flow = ControlFlow::Exit
                         },
                         WindowEvent::KeyboardInput { input, .. } => {
-                            match input {
-                                KeyboardInput { virtual_keycode, state, .. } => {
-                                    match (virtual_keycode, state) {
-                                        (Some(VirtualKeyCode::Escape), ElementState::Pressed) => {
-                                            *control_flow = ControlFlow::Exit
-                                        },
-                                        (Some(keycode), state) => {
-                                            engine.process_keyboard_event(
-                                                crate::control_translations::translate_code(
-                                                    keycode
-                                                ),
-                                                crate::control_translations::translate_state(
-                                                    state
-                                                )
-                                            )
-                                        },
-                                        _ => {}
-                                    }
-                                }
+                            let KeyboardInput { virtual_keycode, state, .. } = input;
+                            match (virtual_keycode, state) {
+                                (Some(VirtualKeyCode::Escape), ElementState::Pressed) => {
+                                    *control_flow = ControlFlow::Exit
+                                },
+                                (Some(keycode), state) => {
+                                    engine.process_keyboard_event(
+                                        crate::control_translations::translate_code(
+                                            keycode
+                                        ),
+                                        crate::control_translations::translate_state(
+                                            state
+                                        )
+                                    )
+                                },
+                                _ => {}
                             }
                         },
                         WindowEvent::Resized(_) => {

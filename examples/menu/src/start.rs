@@ -1,18 +1,34 @@
 
-use crate::submenu::SubMenuScene;
-
 use defs::{
+    SceneInfo,
     control::Control,
-    render::{SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, VboCreationData, TextureCreationData, ResourcePreloads, ImageUsage}
+    render::{
+        DrawingDescription,
+        DrawingPass,
+        DrawingStep,
+        FramebufferTarget,
+        Shader,
+        VertexFormat,
+        VboCreationData,
+        TextureCreationData,
+        ResourcePreloads,
+        ImageUsage
+    }
 };
 use engine::util::{
     TextureCodec,
     decode_texture,
     map_ui_rects,
-    textbuffer::{TextGenerator, TextAlignment}
+    textbuffer::{
+        TextGenerator,
+        TextAlignment
+    }
 };
-
-use cgmath::{Matrix4, Vector4, SquareMatrix};
+use cgmath::{
+    Matrix4,
+    Vector4,
+    SquareMatrix
+};
 use std::collections::HashMap;
 
 const MENU_TEXTURE_BYTES: &[u8] = include_bytes!("../../resources/textures/menu_texture.png");
@@ -42,8 +58,8 @@ pub struct StartMenuScene {
     frame_counter: usize
 }
 
-impl StartMenuScene {
-    pub fn new() -> StartMenuScene {
+impl Default for StartMenuScene {
+    fn default() -> StartMenuScene {
         StartMenuScene {
             text_generator: TextGenerator::from_resource(
                 include_str!("../../resources/font/Musica.fnt")
@@ -75,10 +91,8 @@ impl SceneInfo for StartMenuScene {
 
         let hud_data = self.text_generator.generate_vertex_buffer(
             "Ey, mate",
-            -1.0,
-            -1.0,
-            2.0,
-            1.0,
+            (-1.0, -1.0),
+            (2.0, 1.0),
             0.125,
             TextAlignment::Start,
             TextAlignment::Start);
@@ -100,8 +114,16 @@ impl SceneInfo for StartMenuScene {
             index_data: None
         });
 
-        let menu_texture = decode_texture(MENU_TEXTURE_BYTES, TextureCodec::Png, ImageUsage::TextureSampleOnly).unwrap();
-        let font_texture = decode_texture(MUSICA_FONT_BYTES, TextureCodec::Png, ImageUsage::TextureSampleOnly).unwrap();
+        let menu_texture = decode_texture(
+            MENU_TEXTURE_BYTES,
+            TextureCodec::Png,
+            ImageUsage::TextureSampleOnly)
+            .unwrap();
+        let font_texture = decode_texture(
+            MUSICA_FONT_BYTES,
+            TextureCodec::Png,
+            ImageUsage::TextureSampleOnly)
+            .unwrap();
         let mut texture_loads = HashMap::<usize, TextureCreationData>::new();
         texture_loads.insert(TEXTURE_INDEX_BG, menu_texture);
         texture_loads.insert(TEXTURE_INDEX_FONT, font_texture);
@@ -142,23 +164,35 @@ impl SceneInfo for StartMenuScene {
 
     fn update_aspect_ratio(&mut self, _aspect_ratio: f32) {}
 
-    fn update_camera(&mut self, _time_step_millis: u64, _controller: &dyn Control) -> Option<Box<dyn SceneInfo>> {
+    fn update_camera(
+        &mut self,
+        _time_step_millis: u64,
+        _controller: &dyn Control
+    ) -> Option<Box<dyn SceneInfo>> {
         let red: f32 = 1.0;
         self.text_paint_ubo.paint_color.x = red;
         self.text_paint_ubo.paint_color.z = 1.0 - red;
 
         self.frame_counter += 1;
         if self.frame_counter == 60 {
-            Some(Box::new(SubMenuScene::new()))
+            Some(Box::new(crate::submenu::SubMenuScene::new()))
         } else {
             None
         }
     }
 
-    unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize, step_index: usize) -> (*const u8, usize) {
+    unsafe fn get_ubo_data_ptr_and_size(
+        &self,
+        pass_index: usize,
+        step_index: usize
+    ) -> (*const u8, usize) {
         match (pass_index, step_index) {
-            (0, 0) => (&self.camera_ubo as *const CameraUbo as *const u8, std::mem::size_of::<CameraUbo>()),
-            (0, 1) => (&self.text_paint_ubo as *const TextPaintUbo as *const u8, std::mem::size_of::<TextPaintUbo>()),
+            (0, 0) => (
+                &self.camera_ubo as *const CameraUbo as *const u8,
+                std::mem::size_of::<CameraUbo>()),
+            (0, 1) => (
+                &self.text_paint_ubo as *const TextPaintUbo as *const u8,
+                std::mem::size_of::<TextPaintUbo>()),
             _ => panic!("Cannot get UBO for StartMenuScene")
         }
     }

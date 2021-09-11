@@ -47,7 +47,7 @@ pub enum ImageUsage {
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum TexturePixelFormat {
     None,
-    RGBA,
+    Rgba,
     Unorm16
 }
 
@@ -137,7 +137,7 @@ pub trait RendererApi {
     /// Construct a new instance of this implementation
     fn new(
         window_owner: &dyn HasRawWindowHandle,
-        features: &Vec<FeatureDeclaration>,
+        features: &[FeatureDeclaration],
         resource_preloads: &ResourcePreloads,
         description: &DrawingDescription
     ) -> Result<Self, crate::EngineError> where Self : Sized;

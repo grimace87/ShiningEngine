@@ -54,14 +54,17 @@ impl Mesh {
             let normal_index = interleaved_indices[index + 1];
             let tex_coord_index = interleaved_indices[index + 2];
             vertices.push(StaticVertex::from_components(
-                position_data[position_index * 3],
-                position_data[position_index * 3 + 1],
-                position_data[position_index * 3 + 2],
-                normal_data[normal_index * 3],
-                normal_data[normal_index * 3 + 1],
-                normal_data[normal_index * 3 + 2],
-                tex_coord_data[tex_coord_index * 2],
-                tex_coord_data[tex_coord_index * 2 + 1]
+                (
+                    position_data[position_index * 3],
+                    position_data[position_index * 3 + 1],
+                    position_data[position_index * 3 + 2]),
+                (
+                    normal_data[normal_index * 3],
+                    normal_data[normal_index * 3 + 1],
+                    normal_data[normal_index * 3 + 2]),
+                (
+                    tex_coord_data[tex_coord_index * 2],
+                    tex_coord_data[tex_coord_index * 2 + 1])
             ));
             index += 3;
         }

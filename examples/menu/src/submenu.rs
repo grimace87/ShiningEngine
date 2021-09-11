@@ -1,15 +1,31 @@
 
 use defs::{
+    SceneInfo,
     Camera,
     control::Control,
-    render::{SceneInfo, DrawingDescription, DrawingPass, DrawingStep, FramebufferTarget, Shader, VertexFormat, VboCreationData, ResourcePreloads}
+    render::{
+        DrawingDescription,
+        DrawingPass,
+        DrawingStep,
+        FramebufferTarget,
+        Shader,
+        VertexFormat,
+        VboCreationData,
+        ResourcePreloads
+    }
 };
 use engine::{
     camera::null::NullCamera,
-    util::textbuffer::{TextGenerator, TextAlignment}
+    util::textbuffer::{
+        TextGenerator,
+        TextAlignment
+    }
 };
-
-use cgmath::{Matrix4, Vector4, SquareMatrix};
+use cgmath::{
+    Matrix4,
+    Vector4,
+    SquareMatrix
+};
 use std::collections::HashMap;
 
 const VBO_INDEX_BG: usize = 0; // Re-used
@@ -39,7 +55,7 @@ pub struct SubMenuScene {
 impl SubMenuScene {
     pub fn new() -> SubMenuScene {
         SubMenuScene {
-            camera: NullCamera::new(),
+            camera: NullCamera::default(),
             text_generator: TextGenerator::from_resource(
                 include_str!("../../resources/font/Musica.fnt")
             ),
@@ -59,10 +75,8 @@ impl SceneInfo for SubMenuScene {
     fn make_preloads(&self) -> ResourcePreloads {
         let hud_data = self.text_generator.generate_vertex_buffer(
             "Howzat mate!",
-            -1.0,
-            0.0,
-            2.0,
-            1.0,
+            (-1.0, 0.0),
+            (2.0, 1.0),
             0.125,
             TextAlignment::Centre,
             TextAlignment::Centre);
@@ -116,14 +130,26 @@ impl SceneInfo for SubMenuScene {
         self.camera.update_aspect(aspect_ratio);
     }
 
-    fn update_camera(&mut self, _time_step_millis: u64, _controller: &dyn Control) -> Option<Box<dyn SceneInfo>> {
+    fn update_camera(
+        &mut self,
+        _time_step_millis: u64,
+        _controller: &dyn Control
+    ) -> Option<Box<dyn SceneInfo>> {
         None
     }
 
-    unsafe fn get_ubo_data_ptr_and_size(&self, pass_index: usize, step_index: usize) -> (*const u8, usize) {
+    unsafe fn get_ubo_data_ptr_and_size(
+        &self,
+        pass_index: usize,
+        step_index: usize
+    ) -> (*const u8, usize) {
         match (pass_index, step_index) {
-            (0, 0) => (&self.camera_ubo as *const CameraUbo as *const u8, std::mem::size_of::<CameraUbo>()),
-            (0, 1) => (&self.text_paint_ubo as *const TextPaintUbo as *const u8, std::mem::size_of::<TextPaintUbo>()),
+            (0, 0) => (
+                &self.camera_ubo as *const CameraUbo as *const u8,
+                std::mem::size_of::<CameraUbo>()),
+            (0, 1) => (
+                &self.text_paint_ubo as *const TextPaintUbo as *const u8,
+                std::mem::size_of::<TextPaintUbo>()),
             _ => panic!("Cannot get UBO for SubMenuScene")
         }
     }

@@ -190,19 +190,14 @@ impl RenderpassWrapper {
             .query_texture(config.color_texture_index)?
             .image_view;
         let color_format = match config.color_format {
-            TexturePixelFormat::RGBA => vk::Format::R8G8B8A8_UNORM,
+            TexturePixelFormat::Rgba => vk::Format::R8G8B8A8_UNORM,
             _ => return Err(EngineError::RenderError(
                 format!("Cannot set color attachment tp {:?}", config.color_format)))
         };
 
         // Define subpass with single colour attachment and optionally depth attachment
-        let initial_layout = if discard_existing_image_content {
-            vk::ImageLayout::UNDEFINED
-        } else {
-            vk::ImageLayout::UNDEFINED
-        };
-        let mut attachments = vec![];
-        attachments.push(vk::AttachmentDescription::builder()
+        let initial_layout = vk::ImageLayout::UNDEFINED;
+        let mut attachments = vec![vk::AttachmentDescription::builder()
             .format(color_format)
             .load_op(vk::AttachmentLoadOp::CLEAR)
             .store_op(vk::AttachmentStoreOp::STORE)
@@ -211,7 +206,7 @@ impl RenderpassWrapper {
             .initial_layout(initial_layout)
             .final_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
             .samples(vk::SampleCountFlags::TYPE_1)
-            .build());
+            .build()];
         let depth_texture_image_view = match config.depth_texture_index {
             Some(depth_texture_index) => {
                 // Get the texture to use for color attachment
@@ -342,8 +337,7 @@ impl RenderpassWrapper {
         let width = config.width as u32;
         let height = config.height as u32;
 
-        let mut attachment_image_view = vec![];
-        attachment_image_view.push(color_image);
+        let mut attachment_image_view = vec![color_image];
         if let Some(image_view) = depth_image.as_ref() {
             attachment_image_view.push(*image_view);
         }

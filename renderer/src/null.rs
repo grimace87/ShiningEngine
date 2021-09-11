@@ -16,10 +16,10 @@ use raw_window_handle::HasRawWindowHandle;
 /// Implementation of the RendererApi trait that does nothing
 pub struct NullRenderer;
 
-impl NullRenderer {
+impl Default for NullRenderer {
 
     /// Create a new instance; has no fields
-    pub fn new() -> NullRenderer {
+    fn default() -> NullRenderer {
         NullRenderer
     }
 }
@@ -29,7 +29,7 @@ impl RendererApi for NullRenderer {
     /// Create a new instance, given the window and app requirements; still does nothing
     fn new(
         _window_owner: &dyn HasRawWindowHandle,
-        _features: &Vec<FeatureDeclaration>,
+        _features: &[FeatureDeclaration],
         _resource_preloads: &ResourcePreloads,
         _description: &DrawingDescription
     ) -> Result<Self, EngineError> where Self: Sized {
