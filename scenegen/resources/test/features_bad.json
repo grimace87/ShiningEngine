@@ -1,0 +1,9 @@
+{
+  "app": {
+    "name": "Test spec for unknown features failing",
+    "features": [
+      "quantum_computer"
+    ]
+  },
+  "scenes": []
+}

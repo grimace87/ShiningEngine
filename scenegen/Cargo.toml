@@ -1,0 +1,9 @@
+[package]
+name = "scenegen"
+version = "0.1.0"
+authors = ["Thomas <thomasr1987@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+jsonschema = "0.12.1"
+serde_json = "1.0.68"

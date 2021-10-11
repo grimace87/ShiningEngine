@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Application renderer generation",
+  "description": "Description of rendering requirements for all scenes in an application",
+  "required": [
+    "app",
+    "scenes"
+  ],
+  "properties": {
+    "app": {
+      "type": "object",
+      "required": [
+        "name",
+        "features"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "clip_planes"
+            ]
+          }
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "camera",
+          "resources",
+          "passes"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "camera": {
+            "enum": [
+              "player"
+            ]
+          },
+          "resources": {
+            "type": "object",
+            "required": [
+              "models",
+              "textures",
+              "fonts"
+            ],
+            "properties": {
+              "models": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "id": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "string"
+                  },
+                  "generator": {
+                    "type": "string"
+                  }
+                }
+              },
+              "textures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "file": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": [
+                        "cubemap",
+                        "uninitialised"
+                      ]
+                    }
+                  }
+                }
+              },
+              "fonts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "file",
+                    "texture_id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "file": {
+                      "type": "string"
+                    },
+                    "texture_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "passes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "render",
+                "steps"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "default",
+                    "offscreen"
+                  ]
+                },
+                "render": {
+                  "enum": [
+                    "reflection_pre_render"
+                  ]
+                },
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "model_id",
+                      "texture_ids"
+                    ],
+                    "properties": {
+                      "model_id": {
+                        "type": "string"
+                      },
+                      "texture_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

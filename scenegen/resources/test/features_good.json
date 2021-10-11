@@ -1,0 +1,9 @@
+{
+  "app": {
+    "name": "Test spec for known features passing",
+    "features": [
+      "clip_planes"
+    ]
+  },
+  "scenes": []
+}
