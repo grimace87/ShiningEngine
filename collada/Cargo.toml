@@ -5,8 +5,7 @@ authors = ["Thomas <thomasr1987@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-serde = "1.0.123"
-serde_derive = "1.0.123"
+serde = { version = "1.0.123", features = ["derive"] }
 serde-xml-rs = "0.4.1"
 toml = "0.5.8"
 model = { path = "../model" }

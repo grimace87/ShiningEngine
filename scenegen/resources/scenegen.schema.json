@@ -43,8 +43,10 @@
             "type": "string"
           },
           "camera": {
+            "type": "string",
             "enum": [
-              "player"
+              "player",
+              "flight_path"
             ]
           },
           "resources": {
@@ -88,6 +90,7 @@
                       "type": "string"
                     },
                     "kind": {
+                      "type": "string",
                       "enum": [
                         "cubemap",
                         "uninitialised"
@@ -131,13 +134,19 @@
               ],
               "properties": {
                 "kind": {
+                  "type": "string",
                   "enum": [
                     "default",
                     "offscreen"
                   ]
                 },
+                "target_texture_id": {
+                  "type": "string"
+                },
                 "render": {
+                  "type": "string",
                   "enum": [
+                    "basic_textured",
                     "reflection_pre_render"
                   ]
                 },
