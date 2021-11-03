@@ -1,20 +1,21 @@
 
-mod structures;
-mod validator;
+pub mod structures;
+pub mod validator;
 
+use crate::GeneratorError;
 use structures::*;
 use validator::validate_file;
 use std::path::PathBuf;
 
-pub fn parse_file(src_file: &PathBuf) -> Result<Config, String> {
+pub fn parse_file(src_file: &PathBuf) -> Result<Config, GeneratorError> {
     let src = std::fs::read_to_string(src_file)
-        .map_err(|_| format!("Failed to open {}", src_file.to_str().unwrap()))?;
+        .map_err(|_| GeneratorError::OpenError(src_file.clone()))?;
     let json_value = serde_json::from_str(src.as_str())
-        .map_err(|e| format!("Failed to parse test JSON: {:?}", e))?;
+        .map_err(|e| GeneratorError::BadJson(src_file.clone(), e.to_string()))?;
     validate_file(&json_value)
-        .map_err(|e| format!("File {:?} failed validation: {}", src_file.to_str().unwrap(), e))?;
+        .map_err(|e| GeneratorError::InvalidSchema(src_file.clone(), e))?;
     serde_json::from_value::<Config>(json_value)
-        .map_err(|e| format!("Failed to deserialise: {:?}", e))
+        .map_err(|e| GeneratorError::InvalidSchema(src_file.clone(), e.to_string()))
 }
 
 /// Test suite
@@ -24,45 +25,43 @@ pub fn parse_file(src_file: &PathBuf) -> Result<Config, String> {
 #[cfg(test)]
 mod test {
     use std::path::PathBuf;
-    use crate::deserialiser::validator::validate_file;
+    use crate::deserialiser::parse_file;
+    use crate::GeneratorError;
 
-    fn get_test_file(file_name: &'static str) -> serde_json::Value {
+    fn get_test_file(file_name: &'static str) -> PathBuf {
         let mut src_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         src_path.push("resources");
         src_path.push("test");
         src_path.push(file_name);
-        let src = std::fs::read_to_string(src_path)
-            .expect(format!("Failed to open {}", file_name).as_str());
-        serde_json::from_str(src.as_str())
-            .expect("Failed to parse test JSON")
+        src_path
     }
 
     #[test]
     fn app_with_known_features_passes_validation() {
         let src_json = get_test_file("features_good.json");
-        let validation_result = validate_file(&src_json);
-        assert!(validation_result.is_ok());
+        let parse_result = parse_file(&src_json);
+        assert!(parse_result.is_ok());
     }
 
     #[test]
     fn app_with_unknown_features_fails_validation() {
         let src_json = get_test_file("features_bad.json");
-        let validation_result = validate_file(&src_json);
-        assert!(validation_result.is_err());
+        let parse_result = parse_file(&src_json);
+        assert!(matches!(parse_result, Err(GeneratorError::InvalidSchema(_, _))));
     }
 
     #[test]
     fn valid_full_featured_app_passes_validation() {
         let src_json = get_test_file("full_featured_app.json");
-        let validation_result = validate_file(&src_json);
-        assert!(validation_result.is_ok());
+        let parse_result = parse_file(&src_json);
+        assert!(parse_result.is_ok());
     }
 
     #[test]
     fn valid_full_featured_app_can_deserialise() {
         let src_json = get_test_file("full_featured_app.json");
-        let deserialise_result = serde_json::from_value::<super::Config>(src_json);
-        assert!(deserialise_result.is_ok());
+        let parse_result = parse_file(&src_json);
+        assert!(parse_result.is_ok());
     }
 
     #[test]
@@ -70,7 +69,7 @@ mod test {
         use crate::deserialiser::structures::*;
 
         let src_json = get_test_file("full_featured_app.json");
-        let object = serde_json::from_value::<Config>(src_json).unwrap();
+        let object = parse_file(&src_json).unwrap();
         let expected = Config {
             app: App {
                 name: "Full-featured example which should pass validation".to_string(),
