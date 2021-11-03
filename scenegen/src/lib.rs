@@ -1,5 +1,6 @@
 
 mod deserialiser;
+pub mod generator;
 
 use std::path::PathBuf;
 
@@ -9,4 +10,5 @@ pub enum GeneratorError {
     NotADirectoryOrJsonFile(String),
     BadJson(PathBuf, String),
     InvalidSchema(PathBuf, String),
+    WriteError(PathBuf)
 }
