@@ -1,33 +1,20 @@
 
 mod structures;
+mod validator;
 
 use structures::*;
+use validator::validate_file;
 use std::path::PathBuf;
-use jsonschema::JSONSchema;
 
 pub fn parse_file(src_file: &PathBuf) -> Result<Config, String> {
     let src = std::fs::read_to_string(src_file)
         .map_err(|_| format!("Failed to open {}", src_file.to_str().unwrap()))?;
     let json_value = serde_json::from_str(src.as_str())
         .map_err(|e| format!("Failed to parse test JSON: {:?}", e))?;
-    let schema = compile_schema();
-    schema.validate(&json_value)
-        .map_err(|_| format!("File failed validation: {}", src_file.to_str().unwrap()))?;
+    validate_file(&json_value)
+        .map_err(|e| format!("File {:?} failed validation: {}", src_file.to_str().unwrap(), e))?;
     serde_json::from_value::<Config>(json_value)
         .map_err(|e| format!("Failed to deserialise: {:?}", e))
-}
-
-fn compile_schema() -> JSONSchema {
-    let mut src_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    src_path.push("resources");
-    src_path.push("scenegen.schema.json");
-    let src_string = std::fs::read_to_string(src_path)
-        .expect("Failed to open schema file");
-    let src_json = serde_json::from_str(src_string.as_str())
-        .expect("Invalid JSON schema");
-    let compiled_schema = JSONSchema::compile(&src_json)
-        .expect("Invalid JSON schema");
-    compiled_schema
 }
 
 /// Test suite
@@ -37,7 +24,7 @@ fn compile_schema() -> JSONSchema {
 #[cfg(test)]
 mod test {
     use std::path::PathBuf;
-    use crate::deserialiser::compile_schema;
+    use crate::deserialiser::validator::validate_file;
 
     fn get_test_file(file_name: &'static str) -> serde_json::Value {
         let mut src_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -53,24 +40,21 @@ mod test {
     #[test]
     fn app_with_known_features_passes_validation() {
         let src_json = get_test_file("features_good.json");
-        let schema = compile_schema();
-        let validation_result = schema.validate(&src_json);
+        let validation_result = validate_file(&src_json);
         assert!(validation_result.is_ok());
     }
 
     #[test]
     fn app_with_unknown_features_fails_validation() {
         let src_json = get_test_file("features_bad.json");
-        let schema = compile_schema();
-        let validation_result = schema.validate(&src_json);
+        let validation_result = validate_file(&src_json);
         assert!(validation_result.is_err());
     }
 
     #[test]
     fn valid_full_featured_app_passes_validation() {
         let src_json = get_test_file("full_featured_app.json");
-        let schema = compile_schema();
-        let validation_result = schema.validate(&src_json);
+        let validation_result = validate_file(&src_json);
         assert!(validation_result.is_ok());
     }
 
@@ -83,10 +67,10 @@ mod test {
 
     #[test]
     fn deserialised_full_featured_app_matches_expectations() {
-        use super::*;
+        use crate::deserialiser::structures::*;
 
         let src_json = get_test_file("full_featured_app.json");
-        let object = serde_json::from_value::<super::Config>(src_json).unwrap();
+        let object = serde_json::from_value::<Config>(src_json).unwrap();
         let expected = Config {
             app: App {
                 name: "Full-featured example which should pass validation".to_string(),
