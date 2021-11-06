@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::generator::stubs;
-use crate::deserialiser::parse_file;
+use crate::deserialiser::{parse_app_file, parse_scene_file};
 use crate::GeneratorError;
 
 pub struct WritableFile {
@@ -27,8 +27,6 @@ pub struct WritableFile {
 ///     - anotherscene
 ///       - mod.rs*
 ///       - details.rs**
-///
-/// TODO - Update Config struct and generator to reflect the above directory and data structures
 pub fn process_spec_path(project_dir: &PathBuf, spec_dir_name: &'static str) -> Result<(), GeneratorError> {
 
     if !project_dir.is_dir() {
@@ -72,8 +70,18 @@ fn process_file(file_path: &PathBuf) -> Result<(), GeneratorError> {
         out.push("out");
         out
     };
-    let config = parse_file(file_path)?;
-    let stub_files = stubs::generate_stubs(file_path, &config)?;
+
+    let mut stub_files = vec![];
+    if file_path.file_name().unwrap().to_str().unwrap() == "app.json" {
+        let app_config = parse_app_file(file_path)?;
+        let stubs_file = stubs::generate_app_stubs(&file_path, &app_config)?;
+        stub_files.push(stubs_file);
+    } else {
+        let scene_config = parse_scene_file(file_path)?;
+        let stubs_file = stubs::generate_scene_stubs(&file_path, &scene_config)?;
+        stub_files.push(stubs_file);
+    }
+
     for file in stub_files {
         let mut output_file = PathBuf::from(&output_path);
         output_file.push(&file.relative_path);

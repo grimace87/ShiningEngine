@@ -1,0 +1,8 @@
+{
+  "name": "Test spec for unknown graphics failing",
+  "features": [
+    "clip_planes"
+  ],
+  "platform": "windows",
+  "graphics": "glide"
+}

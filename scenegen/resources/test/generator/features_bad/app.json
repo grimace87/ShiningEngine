@@ -1,0 +1,8 @@
+{
+  "name": "Test spec for unknown features failing",
+  "features": [
+    "quantum_computer"
+  ],
+  "platform": "windows",
+  "graphics": "vulkan"
+}

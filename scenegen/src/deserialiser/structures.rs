@@ -1,13 +1,5 @@
 use serde::Deserialize;
 
-/// Config struct
-/// Top-level struct defining an entire application in an abstract way
-#[derive(Debug, Deserialize)]
-pub struct Config {
-    pub app: App,
-    pub scenes: Vec<Scene>
-}
-
 /// App struct
 /// Defines some top-level properties of the application
 #[derive(Debug, Deserialize)]

@@ -42,17 +42,9 @@ mod test {
 
     #[test]
     #[serial]
-    fn valid_spec_processed() {
-        let test_dir = get_test_dir();
-        let process_result = process_spec_path(&test_dir, "full_featured_app");
-        assert!(process_result.is_ok());
-    }
-
-    #[test]
-    #[serial]
     fn valid_files_in_directory_processed() {
         let test_dir = get_test_dir();
-        let process_result = process_spec_path(&test_dir, "valid");
+        let process_result = process_spec_path(&test_dir, "full_featured_app");
         assert!(process_result.is_ok());
     }
 }

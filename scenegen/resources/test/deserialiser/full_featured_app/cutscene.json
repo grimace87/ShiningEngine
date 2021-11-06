@@ -1,0 +1,32 @@
+{
+  "id": "cutscene",
+  "camera": "flight_path",
+  "resources": {
+    "models": [
+      {
+        "id": "skybox",
+        "generator": "skybox"
+      }
+    ],
+    "textures": [
+      {
+        "id": "skybox",
+        "file": "bluecloud.jpg",
+        "kind": "cubemap"
+      }
+    ],
+    "fonts": []
+  },
+  "passes": [
+    {
+      "kind": "default",
+      "render": "basic_textured",
+      "steps": [
+        {
+          "model_id": "skybox",
+          "texture_ids": ["skybox"]
+        }
+      ]
+    }
+  ]
+}

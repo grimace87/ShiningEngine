@@ -1,0 +1,8 @@
+{
+  "name": "Test spec for known features passing",
+  "features": [
+    "clip_planes"
+  ],
+  "platform": "windows",
+  "graphics": "vulkan"
+}
