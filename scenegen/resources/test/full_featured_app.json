@@ -3,7 +3,8 @@
     "name": "Full-featured example which should pass validation",
     "features": [
       "clip_planes"
-    ]
+    ],
+    "platform": "windows"
   },
   "scenes": [
     {

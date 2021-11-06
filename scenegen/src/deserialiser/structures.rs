@@ -13,7 +13,8 @@ pub struct Config {
 #[derive(Debug, Deserialize)]
 pub struct App {
     pub name: String,
-    pub features: Vec<String>
+    pub features: Vec<String>,
+    pub platform: String
 }
 
 /// Scene struct

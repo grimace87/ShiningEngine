@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "An example of a valid spec",
-    "features": []
+    "features": [],
+    "platform": "windows"
   },
   "scenes": []
 }

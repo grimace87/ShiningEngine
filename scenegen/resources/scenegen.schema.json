@@ -11,7 +11,8 @@
       "type": "object",
       "required": [
         "name",
-        "features"
+        "features",
+        "platform"
       ],
       "properties": {
         "name": {
@@ -25,6 +26,12 @@
               "clip_planes"
             ]
           }
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "windows"
+          ]
         }
       }
     },

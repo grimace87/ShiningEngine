@@ -51,6 +51,13 @@ mod test {
     }
 
     #[test]
+    fn app_with_unknown_platform_fails_validation() {
+        let src_json = get_test_file("platform_bad.json");
+        let parse_result = parse_file(&src_json);
+        assert!(matches!(parse_result, Err(GeneratorError::InvalidSchema(_, _))));
+    }
+
+    #[test]
     fn valid_full_featured_app_passes_validation() {
         let src_json = get_test_file("full_featured_app.json");
         let parse_result = parse_file(&src_json);
@@ -73,7 +80,8 @@ mod test {
         let expected = Config {
             app: App {
                 name: "Full-featured example which should pass validation".to_string(),
-                features: vec!["clip_planes".to_string()]
+                features: vec!["clip_planes".to_string()],
+                platform: "windows".to_string()
             },
             scenes: vec![
                 Scene {
