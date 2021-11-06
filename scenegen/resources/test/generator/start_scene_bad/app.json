@@ -1,9 +1,9 @@
 {
-  "name": "Test spec for known features passing",
+  "name": "Test spec for unrecognised start scene failing",
   "features": [
     "clip_planes"
   ],
   "platform": "windows",
   "graphics": "vulkan",
-  "start_scene": "scene"
+  "start_scene": "cutscene"
 }

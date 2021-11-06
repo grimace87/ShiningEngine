@@ -20,6 +20,8 @@ pub fn generate_scene_stubs(src_file: &PathBuf, config: &Scene) -> Result<Writab
 
 fn generate_app_root_content(src_file: &PathBuf, config: &App) -> Result<WritableFile, GeneratorError> {
 
+    let start_scene = config.start_scene.as_str();
+
     let use_platform: &str = match config.platform.as_str() {
         "windows" => "use platform_windows::PlatformWindows;",
         _ => return Err(GeneratorError::InvalidSchema(src_file.clone(), "Bad platform".to_string()))
@@ -42,9 +44,9 @@ fn generate_app_root_content(src_file: &PathBuf, config: &App) -> Result<Writabl
     };
 
     let content = format!("
-mod scene;
+mod scenes;
 
-use scene::SceneryScene;
+use scene::{};
 
 {}
 {}
@@ -70,7 +72,7 @@ fn main() {{
             println!(\"Error while running: {{:?}}\", e);
             std::process::exit(1);
         }});
-}}", use_platform, use_graphics, title_def, platform_construct, engine_decl);
+}}", start_scene, use_platform, use_graphics, title_def, platform_construct, engine_decl);
     let relative_path = {
         let mut path = PathBuf::new();
         path.push("src");

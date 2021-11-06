@@ -4,5 +4,6 @@
     "clip_planes"
   ],
   "platform": "windows",
-  "graphics": "glide"
+  "graphics": "glide",
+  "start_scene": "scene"
 }

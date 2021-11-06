@@ -6,7 +6,8 @@
     "name",
     "features",
     "platform",
-    "graphics"
+    "graphics",
+    "start_scene"
   ],
   "properties": {
     "name": {

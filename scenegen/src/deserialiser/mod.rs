@@ -112,7 +112,8 @@ mod test {
             name: "Full-featured example which should pass validation".to_string(),
             features: vec!["clip_planes".to_string()],
             platform: "windows".to_string(),
-            graphics: "vulkan".to_string()
+            graphics: "vulkan".to_string(),
+            start_scene: "scene".to_string()
         };
         assert_eq!(format!("{:?}", app_object), format!("{:?}", expected_app));
 

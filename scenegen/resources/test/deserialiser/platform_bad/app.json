@@ -4,5 +4,6 @@
     "clip_planes"
   ],
   "platform": "washing_machine",
-  "graphics": "vulkan"
+  "graphics": "vulkan",
+  "start_scene": "scene"
 }

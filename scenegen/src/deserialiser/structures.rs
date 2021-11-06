@@ -7,7 +7,8 @@ pub struct App {
     pub name: String,
     pub features: Vec<String>,
     pub platform: String,
-    pub graphics: String
+    pub graphics: String,
+    pub start_scene: String
 }
 
 /// Scene struct
