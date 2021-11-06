@@ -4,6 +4,13 @@ use crate::generator::stubs;
 use crate::deserialiser::parse_file;
 use crate::GeneratorError;
 
+pub struct WritableFile {
+    pub relative_path: PathBuf,
+    pub content: String
+}
+
+/// Call this function from a build script. The expected directory structure is as below:
+/// TODO
 pub fn process_spec_path(src_path: &PathBuf) -> Result<(), GeneratorError> {
 
     if src_path.is_file() {
@@ -39,21 +46,23 @@ fn is_json_file(file_path: &PathBuf) -> bool {
 }
 
 fn process_file(file_path: &PathBuf) -> Result<(), GeneratorError> {
-    let output_file = {
+    let output_path = {
         let mut out = PathBuf::from(file_path);
         out.pop();
         out.push("out");
-        if !out.is_dir() {
-            std::fs::create_dir(&out)
-                .map_err(|_| GeneratorError::WriteError(out.clone()))?;
-        }
-        out.push(file_path.file_name().unwrap());
-        out.set_extension("rs");
         out
     };
     let config = parse_file(file_path)?;
-    let stub_content = stubs::generate_stub(&config)?;
-    std::fs::write(&output_file, stub_content)
-        .map_err(|_| GeneratorError::WriteError(output_file.clone()))?;
+    let stub_files = stubs::generate_stubs(file_path, &config)?;
+    for file in stub_files {
+        let mut output_file = PathBuf::from(&output_path);
+        output_file.push(&file.relative_path);
+        output_file.pop();
+        std::fs::create_dir_all(&output_file)
+            .map_err(|_| GeneratorError::WriteError(output_file.clone()))?;
+        output_file.push((&file.relative_path).file_name().unwrap());
+        std::fs::write(&output_file, file.content)
+            .map_err(|_| GeneratorError::WriteError(output_file.clone()))?;
+    }
     Ok(())
 }
