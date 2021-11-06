@@ -16,51 +16,43 @@ mod test {
     use crate::generator::writer::process_spec_path;
     use crate::GeneratorError;
 
-    fn get_test_file(file_name: &'static str) -> PathBuf {
+    fn get_test_dir() -> PathBuf {
         let mut src_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         src_path.push("resources");
         src_path.push("test");
-        src_path.push(file_name);
+        src_path.push("generator");
         src_path
     }
 
     #[test]
     #[serial]
-    fn text_file_with_json_rejected() {
-        let non_json_file = get_test_file("text_file_with_json.txt");
-        let process_result = process_spec_path(&non_json_file);
-        assert!(matches!(process_result, Err(GeneratorError::NotADirectoryOrJsonFile(_))));
-    }
-
-    #[test]
-    #[serial]
     fn json_file_with_text_rejected() {
-        let json_file_with_plain_text = get_test_file("json_file_with_text.json");
-        let process_result = process_spec_path(&json_file_with_plain_text);
+        let test_dir = get_test_dir();
+        let process_result = process_spec_path(&test_dir, "json_file_with_text");
         assert!(matches!(process_result, Err(GeneratorError::BadJson(_, _))));
     }
 
     #[test]
     #[serial]
     fn invalid_spec_rejected() {
-        let bad_spec_file = get_test_file("features_bad.json");
-        let process_result = process_spec_path(&bad_spec_file);
+        let test_dir = get_test_dir();
+        let process_result = process_spec_path(&test_dir, "features_bad");
         assert!(matches!(process_result, Err(GeneratorError::InvalidSchema(_, _))));
     }
 
     #[test]
     #[serial]
     fn valid_spec_processed() {
-        let valid_spec_file = get_test_file("full_featured_app.json");
-        let process_result = process_spec_path(&valid_spec_file);
+        let test_dir = get_test_dir();
+        let process_result = process_spec_path(&test_dir, "full_featured_app");
         assert!(process_result.is_ok());
     }
 
     #[test]
     #[serial]
     fn valid_files_in_directory_processed() {
-        let dir_with_valid_specs = get_test_file("valid");
-        let process_result = process_spec_path(&dir_with_valid_specs);
+        let test_dir = get_test_dir();
+        let process_result = process_spec_path(&test_dir, "valid");
         assert!(process_result.is_ok());
     }
 }

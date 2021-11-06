@@ -32,6 +32,7 @@ mod test {
         let mut src_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         src_path.push("resources");
         src_path.push("test");
+        src_path.push("deserialiser");
         src_path.push(file_name);
         src_path
     }
