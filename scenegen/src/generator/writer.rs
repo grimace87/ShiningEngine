@@ -9,8 +9,26 @@ pub struct WritableFile {
     pub content: String
 }
 
-/// Call this function from a build script. The expected directory structure is as below:
-/// TODO
+/// Call this function from a build script. The expected directory structure is as below.
+/// The files marked with an asterisk will always be generated, while the files marked with two
+/// asterisks will only be created if they do not exist, and hence can be modified safely.
+///
+/// <project_dir>
+/// - <spec_dir_name>
+///   - app.json
+///   - somescene.json
+///   - anotherscene.json
+/// - src
+///   - app.rs*
+///   - scenes
+///     - somescene
+///       - mod.rs*
+///       - details.rs**
+///     - anotherscene
+///       - mod.rs*
+///       - details.rs**
+///
+/// TODO - Update Config struct and generator to reflect the above directory and data structures
 pub fn process_spec_path(project_dir: &PathBuf, spec_dir_name: &'static str) -> Result<(), GeneratorError> {
 
     if !project_dir.is_dir() {
