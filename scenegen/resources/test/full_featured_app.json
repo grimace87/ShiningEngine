@@ -4,7 +4,8 @@
     "features": [
       "clip_planes"
     ],
-    "platform": "windows"
+    "platform": "windows",
+    "graphics": "vulkan"
   },
   "scenes": [
     {

@@ -4,8 +4,8 @@
     "features": [
       "clip_planes"
     ],
-    "platform": "windows",
-    "graphics": "vulkan"
+    "platform": "washing_machine",
+    "graphics": "glide"
   },
   "scenes": []
 }

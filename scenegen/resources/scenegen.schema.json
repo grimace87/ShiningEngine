@@ -12,7 +12,8 @@
       "required": [
         "name",
         "features",
-        "platform"
+        "platform",
+        "graphics"
       ],
       "properties": {
         "name": {
@@ -31,6 +32,12 @@
           "type": "string",
           "enum": [
             "windows"
+          ]
+        },
+        "graphics": {
+          "type": "string",
+          "enum": [
+            "vulkan"
           ]
         }
       }

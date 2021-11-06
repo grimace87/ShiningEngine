@@ -4,7 +4,8 @@
     "features": [
       "quantum_computer"
     ],
-    "platform": "windows"
+    "platform": "windows",
+    "graphics": "vulkan"
   },
   "scenes": []
 }

@@ -14,7 +14,8 @@ pub struct Config {
 pub struct App {
     pub name: String,
     pub features: Vec<String>,
-    pub platform: String
+    pub platform: String,
+    pub graphics: String
 }
 
 /// Scene struct
