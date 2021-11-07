@@ -9,8 +9,61 @@ use scene::*;
 use validator::validate_app_file;
 use validator::validate_scene_file;
 use std::path::PathBuf;
+use crate::deserialiser::app::{AppGraphicsApi, AppPlatform};
+use crate::generator::AppSpec;
 
-pub fn parse_app_file(src_file: &PathBuf) -> Result<App, GeneratorError> {
+pub fn parse_directory(project_dir: &PathBuf, spec_dir_name: &'static str) -> Result<AppSpec, GeneratorError> {
+    if !project_dir.is_dir() {
+        return Err(GeneratorError::NotADirectory(
+            format!("Not a project directory: {:?}", project_dir.as_os_str())));
+    }
+    let spec_dir = {
+        let mut path = PathBuf::from(&project_dir);
+        path.push(spec_dir_name);
+        path
+    };
+    if !spec_dir.is_dir() {
+        return Err(GeneratorError::NotADirectory(
+            format!("Not a spec directory: {:?}", spec_dir.as_os_str())));
+    }
+
+    let mut app_spec = AppSpec {
+        app: App {
+            name: "unset".to_string(),
+            features: vec![],
+            platform: AppPlatform::windows,
+            graphics: AppGraphicsApi::vulkan,
+            start_scene: "unset".to_string()
+        },
+        scenes: vec![]
+    };
+    for entry in std::fs::read_dir(spec_dir).unwrap() {
+        let path = entry.unwrap().path();
+        if !path.is_file() {
+            continue;
+        }
+        if !is_json_file(&path) {
+            continue;
+        }
+        if path.file_name().unwrap().to_str().unwrap() == "app.json" {
+            let app_config = parse_app_file(&path)?;
+            app_spec.app = app_config;
+        } else {
+            let scene_config = parse_scene_file(&path)?;
+            app_spec.scenes.push(scene_config);
+        }
+    }
+    Ok(app_spec)
+}
+
+fn is_json_file(file_path: &PathBuf) -> bool {
+    match file_path.extension() {
+        Some(e) => e.to_str().unwrap() == "json",
+        None => false
+    }
+}
+
+fn parse_app_file(src_file: &PathBuf) -> Result<App, GeneratorError> {
     let json_value = get_file_json(src_file)?;
     validate_app_file(&json_value)
         .map_err(|e| GeneratorError::InvalidSchema(src_file.clone(), e))?;
@@ -18,7 +71,7 @@ pub fn parse_app_file(src_file: &PathBuf) -> Result<App, GeneratorError> {
         .map_err(|e| GeneratorError::InvalidSchema(src_file.clone(), e.to_string()))
 }
 
-pub fn parse_scene_file(src_file: &PathBuf) -> Result<Scene, GeneratorError> {
+fn parse_scene_file(src_file: &PathBuf) -> Result<Scene, GeneratorError> {
     let json_value = get_file_json(src_file)?;
     validate_scene_file(&json_value)
         .map_err(|e| GeneratorError::InvalidSchema(src_file.clone(), e))?;

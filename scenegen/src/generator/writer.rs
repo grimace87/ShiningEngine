@@ -1,96 +1,37 @@
 use std::path::PathBuf;
 
-use crate::generator::stubs;
-use crate::deserialiser::{parse_app_file, parse_scene_file};
+use crate::generator::{AppSpec, stubs};
 use crate::GeneratorError;
 
-pub struct WritableFile {
-    pub relative_path: PathBuf,
-    pub content: String
-}
+pub fn write_app_files(project_dir: &PathBuf, app_spec: &AppSpec) -> Result<(), GeneratorError> {
 
-/// Call this function from a build script. The expected directory structure is as below.
-/// The files marked with an asterisk will always be generated, while the files marked with two
-/// asterisks will only be created if they do not exist, and hence can be modified safely.
-///
-/// <project_dir>
-/// - <spec_dir_name>
-///   - app.json
-///   - somescene.json
-///   - anotherscene.json
-/// - src
-///   - app.rs*
-///   - scenes
-///     - somescene
-///       - mod.rs*
-///       - details.rs**
-///     - anotherscene
-///       - mod.rs*
-///       - details.rs**
-pub fn process_spec_path(project_dir: &PathBuf, spec_dir_name: &'static str) -> Result<(), GeneratorError> {
-
-    if !project_dir.is_dir() {
-        return Err(GeneratorError::NotADirectory(
-            format!("Not a project directory: {:?}", project_dir.as_os_str())));
-    }
-    let spec_dir = {
-        let mut path = PathBuf::from(&project_dir);
-        path.push(spec_dir_name);
+    let app_src_file = {
+        let mut path = PathBuf::from(project_dir);
+        path.push("src");
+        std::fs::create_dir_all(&path)
+            .map_err(|_| GeneratorError::WriteError(path.clone()))?;
+        path.push("app.rs");
         path
     };
-    if !spec_dir.is_dir() {
-        return Err(GeneratorError::NotADirectory(
-            format!("Not a spec directory: {:?}", spec_dir.as_os_str())));
+    let app_stubs_file_contents = stubs::generate_app_stubs(&app_spec.app)?;
+    std::fs::write(&app_src_file, app_stubs_file_contents)
+        .map_err(|_| GeneratorError::WriteError(app_src_file.clone()))?;
+
+    for scene in app_spec.scenes.iter() {
+        let scene_src_file = {
+            let mut path = PathBuf::from(project_dir);
+            path.push("src");
+            path.push("scenes");
+            path.push(&scene.id);
+            std::fs::create_dir_all(&path)
+                .map_err(|_| GeneratorError::WriteError(path.clone()))?;
+            path.push("mod.rs");
+            path
+        };
+        let scene_stubs_file_contents = stubs::generate_scene_stubs(&scene)?;
+        std::fs::write(&scene_src_file, scene_stubs_file_contents)
+            .map_err(|_| GeneratorError::WriteError(scene_src_file.clone()))?;
     }
 
-    for entry in std::fs::read_dir(spec_dir).unwrap() {
-        let path = entry.unwrap().path();
-        if !path.is_file() {
-            continue;
-        }
-        if !is_json_file(&path) {
-            continue;
-        }
-        process_file(&path)?;
-    }
-    Ok(())
-}
-
-fn is_json_file(file_path: &PathBuf) -> bool {
-    match file_path.extension() {
-        Some(e) => e.to_str().unwrap() == "json",
-        None => false
-    }
-}
-
-fn process_file(file_path: &PathBuf) -> Result<(), GeneratorError> {
-    let output_path = {
-        let mut out = PathBuf::from(file_path);
-        out.pop();
-        out.push("out");
-        out
-    };
-
-    let mut stub_files = vec![];
-    if file_path.file_name().unwrap().to_str().unwrap() == "app.json" {
-        let app_config = parse_app_file(file_path)?;
-        let stubs_file = stubs::generate_app_stubs(&file_path, &app_config)?;
-        stub_files.push(stubs_file);
-    } else {
-        let scene_config = parse_scene_file(file_path)?;
-        let stubs_file = stubs::generate_scene_stubs(&file_path, &scene_config)?;
-        stub_files.push(stubs_file);
-    }
-
-    for file in stub_files {
-        let mut output_file = PathBuf::from(&output_path);
-        output_file.push(&file.relative_path);
-        output_file.pop();
-        std::fs::create_dir_all(&output_file)
-            .map_err(|_| GeneratorError::WriteError(output_file.clone()))?;
-        output_file.push((&file.relative_path).file_name().unwrap());
-        std::fs::write(&output_file, file.content)
-            .map_err(|_| GeneratorError::WriteError(output_file.clone()))?;
-    }
     Ok(())
 }
