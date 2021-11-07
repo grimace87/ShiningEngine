@@ -1,5 +1,6 @@
 use std::path::PathBuf;
-use crate::deserialiser::structures::{App, Scene};
+use crate::deserialiser::app::*;
+use crate::deserialiser::scene::*;
 use crate::generator::writer::WritableFile;
 use crate::GeneratorError;
 
@@ -22,25 +23,21 @@ fn generate_app_root_content(src_file: &PathBuf, config: &App) -> Result<Writabl
 
     let start_scene = config.start_scene.as_str();
 
-    let use_platform: &str = match config.platform.as_str() {
-        "windows" => "use platform_windows::PlatformWindows;",
-        _ => return Err(GeneratorError::InvalidSchema(src_file.clone(), "Bad platform".to_string()))
+    let use_platform: &str = match config.platform {
+        AppPlatform::windows => "use platform_windows::PlatformWindows;"
     };
-    let use_graphics: &str = match config.graphics.as_str() {
-        "vulkan" => "use renderer::vk_renderer::VkRenderer;",
-        _ => return Err(GeneratorError::InvalidSchema(src_file.clone(), "Bad graphics".to_string()))
+    let use_graphics: &str = match config.graphics {
+        AppGraphicsApi::vulkan => "use renderer::vk_renderer::VkRenderer;"
     };
 
     let title_def: String = format!("const APP_TITLE: &str = \"{}\";", config.name);
 
-    let platform_construct: &str = match config.platform.as_str() {
-        "windows" => "PlatformWindows::new_window(APP_TITLE)",
-        _ => return Err(GeneratorError::InvalidSchema(src_file.clone(), "Bad platform".to_string()))
+    let platform_construct: &str = match config.platform {
+        AppPlatform::windows => "PlatformWindows::new_window(APP_TITLE)"
     };
 
-    let engine_decl: &str = match config.graphics.as_str() {
-        "vulkan" => "let engine: Engine<VkRenderer>",
-        _ => return Err(GeneratorError::InvalidSchema(src_file.clone(), "Bad graphics".to_string()))
+    let engine_decl: &str = match config.graphics {
+        AppGraphicsApi::vulkan => "let engine: Engine<VkRenderer>"
     };
 
     let content = format!("

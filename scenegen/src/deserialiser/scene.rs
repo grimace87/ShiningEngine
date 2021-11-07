@@ -1,16 +1,5 @@
 use serde::Deserialize;
 
-/// App struct
-/// Defines some top-level properties of the application
-#[derive(Debug, Deserialize)]
-pub struct App {
-    pub name: String,
-    pub features: Vec<String>,
-    pub platform: String,
-    pub graphics: String,
-    pub start_scene: String
-}
-
 /// Scene struct
 /// Defines a scene of the application - generally this will be a continuous piece of gameplay
 /// without interruptions, such as a player flying across a planet - and typically separated from
@@ -18,9 +7,16 @@ pub struct App {
 #[derive(Debug, Deserialize)]
 pub struct Scene {
     pub id: String,
-    pub camera: String,
+    pub camera: Camera,
     pub resources: Resources,
     pub passes: Vec<Pass>
+}
+
+#[derive(Debug, Deserialize)]
+pub enum Camera {
+    player,
+    flight_path,
+    null
 }
 
 /// Resources struct
@@ -39,7 +35,12 @@ pub struct Resources {
 pub struct Model {
     pub id: String,
     pub file: Option<String>,
-    pub generator: Option<String>
+    pub generator: Option<ModelGenerator>
+}
+
+#[derive(Debug, Deserialize)]
+pub enum ModelGenerator {
+    skybox
 }
 
 /// Texture struct
@@ -48,7 +49,13 @@ pub struct Model {
 pub struct Texture {
     pub id: String,
     pub file: Option<String>,
-    pub kind: Option<String>
+    pub kind: Option<TextureKind>
+}
+
+#[derive(Debug, Deserialize)]
+pub enum TextureKind {
+    cubemap,
+    uninitialised
 }
 
 /// Font struct
@@ -67,10 +74,22 @@ pub struct Font {
 /// using that configuration
 #[derive(Debug, Deserialize)]
 pub struct Pass {
-    pub kind: String,
+    pub kind: PassKind,
     pub target_texture_id: Option<String>,
-    pub render: String,
+    pub render: RenderFunction,
     pub steps: Vec<Step>
+}
+
+#[derive(Debug, Deserialize)]
+pub enum PassKind {
+    default,
+    offscreen
+}
+
+#[derive(Debug, Deserialize)]
+pub enum RenderFunction {
+    basic_textured,
+    reflection_pre_render
 }
 
 /// Step struct

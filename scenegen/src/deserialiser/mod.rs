@@ -1,9 +1,11 @@
 
-pub mod structures;
+pub mod app;
+pub mod scene;
 pub mod validator;
 
 use crate::GeneratorError;
-use structures::*;
+use app::App;
+use scene::*;
 use validator::validate_app_file;
 use validator::validate_scene_file;
 use std::path::PathBuf;
@@ -40,7 +42,8 @@ mod test {
     use std::path::PathBuf;
     use crate::deserialiser::parse_app_file;
     use crate::deserialiser::parse_scene_file;
-    use crate::deserialiser::structures::*;
+    use crate::deserialiser::app::{App, AppFeature, AppGraphicsApi, AppPlatform};
+    use crate::deserialiser::scene::*;
     use crate::GeneratorError;
 
     fn get_test_app_file(app_name: &'static str, file_name: &'static str) -> PathBuf {
@@ -110,9 +113,11 @@ mod test {
         let app_object = parse_app_file(&app_src).unwrap();
         let expected_app = App {
             name: "Full-featured example which should pass validation".to_string(),
-            features: vec!["clip_planes".to_string()],
-            platform: "windows".to_string(),
-            graphics: "vulkan".to_string(),
+            features: vec![
+                AppFeature::clip_planes
+            ],
+            platform: AppPlatform::windows,
+            graphics: AppGraphicsApi::vulkan,
             start_scene: "scene".to_string()
         };
         assert_eq!(format!("{:?}", app_object), format!("{:?}", expected_app));
@@ -121,7 +126,7 @@ mod test {
         let scene1_object = parse_scene_file(&scene1_src).unwrap();
         let expected_scene1 = Scene {
             id: "scene".to_string(),
-            camera: "player".to_string(),
+            camera: Camera::player,
             resources: Resources {
                 models: vec![
                     Model {
@@ -137,7 +142,7 @@ mod test {
                     Model {
                         id: "skybox".to_string(),
                         file: None,
-                        generator: Some("skybox".to_string())
+                        generator: Some(ModelGenerator::skybox)
                     }
                 ],
                 textures: vec![
@@ -154,12 +159,12 @@ mod test {
                     Texture {
                         id: "skybox".to_string(),
                         file: Some("bluecloud.jpg".to_string()),
-                        kind: Some("cubemap".to_string())
+                        kind: Some(TextureKind::cubemap)
                     },
                     Texture {
                         id: "reflection".to_string(),
                         file: None,
-                        kind: Some("uninitialised".to_string())
+                        kind: Some(TextureKind::uninitialised)
                     }
                 ],
                 fonts: vec![
@@ -172,9 +177,9 @@ mod test {
             },
             passes: vec![
                 Pass {
-                    kind: "offscreen".to_string(),
+                    kind: PassKind::offscreen,
                     target_texture_id: Some("reflection".to_string()),
-                    render: "reflection_pre_render".to_string(),
+                    render: RenderFunction::reflection_pre_render,
                     steps: vec![
                         Step {
                             model_id: "skybox".to_string(),
@@ -187,9 +192,9 @@ mod test {
                     ]
                 },
                 Pass {
-                    kind: "default".to_string(),
+                    kind: PassKind::default,
                     target_texture_id: None,
-                    render: "basic_textured".to_string(),
+                    render: RenderFunction::basic_textured,
                     steps: vec![
                         Step {
                             model_id: "river".to_string(),
@@ -209,29 +214,29 @@ mod test {
         let scene2_object = parse_scene_file(&scene2_src).unwrap();
         let expected_scene2 = Scene {
             id: "cutscene".to_string(),
-            camera: "flight_path".to_string(),
+            camera: Camera::flight_path,
             resources: Resources {
                 models: vec![
                     Model {
                         id: "skybox".to_string(),
                         file: None,
-                        generator: Some("skybox".to_string())
+                        generator: Some(ModelGenerator::skybox)
                     }
                 ],
                 textures: vec![
                     Texture {
                         id: "skybox".to_string(),
                         file: Some("bluecloud.jpg".to_string()),
-                        kind: Some("cubemap".to_string())
+                        kind: Some(TextureKind::cubemap)
                     }
                 ],
                 fonts: vec![]
             },
             passes: vec![
                 Pass {
-                    kind: "default".to_string(),
+                    kind: PassKind::default,
                     target_texture_id: None,
-                    render: "basic_textured".to_string(),
+                    render: RenderFunction::basic_textured,
                     steps: vec![
                         Step {
                             model_id: "skybox".to_string(),
