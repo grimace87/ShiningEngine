@@ -37,7 +37,8 @@ fn compile_schema(schema_file: &'static str) -> JSONSchema {
     compiled_schema
 }
 
-/// Verify that references are all valid
+/// Verify that references are all valid, and that values are otherwise compatible.
+/// TODO - Textures have rules about how 'file' and 'kind' relate;
 pub fn validate_app_spec(spec: &AppSpec) -> Result<(), String> {
 
     let initial_scene_id = &spec.app.start_scene_id;
