@@ -33,7 +33,7 @@ pub fn parse_directory(project_dir: &PathBuf, spec_dir_name: &'static str) -> Re
             features: vec![],
             platform: AppPlatform::windows,
             graphics: AppGraphicsApi::vulkan,
-            start_scene: "unset".to_string()
+            start_scene_id: "unset".to_string()
         },
         scenes: vec![]
     };
@@ -171,7 +171,7 @@ mod test {
             ],
             platform: AppPlatform::windows,
             graphics: AppGraphicsApi::vulkan,
-            start_scene: "scene".to_string()
+            start_scene_id: "scene".to_string()
         };
         assert_eq!(format!("{:?}", app_object), format!("{:?}", expected_app));
 

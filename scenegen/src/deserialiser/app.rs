@@ -8,7 +8,7 @@ pub struct App {
     pub features: Vec<AppFeature>,
     pub platform: AppPlatform,
     pub graphics: AppGraphicsApi,
-    pub start_scene: String
+    pub start_scene_id: String
 }
 
 #[derive(Debug, Deserialize)]

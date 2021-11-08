@@ -5,5 +5,5 @@
   ],
   "platform": "windows",
   "graphics": "glide",
-  "start_scene": "scene"
+  "start_scene_id": "scene"
 }

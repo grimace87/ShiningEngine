@@ -18,7 +18,7 @@ pub fn generate_scene_stubs(config: &Scene) -> Result<String, GeneratorError> {
 
 fn generate_app_root_content(config: &App) -> Result<String, GeneratorError> {
 
-    let start_scene = config.start_scene.as_str();
+    let start_scene = config.start_scene_id.as_str();
 
     let use_platform: &str = match config.platform {
         AppPlatform::windows => "use platform_windows::PlatformWindows;"

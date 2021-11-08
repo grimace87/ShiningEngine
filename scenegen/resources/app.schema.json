@@ -7,7 +7,7 @@
     "features",
     "platform",
     "graphics",
-    "start_scene"
+    "start_scene_id"
   ],
   "properties": {
     "name": {

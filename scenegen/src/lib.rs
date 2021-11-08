@@ -10,5 +10,6 @@ pub enum GeneratorError {
     NotADirectory(String),
     BadJson(PathBuf, String),
     InvalidSchema(PathBuf, String),
-    WriteError(PathBuf)
+    WriteError(PathBuf),
+    InvalidSpec(String)
 }

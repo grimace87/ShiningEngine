@@ -1,6 +1,7 @@
 
 use jsonschema::JSONSchema;
 use std::path::PathBuf;
+use crate::generator::AppSpec;
 
 pub fn validate_app_file(json_value: &serde_json::Value) -> Result<(), String> {
     validate_file(json_value, "app.schema.json")
