@@ -18,18 +18,23 @@ pub fn write_app_files(project_dir: &PathBuf, app_spec: &AppSpec) -> Result<(), 
         .map_err(|_| GeneratorError::WriteError(app_src_file.clone()))?;
 
     for scene in app_spec.scenes.iter() {
-        let scene_src_file = {
+        let mut scene_src_file = {
             let mut path = PathBuf::from(project_dir);
             path.push("src");
             path.push("scenes");
             path.push(&scene.id);
             std::fs::create_dir_all(&path)
                 .map_err(|_| GeneratorError::WriteError(path.clone()))?;
-            path.push("mod.rs");
             path
         };
-        let scene_stubs_file_contents = stubs::generate_scene_stubs(&scene)?;
-        std::fs::write(&scene_src_file, scene_stubs_file_contents)
+
+        let (forced_gen_content, only_if_missing_content) = stubs::generate_scene_stubs(&scene)?;
+        scene_src_file.push("mod.rs");
+        std::fs::write(&scene_src_file, forced_gen_content)
+            .map_err(|_| GeneratorError::WriteError(scene_src_file.clone()))?;
+        scene_src_file.pop();
+        scene_src_file.push("details.rs");
+        std::fs::write(&scene_src_file, only_if_missing_content)
             .map_err(|_| GeneratorError::WriteError(scene_src_file.clone()))?;
     }
 
