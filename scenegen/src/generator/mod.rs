@@ -48,7 +48,6 @@ pub fn process_spec_path(project_dir: &PathBuf, spec_dir_name: &'static str) -> 
 #[cfg(test)]
 mod test {
     use std::path::PathBuf;
-    use serial_test::serial;
     use crate::generator::process_spec_path;
     use crate::GeneratorError;
 
@@ -62,7 +61,6 @@ mod test {
     }
 
     #[test]
-    #[serial]
     fn json_file_with_text_rejected() {
         let test_dir = get_test_dir("json_file_with_text");
         let process_result = process_spec_path(&test_dir, "spec");
@@ -70,7 +68,6 @@ mod test {
     }
 
     #[test]
-    #[serial]
     fn invalid_spec_rejected() {
         let test_dir = get_test_dir("features_bad");
         let process_result = process_spec_path(&test_dir, "spec");
@@ -78,7 +75,13 @@ mod test {
     }
 
     #[test]
-    #[serial]
+    fn missing_initial_scene_fails_validation() {
+        let test_dir = get_test_dir("missing_initial_scene");
+        let process_result = process_spec_path(&test_dir, "spec");
+        assert!(matches!(process_result, Err(GeneratorError::InvalidSpec(_))));
+    }
+
+    #[test]
     fn valid_files_in_directory_processed() {
         let test_dir = get_test_dir("full_featured_app");
         let process_result = process_spec_path(&test_dir, "spec");

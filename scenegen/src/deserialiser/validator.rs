@@ -36,3 +36,44 @@ fn compile_schema(schema_file: &'static str) -> JSONSchema {
         .expect("Invalid JSON schema");
     compiled_schema
 }
+
+/// Verify that references are all valid
+pub fn validate_app_spec(spec: &AppSpec) -> Result<(), String> {
+
+    let initial_scene_id = &spec.app.start_scene_id;
+    if let None = spec.scenes.iter().find(|scene| &scene.id == initial_scene_id) {
+        return Err(format!("Initial scene doesn't exist: {}", initial_scene_id));
+    }
+
+    for scene in spec.scenes.iter() {
+        for font in scene.resources.fonts.iter() {
+            let texture_id = &font.texture_id;
+            if let None = scene.resources.textures.iter().find(|texture| &texture.id == texture_id) {
+                return Err(format!("(Scene {}) Font texture doesn't exist: {}", scene.id, texture_id));
+            }
+        }
+
+        for pass in scene.passes.iter() {
+            if let Some(target_texture_id) = &pass.target_texture_id {
+                if let None = scene.resources.textures.iter().find(|texture| &texture.id == target_texture_id) {
+                    return Err(format!("(Scene {}) Texture target doesn't exist: {}", scene.id, target_texture_id));
+                }
+            }
+
+            for step in pass.steps.iter() {
+                let model_id = &step.model_id;
+                if let None = scene.resources.models.iter().find(|model| &model.id == model_id) {
+                    return Err(format!("(Scene {}) Model doesn't exist: {}", scene.id, model_id));
+                }
+
+                for texture_id in step.texture_ids.iter() {
+                    if let None = scene.resources.textures.iter().find(|texture| &texture.id == texture_id) {
+                        return Err(format!("(Scene {}) Step texture doesn't exist: {}", scene.id, texture_id));
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}

@@ -1,0 +1,10 @@
+{
+  "id": "scene",
+  "camera": "player",
+  "resources": {
+    "models": [],
+    "textures": [],
+    "fonts": []
+  },
+  "passes": []
+}

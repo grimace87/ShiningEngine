@@ -1,0 +1,7 @@
+{
+  "name": "Test spec for missing initial scene failing",
+  "features": [],
+  "platform": "windows",
+  "graphics": "vulkan",
+  "start_scene_id": "unscene"
+}

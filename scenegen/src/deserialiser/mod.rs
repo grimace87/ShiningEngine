@@ -10,6 +10,7 @@ use validator::validate_app_file;
 use validator::validate_scene_file;
 use std::path::PathBuf;
 use crate::deserialiser::app::{AppGraphicsApi, AppPlatform};
+use crate::deserialiser::validator::validate_app_spec;
 use crate::generator::AppSpec;
 
 pub fn parse_directory(project_dir: &PathBuf, spec_dir_name: &'static str) -> Result<AppSpec, GeneratorError> {
@@ -53,6 +54,10 @@ pub fn parse_directory(project_dir: &PathBuf, spec_dir_name: &'static str) -> Re
             app_spec.scenes.push(scene_config);
         }
     }
+
+    validate_app_spec(&app_spec)
+        .map_err(|e| GeneratorError::InvalidSpec(e))?;
+
     Ok(app_spec)
 }
 
