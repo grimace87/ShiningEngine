@@ -12,7 +12,8 @@ use defs::{
         VertexFormat,
         VboCreationData,
         ResourcePreloads
-    }
+    },
+    ubo::*
 };
 use engine::{
     camera::null::NullCamera,
@@ -33,17 +34,6 @@ const VBO_INDEX_HUD_SUB: usize = 2;
 
 const TEXTURE_INDEX_BG: usize = 0; // Re-used
 const TEXTURE_INDEX_FONT: usize = 1; // Re-used
-
-#[repr(C)]
-struct CameraUbo {
-    camera_matrix: Matrix4<f32>
-}
-
-#[repr(C)]
-struct TextPaintUbo {
-    camera_matrix: Matrix4<f32>,
-    paint_color: Vector4<f32>
-}
 
 pub struct SubMenuScene {
     camera: NullCamera,

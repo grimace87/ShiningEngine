@@ -2,11 +2,6 @@
 mod elements;
 pub mod config;
 
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_xml_rs;
-
 use elements::{
     GeometryLibrary,
     VisualScenesLibrary,
@@ -17,6 +12,7 @@ use model::types::{
     Model,
     StaticVertex
 };
+use serde::Deserialize;
 use serde_xml_rs::from_reader;
 
 /// COLLADA struct

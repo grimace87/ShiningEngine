@@ -1,4 +1,5 @@
 
+use serde::Deserialize;
 use model::types::StaticVertex;
 
 /// Recognised values for the semantic attribute found in Collada XML

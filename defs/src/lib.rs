@@ -1,6 +1,7 @@
 
 pub mod render;
 pub mod control;
+pub mod ubo;
 
 use cgmath::Matrix4;
 use image::ImageError;

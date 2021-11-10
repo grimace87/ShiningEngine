@@ -16,7 +16,8 @@ use defs::{
         DrawingDescription,
         DrawingPass,
         DrawingStep
-    }
+    },
+    ubo::*
 };
 use engine::{
     camera::player::PlayerCamera,
@@ -61,25 +62,6 @@ const TEXTURE_INDEX_REFRACTION_DEPTH: usize = 5;
 const TEXTURE_INDEX_SKYBOX: usize = 6;
 
 const OFFSCREEN_RENDER_SIZE: u32 = 1024;
-
-#[repr(C)]
-struct MvpUbo {
-    matrix: Matrix4<f32>
-}
-
-#[repr(C)]
-struct MvpClippingUbo {
-    matrix: Matrix4<f32>,
-    y_bias: f32,
-    y_plane_normal: f32,
-    unused: [f32; 2]
-}
-
-#[repr(C)]
-struct TextPaintUbo {
-    camera_matrix: Matrix4<f32>,
-    paint_color: Vector4<f32>
-}
 
 pub struct SceneryScene {
     camera: PlayerCamera,

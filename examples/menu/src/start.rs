@@ -13,7 +13,8 @@ use defs::{
         TextureCreationData,
         ResourcePreloads,
         ImageUsage
-    }
+    },
+    ubo::*
 };
 use engine::util::{
     TextureCodec,
@@ -39,17 +40,6 @@ const VBO_INDEX_HUD: usize = 1;
 
 const TEXTURE_INDEX_BG: usize = 0;
 const TEXTURE_INDEX_FONT: usize = 1;
-
-#[repr(C)]
-struct CameraUbo {
-    camera_matrix: Matrix4<f32>
-}
-
-#[repr(C)]
-struct TextPaintUbo {
-    camera_matrix: Matrix4<f32>,
-    paint_color: Vector4<f32>
-}
 
 pub struct StartMenuScene {
     text_generator: TextGenerator,

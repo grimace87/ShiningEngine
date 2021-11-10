@@ -131,7 +131,8 @@ use defs::{{
         DrawingDescription,
         DrawingPass,
         DrawingStep
-    }}
+    }},
+    ubo::*
 }};
 use engine::{{
     camera::player::PlayerCamera,
