@@ -45,29 +45,35 @@
   },
   "passes": [
     {
+      "name": "pre_reflection",
       "kind": "offscreen",
       "target_texture_id": "reflection",
       "render": "reflection_pre_render",
       "steps": [
         {
+          "name": "skybox",
           "model_id": "skybox",
           "texture_ids": ["skybox"]
         },
         {
+          "name": "terrain",
           "model_id": "terrain",
           "texture_ids": ["outdoors"]
         }
       ]
     },
     {
+      "name": "compose",
       "kind": "default",
       "render": "basic_textured",
       "steps": [
         {
+          "name": "river",
           "model_id": "river",
           "texture_ids": ["reflection"]
         },
         {
+          "name": "terrain",
           "model_id": "terrain",
           "texture_ids": ["outdoors"]
         }

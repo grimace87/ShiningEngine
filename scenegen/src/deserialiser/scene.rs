@@ -74,6 +74,7 @@ pub struct Font {
 /// using that configuration
 #[derive(Debug, Deserialize)]
 pub struct Pass {
+    pub name: String,
     pub kind: PassKind,
     pub target_texture_id: Option<String>,
     pub render: RenderFunction,
@@ -97,6 +98,7 @@ pub enum RenderFunction {
 /// textures are required by the shader for the parent pass
 #[derive(Debug, Deserialize)]
 pub struct Step {
+    pub name: String,
     pub model_id: String,
     pub texture_ids: Vec<String>
 }

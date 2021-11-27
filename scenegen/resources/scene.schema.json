@@ -98,11 +98,15 @@
       "items": {
         "type": "object",
         "required": [
+          "name",
           "kind",
           "render",
           "steps"
         ],
         "properties": {
+          "name": {
+            "type": "string"
+          },
           "kind": {
             "type": "string",
             "enum": [
@@ -125,10 +129,14 @@
             "items": {
               "type": "object",
               "required": [
+                "name",
                 "model_id",
                 "texture_ids"
               ],
               "properties": {
+                "name": {
+                  "type": "string"
+                },
                 "model_id": {
                   "type": "string"
                 },

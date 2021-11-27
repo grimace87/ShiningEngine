@@ -19,10 +19,12 @@
   },
   "passes": [
     {
+      "name": "skybox",
       "kind": "default",
       "render": "basic_textured",
       "steps": [
         {
+          "name": "box",
           "model_id": "skybox",
           "texture_ids": ["skybox"]
         }

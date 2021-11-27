@@ -235,30 +235,36 @@ mod test {
             },
             passes: vec![
                 Pass {
+                    name: "pre_reflection".to_string(),
                     kind: PassKind::offscreen,
                     target_texture_id: Some("reflection".to_string()),
                     render: RenderFunction::reflection_pre_render,
                     steps: vec![
                         Step {
+                            name: "skybox".to_string(),
                             model_id: "skybox".to_string(),
                             texture_ids: vec!["skybox".to_string()]
                         },
                         Step {
+                            name: "terrain".to_string(),
                             model_id: "terrain".to_string(),
                             texture_ids: vec!["outdoors".to_string()]
                         }
                     ]
                 },
                 Pass {
+                    name: "compose".to_string(),
                     kind: PassKind::default,
                     target_texture_id: None,
                     render: RenderFunction::basic_textured,
                     steps: vec![
                         Step {
+                            name: "river".to_string(),
                             model_id: "river".to_string(),
                             texture_ids: vec!["reflection".to_string()]
                         },
                         Step {
+                            name: "terrain".to_string(),
                             model_id: "terrain".to_string(),
                             texture_ids: vec!["outdoors".to_string()]
                         }
@@ -292,11 +298,13 @@ mod test {
             },
             passes: vec![
                 Pass {
+                    name: "skybox".to_string(),
                     kind: PassKind::default,
                     target_texture_id: None,
                     render: RenderFunction::basic_textured,
                     steps: vec![
                         Step {
+                            name: "box".to_string(),
                             model_id: "skybox".to_string(),
                             texture_ids: vec!["skybox".to_string()]
                         }
