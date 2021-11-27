@@ -41,7 +41,11 @@
               "type": "string"
             },
             "generator": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "skybox",
+                "text"
+              ]
             }
           }
         },
@@ -121,6 +125,7 @@
             "type": "string",
             "enum": [
               "basic_textured",
+              "text_paint",
               "reflection_pre_render"
             ]
           },

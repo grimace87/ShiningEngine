@@ -14,6 +14,10 @@
       {
         "id": "skybox",
         "generator": "skybox"
+      },
+      {
+        "id": "hud",
+        "generator": "text"
       }
     ],
     "textures": [
@@ -76,6 +80,18 @@
           "name": "terrain",
           "model_id": "terrain",
           "texture_ids": ["outdoors"]
+        }
+      ]
+    },
+    {
+      "name": "hud",
+      "kind": "default",
+      "render": "text_paint",
+      "steps": [
+        {
+          "name": "text_overlay",
+          "model_id": "hud",
+          "texture_ids": ["musica"]
         }
       ]
     }

@@ -201,6 +201,11 @@ mod test {
                         id: "skybox".to_string(),
                         file: None,
                         generator: Some(ModelGenerator::skybox)
+                    },
+                    Model {
+                        id: "hud".to_string(),
+                        file: None,
+                        generator: Some(ModelGenerator::text)
                     }
                 ],
                 textures: vec![
@@ -267,6 +272,19 @@ mod test {
                             name: "terrain".to_string(),
                             model_id: "terrain".to_string(),
                             texture_ids: vec!["outdoors".to_string()]
+                        }
+                    ]
+                },
+                Pass {
+                    name: "hud".to_string(),
+                    kind: PassKind::default,
+                    target_texture_id: None,
+                    render: RenderFunction::text_paint,
+                    steps: vec![
+                        Step {
+                            name: "text_overlay".to_string(),
+                            model_id: "hud".to_string(),
+                            texture_ids: vec!["musica".to_string()]
                         }
                     ]
                 }

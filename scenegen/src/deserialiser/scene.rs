@@ -40,7 +40,8 @@ pub struct Model {
 
 #[derive(Debug, Deserialize)]
 pub enum ModelGenerator {
-    skybox
+    skybox,
+    text
 }
 
 /// Texture struct
@@ -90,6 +91,7 @@ pub enum PassKind {
 #[derive(Debug, Deserialize)]
 pub enum RenderFunction {
     basic_textured,
+    text_paint,
     reflection_pre_render
 }
 
