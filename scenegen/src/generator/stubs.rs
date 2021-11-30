@@ -163,11 +163,12 @@ fn generate_scene_contents(config: &Scene) -> Result<(String, String), Generator
         }
     };
 
-    let (ubo_decls, ubo_constructors) = {
+    let (ubo_decls, ubo_constructors, ubo_ptr_mappings) = {
         let mut decls = String::new();
         let mut constructors = String::new();
-        for pass in config.passes.iter() {
-            for step in pass.steps.iter() {
+        let mut ptr_mappings = String::new();
+        for (pass_index, pass) in config.passes.iter().enumerate() {
+            for (step_index, step) in pass.steps.iter().enumerate() {
 
                 let ubo_type = match pass.render {
                     RenderFunction::basic_textured => "MvpUbo",
@@ -182,9 +183,11 @@ fn generate_scene_contents(config: &Scene) -> Result<(String, String), Generator
                     RenderFunction::reflection_pre_render => "MvpClippingUbo {\n                matrix: Matrix4::identity(),\n                y_bias: 0.0,\n                y_plane_normal: -1.0,\n                unused: [0.0, 0.0]\n            }"
                 };
                 constructors = format!("{}\n            ubo_{}_{}: {},", constructors, pass.name, step.name, ubo_constructor);
+
+                ptr_mappings = format!("{}\n            ({}, {}) => (\n                &self.ubo_{}_{} as *const {} as *const u8,\n                std::mem::size_of::<{}>()),", ptr_mappings, pass_index, step_index, pass.name, step.name, ubo_type, ubo_type);
             }
         }
-        (decls, constructors)
+        (decls, constructors, ptr_mappings)
     };
 
     let forced_gen_content = format!("
@@ -243,7 +246,44 @@ impl {} {{
     }}
 }}
 
-", byte_decls, vbo_index_decls, texture_index_decls, struct_name, camera_type, text_gen_decls, ubo_decls, struct_name, struct_name, struct_name, camera_constructor, text_gen_constructors, ubo_constructors);
+impl SceneInfo for {} {{
+
+    fn make_preloads(&self) -> ResourcePreloads {{
+
+    }}
+
+    fn make_description(&self) -> DrawingDescription {{
+
+    }}
+
+    unsafe fn get_ubo_data_ptr_and_size(
+        &self,
+        pass_index: usize,
+        step_index: usize
+    ) -> (*const u8, usize) {{
+        match (pass_index, step_index) {{{}
+            _ => panic!(\"Cannot get UBO for {}\")
+        }}
+    }}
+}}
+",
+    byte_decls,
+    vbo_index_decls,
+    texture_index_decls,
+    struct_name,
+    camera_type,
+    text_gen_decls,
+    ubo_decls,
+    struct_name,
+    struct_name,
+    struct_name,
+    camera_constructor,
+    text_gen_constructors,
+    ubo_constructors,
+    struct_name,
+    ubo_ptr_mappings,
+    struct_name
+);
 
     let only_when_missing_gen_content = "Hello!".to_string();
     Ok((forced_gen_content, only_when_missing_gen_content))
