@@ -75,11 +75,11 @@ fn main() {{
 
 fn generate_scene_contents(config: &Scene) -> Result<(String, String), GeneratorError> {
 
-    let mut byte_decls = String::from("\n");
+    let mut byte_decls = String::new();
     for model in config.resources.models.iter() {
         if let Some(src_file) = &model.file {
             let decl = format!("const {}_MODEL_BYTES: &[u8] = include_bytes!(concat!(env!(\"OUT_DIR\"), \"/models/{}\"));", model.id.to_uppercase(), src_file);
-            byte_decls = format!("{}{}\n", byte_decls, decl);
+            byte_decls = format!("{}\n{}", byte_decls, decl);
         }
     }
     for texture in config.resources.textures.iter() {
@@ -87,7 +87,7 @@ fn generate_scene_contents(config: &Scene) -> Result<(String, String), Generator
             match texture.kind {
                 None => {
                     let decl = format!("const {}_TEXTURE_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}\");", texture.id.to_uppercase(), src_file);
-                    byte_decls = format!("{}{}\n", byte_decls, decl);
+                    byte_decls = format!("{}\n{}", byte_decls, decl);
                 },
                 Some(TextureKind::cubemap) => {
                     let (name_part, extension) = match src_file.rfind(".") {
@@ -103,7 +103,7 @@ fn generate_scene_contents(config: &Scene) -> Result<(String, String), Generator
                         format!("const {}_TEXTURE_BK_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_bk{}\");", name_part.to_uppercase(), name_part, extension)
                     ];
                     for decl in decls.iter() {
-                        byte_decls = format!("{}{}\n", byte_decls, decl);
+                        byte_decls = format!("{}\n{}", byte_decls, decl);
                     }
                 },
                 _ => panic!("Unexpected error - texture file specified, but kind is not compatible")
@@ -111,8 +111,15 @@ fn generate_scene_contents(config: &Scene) -> Result<(String, String), Generator
         }
     }
 
-    let vbo_index_decls = String::from("Heyo!");
-    let texture_index_decls = String::from("Heyo!");
+    let mut vbo_index_decls = String::new();
+    for (i, model) in config.resources.models.iter().enumerate() {
+        vbo_index_decls = format!("{}\nconst VBO_INDEX_{}: usize = {};", vbo_index_decls, model.id.to_uppercase(), i);
+    }
+
+    let mut texture_index_decls = String::new();
+    for (i, texture) in config.resources.textures.iter().enumerate() {
+        texture_index_decls = format!("{}\nconst TEXTURE_INDEX_{}: usize = {};", texture_index_decls, texture.id.to_uppercase(), i);
+    }
 
     let struct_name = format!("{}Scene", config.id.to_camel_case());
 
@@ -220,7 +227,6 @@ use cgmath::{{Matrix4, Vector4, SquareMatrix}};
 use std::collections::HashMap;
 {}
 {}
-
 {}
 
 const OFFSCREEN_RENDER_SIZE: u32 = 1024;
