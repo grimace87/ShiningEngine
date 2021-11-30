@@ -1,6 +1,6 @@
 {
   "id": "cutscene",
-  "camera": "flight_path",
+  "camera": "player",
   "resources": {
     "models": [
       {

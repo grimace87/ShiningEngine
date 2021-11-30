@@ -1,6 +1,7 @@
 use crate::deserialiser::app::*;
 use crate::deserialiser::scene::*;
 use crate::GeneratorError;
+use heck::CamelCase;
 
 /// Generate stubs for an app spec as a String of content. Should be saved to src/app.rs.
 /// To start this process, call crate::generator::writer::process_spec_path from a build script.
@@ -113,6 +114,72 @@ fn generate_scene_contents(config: &Scene) -> Result<(String, String), Generator
     let vbo_index_decls = String::from("Heyo!");
     let texture_index_decls = String::from("Heyo!");
 
+    let struct_name = format!("{}Scene", config.id.to_camel_case());
+
+    let (camera_type, camera_constructor) = match config.camera {
+        Camera::null => (
+            "NullCamera",
+            "NullCamera::default()"
+        ),
+        Camera::player => (
+            "PlayerCamera",
+            "PlayerCamera::new(1.0, 10.0, -3.0, -15.0, std::f32::consts::FRAC_PI_6 * 5.0)"
+        ),
+        Camera::flight_path => unimplemented!()
+    };
+
+    let (text_gen_decls, text_gen_constructors) = match config.resources.fonts.len() {
+        0 => (
+            String::new(),
+            String::new()
+        ),
+        1 => (
+            String::from("\n    text_generator: TextGenerator,"),
+            format!(
+                "\n            text_generator: TextGenerator::from_resource(include_str!(\"../../resources/font/{}\")),",
+                config.resources.fonts[0].file
+            )
+        ),
+        _ => {
+            let mut decls = String::new();
+            let mut constructors = String::new();
+            for (i, _) in config.resources.fonts.iter().enumerate() {
+                decls = format!("{}\n    text_generator_{}: TextGenerator,", decls, i);
+                constructors = format!(
+                    "{}\n            text_generator_{}: TextGenerator::from_resource(include_str!(\"../../resources/font/{}\")),",
+                    constructors,
+                    i,
+                    config.resources.fonts[i].file
+                );
+            }
+            (decls, constructors)
+        }
+    };
+
+    let (ubo_decls, ubo_constructors) = {
+        let mut decls = String::new();
+        let mut constructors = String::new();
+        for pass in config.passes.iter() {
+            for step in pass.steps.iter() {
+
+                let ubo_type = match pass.render {
+                    RenderFunction::basic_textured => "MvpUbo",
+                    RenderFunction::text_paint => "TextPaintUbo",
+                    RenderFunction::reflection_pre_render => "MvpClippingUbo"
+                };
+                decls = format!("{}\n    ubo_{}_{}: {},", decls, pass.name, step.name, ubo_type);
+
+                let ubo_constructor = match pass.render {
+                    RenderFunction::basic_textured => "MvpUbo { matrix: Matrix4::identity() }",
+                    RenderFunction::text_paint => "TextPaintUbo {\n                camera_matrix: Matrix4::identity(),\n                paint_color: Vector4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 }\n            }",
+                    RenderFunction::reflection_pre_render => "MvpClippingUbo {\n                matrix: Matrix4::identity(),\n                y_bias: 0.0,\n                y_plane_normal: -1.0,\n                unused: [0.0, 0.0]\n            }"
+                };
+                constructors = format!("{}\n            ubo_{}_{}: {},", constructors, pass.name, step.name, ubo_constructor);
+            }
+        }
+        (decls, constructors)
+    };
+
     let forced_gen_content = format!("
 use defs::{{
     Camera,
@@ -158,7 +225,19 @@ use std::collections::HashMap;
 
 const OFFSCREEN_RENDER_SIZE: u32 = 1024;
 
-", byte_decls, vbo_index_decls, texture_index_decls);
+pub struct {} {{
+    camera: {},{}{}
+}}
+
+impl {} {{
+    pub fn new() -> {} {{
+        {} {{
+            camera: {},{}{}
+        }}
+    }}
+}}
+
+", byte_decls, vbo_index_decls, texture_index_decls, struct_name, camera_type, text_gen_decls, ubo_decls, struct_name, struct_name, struct_name, camera_constructor, text_gen_constructors, ubo_constructors);
 
     let only_when_missing_gen_content = "Hello!".to_string();
     Ok((forced_gen_content, only_when_missing_gen_content))

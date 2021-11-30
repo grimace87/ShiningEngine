@@ -8,3 +8,4 @@ edition = "2018"
 jsonschema = "0.12.1"
 serde = { version = "1.0.123", features = ["derive"] }
 serde_json = "1.0.68"
+heck = "0.3.3"

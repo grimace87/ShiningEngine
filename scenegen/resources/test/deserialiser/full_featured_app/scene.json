@@ -72,6 +72,11 @@
       "render": "basic_textured",
       "steps": [
         {
+          "name": "skybox",
+          "model_id": "skybox",
+          "texture_ids": ["skybox"]
+        },
+        {
           "name": "river",
           "model_id": "river",
           "texture_ids": ["reflection"]
