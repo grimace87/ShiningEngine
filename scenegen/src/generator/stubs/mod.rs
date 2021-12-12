@@ -1,5 +1,9 @@
 
 mod app;
+mod scene_regenerated_top_level;
+mod scene_regenerated_struct;
+mod scene_regenerated_preloads;
+mod scene_regenerated_description;
 mod scene_regenerated;
 mod scene_starter;
 
