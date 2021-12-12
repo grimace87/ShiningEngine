@@ -24,12 +24,12 @@ pub fn generate_top_level(config: &Scene) -> Result<String, GeneratorError> {
                         None => panic!("Could not find an extension in a cubemap texture file name")
                     };
                     let decls = vec![
-                        format!("const {}_TEXTURE_LF_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_lf{}\");", name_part.to_uppercase(), name_part, extension),
-                        format!("const {}_TEXTURE_RT_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_rt{}\");", name_part.to_uppercase(), name_part, extension),
-                        format!("const {}_TEXTURE_UP_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_up{}\");", name_part.to_uppercase(), name_part, extension),
-                        format!("const {}_TEXTURE_DN_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_dn{}\");", name_part.to_uppercase(), name_part, extension),
-                        format!("const {}_TEXTURE_FT_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_ft{}\");", name_part.to_uppercase(), name_part, extension),
-                        format!("const {}_TEXTURE_BK_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_bk{}\");", name_part.to_uppercase(), name_part, extension)
+                        format!("const {}_TEXTURE_LF_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_lf{}\");", texture.id.to_uppercase(), name_part, extension),
+                        format!("const {}_TEXTURE_RT_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_rt{}\");", texture.id.to_uppercase(), name_part, extension),
+                        format!("const {}_TEXTURE_UP_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_up{}\");", texture.id.to_uppercase(), name_part, extension),
+                        format!("const {}_TEXTURE_DN_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_dn{}\");", texture.id.to_uppercase(), name_part, extension),
+                        format!("const {}_TEXTURE_FT_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_ft{}\");", texture.id.to_uppercase(), name_part, extension),
+                        format!("const {}_TEXTURE_BK_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_bk{}\");", texture.id.to_uppercase(), name_part, extension)
                     ];
                     for decl in decls.iter() {
                         byte_decls = format!("{}\n{}", byte_decls, decl);
