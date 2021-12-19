@@ -211,21 +211,31 @@ mod test {
                 textures: vec![
                     Texture {
                         id: "outdoors".to_string(),
+                        format: TextureFormat::rgba8,
                         file: Some("simple_outdoor_texture.jpg".to_string()),
                         kind: None
                     },
                     Texture {
                         id: "musica".to_string(),
+                        format: TextureFormat::rgba8,
                         file: Some("Musica.png".to_string()),
                         kind: None
                     },
                     Texture {
                         id: "skybox".to_string(),
+                        format: TextureFormat::rgb8,
                         file: Some("bluecloud.jpg".to_string()),
                         kind: Some(TextureKind::cubemap)
                     },
                     Texture {
-                        id: "reflection".to_string(),
+                        id: "reflection_colour".to_string(),
+                        format: TextureFormat::rgb8,
+                        file: None,
+                        kind: Some(TextureKind::uninitialised)
+                    },
+                    Texture {
+                        id: "reflection_depth".to_string(),
+                        format: TextureFormat::d16,
                         file: None,
                         kind: Some(TextureKind::uninitialised)
                     }
@@ -242,7 +252,10 @@ mod test {
                 Pass {
                     name: "pre_reflection".to_string(),
                     kind: PassKind::offscreen,
-                    target_texture_id: Some("reflection".to_string()),
+                    target_texture_ids: Some(TextureTarget {
+                        colour_texture_id: "reflection_colour".to_string(),
+                        depth_texture_id: Some("reflection_depth".to_string())
+                    }),
                     render: RenderFunction::reflection_pre_render,
                     steps: vec![
                         Step {
@@ -260,9 +273,14 @@ mod test {
                 Pass {
                     name: "compose".to_string(),
                     kind: PassKind::default,
-                    target_texture_id: None,
+                    target_texture_ids: None,
                     render: RenderFunction::basic_textured,
                     steps: vec![
+                        Step {
+                            name: "skybox".to_string(),
+                            model_id: "skybox".to_string(),
+                            texture_ids: vec!["skybox".to_string()]
+                        },
                         Step {
                             name: "river".to_string(),
                             model_id: "river".to_string(),
@@ -278,7 +296,7 @@ mod test {
                 Pass {
                     name: "hud".to_string(),
                     kind: PassKind::default,
-                    target_texture_id: None,
+                    target_texture_ids: None,
                     render: RenderFunction::text_paint,
                     steps: vec![
                         Step {
@@ -308,6 +326,7 @@ mod test {
                 textures: vec![
                     Texture {
                         id: "skybox".to_string(),
+                        format: TextureFormat::rgb8,
                         file: Some("bluecloud.jpg".to_string()),
                         kind: Some(TextureKind::cubemap)
                     }
@@ -318,7 +337,7 @@ mod test {
                 Pass {
                     name: "skybox".to_string(),
                     kind: PassKind::default,
-                    target_texture_id: None,
+                    target_texture_ids: None,
                     render: RenderFunction::basic_textured,
                     steps: vec![
                         Step {

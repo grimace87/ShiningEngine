@@ -23,19 +23,28 @@
     "textures": [
       {
         "id": "outdoors",
+        "format": "rgba8",
         "file": "simple_outdoor_texture.jpg"
       },
       {
         "id": "musica",
+        "format": "rgba8",
         "file": "Musica.png"
       },
       {
         "id": "skybox",
+        "format": "rgb8",
         "file": "bluecloud.jpg",
         "kind": "cubemap"
       },
       {
-        "id": "reflection",
+        "id": "reflection_colour",
+        "format": "rgb8",
+        "kind": "uninitialised"
+      },
+      {
+        "id": "reflection_depth",
+        "format": "d16",
         "kind": "uninitialised"
       }
     ],
@@ -51,7 +60,10 @@
     {
       "name": "pre_reflection",
       "kind": "offscreen",
-      "target_texture_id": "reflection",
+      "target_texture_ids": {
+        "colour_texture_id": "reflection_colour",
+        "depth_texture_id": "reflection_depth"
+      },
       "render": "reflection_pre_render",
       "steps": [
         {
@@ -79,7 +91,7 @@
         {
           "name": "river",
           "model_id": "river",
-          "texture_ids": ["reflection"]
+          "texture_ids": ["reflection_colour"]
         },
         {
           "name": "terrain",

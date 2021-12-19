@@ -49,8 +49,17 @@ pub enum ModelGenerator {
 #[derive(Debug, Deserialize)]
 pub struct Texture {
     pub id: String,
+    pub format: TextureFormat,
     pub file: Option<String>,
     pub kind: Option<TextureKind>
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub enum TextureFormat {
+    r8,
+    rgb8,
+    rgba8,
+    d16
 }
 
 #[derive(Debug, Deserialize)]
@@ -77,7 +86,7 @@ pub struct Font {
 pub struct Pass {
     pub name: String,
     pub kind: PassKind,
-    pub target_texture_id: Option<String>,
+    pub target_texture_ids: Option<TextureTarget>,
     pub render: RenderFunction,
     pub steps: Vec<Step>
 }
@@ -86,6 +95,12 @@ pub struct Pass {
 pub enum PassKind {
     default,
     offscreen
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TextureTarget {
+    pub colour_texture_id: String,
+    pub depth_texture_id: Option<String>
 }
 
 #[derive(Debug, Deserialize)]

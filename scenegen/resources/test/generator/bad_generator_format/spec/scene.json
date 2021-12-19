@@ -1,0 +1,17 @@
+{
+  "id": "scene",
+  "camera": "player",
+  "resources": {
+    "models": [],
+    "textures": [
+      {
+        "id": "skybox",
+        "file": "bluecloud.jpg",
+        "kind": "cubemap",
+        "format": "d16"
+      }
+    ],
+    "fonts": []
+  },
+  "passes": []
+}

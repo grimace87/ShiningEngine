@@ -1,6 +1,8 @@
 
 use jsonschema::JSONSchema;
 use std::path::PathBuf;
+use crate::deserialiser::scene::TextureFormat;
+use crate::deserialiser::TextureKind;
 use crate::generator::AppSpec;
 
 pub fn validate_app_file(json_value: &serde_json::Value) -> Result<(), String> {
@@ -47,6 +49,15 @@ pub fn validate_app_spec(spec: &AppSpec) -> Result<(), String> {
     }
 
     for scene in spec.scenes.iter() {
+
+        for texture in scene.resources.textures.iter() {
+            if matches!(&texture.kind, Some(TextureKind::cubemap)) {
+                if texture.format != TextureFormat::rgb8 {
+                    return Err(format!("(Scene {}) Non-RGB8 cubemaps are not supported: {}", scene.id, texture.id));
+                }
+            }
+        }
+
         for font in scene.resources.fonts.iter() {
             let texture_id = &font.texture_id;
             if let None = scene.resources.textures.iter().find(|texture| &texture.id == texture_id) {
@@ -55,9 +66,16 @@ pub fn validate_app_spec(spec: &AppSpec) -> Result<(), String> {
         }
 
         for pass in scene.passes.iter() {
-            if let Some(target_texture_id) = &pass.target_texture_id {
-                if let None = scene.resources.textures.iter().find(|texture| &texture.id == target_texture_id) {
-                    return Err(format!("(Scene {}) Texture target doesn't exist: {}", scene.id, target_texture_id));
+            if let Some(target_texture_ids) = &pass.target_texture_ids {
+                let colour_texture = &target_texture_ids.colour_texture_id;
+                if let None = scene.resources.textures.iter().find(|texture| &texture.id == colour_texture) {
+                    return Err(format!("(Scene {}) Texture target doesn't exist: {}", scene.id, colour_texture));
+                }
+
+                if let Some(depth_texture) = &target_texture_ids.depth_texture_id {
+                    if let None = scene.resources.textures.iter().find(|texture| &texture.id == depth_texture) {
+                        return Err(format!("(Scene {}) Texture target doesn't exist: {}", scene.id, depth_texture));
+                    }
                 }
             }
 

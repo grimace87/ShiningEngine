@@ -11,6 +11,7 @@
     "textures": [
       {
         "id": "skybox",
+        "format": "rgb8",
         "file": "bluecloud.jpg",
         "kind": "cubemap"
       }

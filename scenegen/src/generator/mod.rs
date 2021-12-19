@@ -82,6 +82,13 @@ mod test {
     }
 
     #[test]
+    fn bad_generated_texture_format_fails_validation() {
+        let test_dir = get_test_dir("bad_generator_format");
+        let process_result = process_spec_path(&test_dir, "spec");
+        assert!(matches!(process_result, Err(GeneratorError::InvalidSpec(_))));
+    }
+
+    #[test]
     fn valid_files_in_directory_processed() {
         let test_dir = get_test_dir("full_featured_app");
         let process_result = process_spec_path(&test_dir, "spec");

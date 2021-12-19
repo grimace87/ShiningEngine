@@ -60,6 +60,15 @@
               "id": {
                 "type": "string"
               },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "r8",
+                  "rgb8",
+                  "rgba8",
+                  "d16"
+                ]
+              },
               "file": {
                 "type": "string"
               },
@@ -118,8 +127,19 @@
               "offscreen"
             ]
           },
-          "target_texture_id": {
-            "type": "string"
+          "target_texture_ids": {
+            "type": "object",
+            "required": [
+              "colour_texture_id"
+            ],
+            "properties": {
+              "colour_texture_id": {
+                "type": "string"
+              },
+              "depth_texture_id": {
+                "type": "string"
+              }
+            }
           },
           "render": {
             "type": "string",
