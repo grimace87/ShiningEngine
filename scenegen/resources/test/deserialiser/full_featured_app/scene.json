@@ -64,15 +64,16 @@
         "colour_texture_id": "reflection_colour",
         "depth_texture_id": "reflection_depth"
       },
-      "render": "reflection_pre_render",
       "steps": [
         {
           "name": "skybox",
+          "render": "reflection_pre_render",
           "model_id": "skybox",
           "texture_ids": ["skybox"]
         },
         {
           "name": "terrain",
+          "render": "reflection_pre_render",
           "model_id": "terrain",
           "texture_ids": ["outdoors"]
         }
@@ -81,20 +82,22 @@
     {
       "name": "compose",
       "kind": "default",
-      "render": "basic_textured",
       "steps": [
         {
           "name": "skybox",
+          "render": "basic_textured",
           "model_id": "skybox",
           "texture_ids": ["skybox"]
         },
         {
           "name": "river",
+          "render": "basic_textured",
           "model_id": "river",
           "texture_ids": ["reflection"]
         },
         {
           "name": "terrain",
+          "render": "basic_textured",
           "model_id": "terrain",
           "texture_ids": ["outdoors"]
         }
@@ -103,10 +106,10 @@
     {
       "name": "hud",
       "kind": "default",
-      "render": "text_paint",
       "steps": [
         {
           "name": "text_overlay",
+          "render": "text_paint",
           "model_id": "hud",
           "texture_ids": ["musica"]
         }

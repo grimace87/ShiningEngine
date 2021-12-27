@@ -113,7 +113,6 @@
         "required": [
           "name",
           "kind",
-          "render",
           "steps"
         ],
         "properties": {
@@ -141,26 +140,27 @@
               }
             }
           },
-          "render": {
-            "type": "string",
-            "enum": [
-              "basic_textured",
-              "text_paint",
-              "reflection_pre_render"
-            ]
-          },
           "steps": {
             "type": "array",
             "items": {
               "type": "object",
               "required": [
                 "name",
+                "render",
                 "model_id",
                 "texture_ids"
               ],
               "properties": {
                 "name": {
                   "type": "string"
+                },
+                "render": {
+                  "type": "string",
+                  "enum": [
+                    "basic_textured",
+                    "text_paint",
+                    "reflection_pre_render"
+                  ]
                 },
                 "model_id": {
                   "type": "string"

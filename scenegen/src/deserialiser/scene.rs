@@ -87,7 +87,6 @@ pub struct Pass {
     pub name: String,
     pub kind: PassKind,
     pub target_texture_ids: Option<TextureTarget>,
-    pub render: RenderFunction,
     pub steps: Vec<Step>
 }
 
@@ -116,6 +115,7 @@ pub enum RenderFunction {
 #[derive(Debug, Deserialize)]
 pub struct Step {
     pub name: String,
+    pub render: RenderFunction,
     pub model_id: String,
     pub texture_ids: Vec<String>
 }

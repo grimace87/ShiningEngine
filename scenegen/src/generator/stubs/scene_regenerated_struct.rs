@@ -52,14 +52,14 @@ pub fn generate_struct_definition(config: &Scene) -> Result<String, GeneratorErr
         for pass in config.passes.iter() {
             for step in pass.steps.iter() {
 
-                let ubo_type = match pass.render {
+                let ubo_type = match step.render {
                     RenderFunction::basic_textured => "MvpUbo",
                     RenderFunction::text_paint => "TextPaintUbo",
                     RenderFunction::reflection_pre_render => "MvpClippingUbo"
                 };
                 decls = format!("{}\n    ubo_{}_{}: {},", decls, pass.name, step.name, ubo_type);
 
-                let ubo_constructor = match pass.render {
+                let ubo_constructor = match step.render {
                     RenderFunction::basic_textured => "MvpUbo { matrix: Matrix4::identity() }",
                     RenderFunction::text_paint => "TextPaintUbo {\n                camera_matrix: Matrix4::identity(),\n                paint_color: Vector4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 }\n            }",
                     RenderFunction::reflection_pre_render => "MvpClippingUbo {\n                matrix: Matrix4::identity(),\n                y_bias: 0.0,\n                y_plane_normal: -1.0,\n                unused: [0.0, 0.0]\n            }"
@@ -104,7 +104,7 @@ pub fn generate_get_ubo_fn(config: &Scene) -> Result<String, GeneratorError> {
         for (pass_index, pass) in config.passes.iter().enumerate() {
             for (step_index, step) in pass.steps.iter().enumerate() {
 
-                let ubo_type = match pass.render {
+                let ubo_type = match step.render {
                     RenderFunction::basic_textured => "MvpUbo",
                     RenderFunction::text_paint => "TextPaintUbo",
                     RenderFunction::reflection_pre_render => "MvpClippingUbo"

@@ -256,15 +256,16 @@ mod test {
                         colour_texture_id: "reflection_colour".to_string(),
                         depth_texture_id: Some("reflection_depth".to_string())
                     }),
-                    render: RenderFunction::reflection_pre_render,
                     steps: vec![
                         Step {
                             name: "skybox".to_string(),
+                            render: RenderFunction::reflection_pre_render,
                             model_id: "skybox".to_string(),
                             texture_ids: vec!["skybox".to_string()]
                         },
                         Step {
                             name: "terrain".to_string(),
+                            render: RenderFunction::reflection_pre_render,
                             model_id: "terrain".to_string(),
                             texture_ids: vec!["outdoors".to_string()]
                         }
@@ -274,20 +275,22 @@ mod test {
                     name: "compose".to_string(),
                     kind: PassKind::default,
                     target_texture_ids: None,
-                    render: RenderFunction::basic_textured,
                     steps: vec![
                         Step {
                             name: "skybox".to_string(),
+                            render: RenderFunction::basic_textured,
                             model_id: "skybox".to_string(),
                             texture_ids: vec!["skybox".to_string()]
                         },
                         Step {
                             name: "river".to_string(),
+                            render: RenderFunction::basic_textured,
                             model_id: "river".to_string(),
                             texture_ids: vec!["reflection".to_string()]
                         },
                         Step {
                             name: "terrain".to_string(),
+                            render: RenderFunction::basic_textured,
                             model_id: "terrain".to_string(),
                             texture_ids: vec!["outdoors".to_string()]
                         }
@@ -297,10 +300,10 @@ mod test {
                     name: "hud".to_string(),
                     kind: PassKind::default,
                     target_texture_ids: None,
-                    render: RenderFunction::text_paint,
                     steps: vec![
                         Step {
                             name: "text_overlay".to_string(),
+                            render: RenderFunction::text_paint,
                             model_id: "hud".to_string(),
                             texture_ids: vec!["musica".to_string()]
                         }
@@ -338,10 +341,10 @@ mod test {
                     name: "skybox".to_string(),
                     kind: PassKind::default,
                     target_texture_ids: None,
-                    render: RenderFunction::basic_textured,
                     steps: vec![
                         Step {
                             name: "box".to_string(),
+                            render: RenderFunction::basic_textured,
                             model_id: "skybox".to_string(),
                             texture_ids: vec!["skybox".to_string()]
                         }
