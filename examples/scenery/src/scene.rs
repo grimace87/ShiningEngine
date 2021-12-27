@@ -2,6 +2,8 @@
 use defs::{
     Camera,
     SceneInfo,
+    SceneUpdates,
+    Scene,
     control::Control,
     render::{
         Shader,
@@ -114,6 +116,8 @@ impl SceneryScene {
         }
     }
 }
+
+impl Scene for SceneryScene {}
 
 impl SceneInfo for SceneryScene {
 
@@ -301,43 +305,6 @@ impl SceneInfo for SceneryScene {
         }
     }
 
-    fn update_aspect_ratio(&mut self, aspect_ratio: f32) {
-        self.camera.update_aspect(aspect_ratio);
-    }
-
-    fn update_camera(
-        &mut self,
-        time_step_millis: u64,
-        controller: &dyn Control
-    ) -> Option<Box<dyn SceneInfo>> {
-        self.camera.update(time_step_millis, controller);
-        let p_matrix = self.camera.get_projection_matrix();
-        let mut v_matrix = self.camera.get_view_matrix();
-        let mut v_inverted_matrix = self.camera.get_view_matrix();
-        v_inverted_matrix.w.y = -v_inverted_matrix.w.y;
-        let pv_matrix = p_matrix * v_matrix;
-        let pv_inverted_matrix = p_matrix * v_inverted_matrix;
-
-        self.river_pass_ubo.matrix = pv_matrix;
-
-        let red = 0.5 + 0.5 * pv_matrix.x.x;
-        self.terrain_pass_ubo.matrix = pv_matrix;
-        self.terrain_reflection_pass_ubo.matrix = pv_inverted_matrix;
-        self.text_paint_ubo.paint_color.x = red;
-        self.text_paint_ubo.paint_color.z = 1.0 - red;
-
-        v_matrix.w.x = 0.0;
-        v_matrix.w.y = 0.0;
-        v_matrix.w.z = 0.0;
-        v_inverted_matrix.w.x = 0.0;
-        v_inverted_matrix.w.y = 0.0;
-        v_inverted_matrix.w.z = 0.0;
-        self.skybox_pass_ubo.matrix = p_matrix * v_matrix;
-        self.skybox_reflection_pass_ubo.matrix = p_matrix * v_inverted_matrix;
-
-        None
-    }
-
     unsafe fn get_ubo_data_ptr_and_size(
         &self,
         pass_index: usize,
@@ -364,5 +331,45 @@ impl SceneInfo for SceneryScene {
                 std::mem::size_of::<TextPaintUbo>()),
             _ => panic!("Cannot get UBO for SceneryScene")
         }
+    }
+}
+
+impl SceneUpdates for SceneryScene {
+
+    fn update_aspect_ratio(&mut self, aspect_ratio: f32) {
+        self.camera.update_aspect(aspect_ratio);
+    }
+
+    fn update_camera(
+        &mut self,
+        time_step_millis: u64,
+        controller: &dyn Control
+    ) -> Option<Box<dyn Scene>> {
+        self.camera.update(time_step_millis, controller);
+        let p_matrix = self.camera.get_projection_matrix();
+        let mut v_matrix = self.camera.get_view_matrix();
+        let mut v_inverted_matrix = self.camera.get_view_matrix();
+        v_inverted_matrix.w.y = -v_inverted_matrix.w.y;
+        let pv_matrix = p_matrix * v_matrix;
+        let pv_inverted_matrix = p_matrix * v_inverted_matrix;
+
+        self.river_pass_ubo.matrix = pv_matrix;
+
+        let red = 0.5 + 0.5 * pv_matrix.x.x;
+        self.terrain_pass_ubo.matrix = pv_matrix;
+        self.terrain_reflection_pass_ubo.matrix = pv_inverted_matrix;
+        self.text_paint_ubo.paint_color.x = red;
+        self.text_paint_ubo.paint_color.z = 1.0 - red;
+
+        v_matrix.w.x = 0.0;
+        v_matrix.w.y = 0.0;
+        v_matrix.w.z = 0.0;
+        v_inverted_matrix.w.x = 0.0;
+        v_inverted_matrix.w.y = 0.0;
+        v_inverted_matrix.w.z = 0.0;
+        self.skybox_pass_ubo.matrix = p_matrix * v_matrix;
+        self.skybox_reflection_pass_ubo.matrix = p_matrix * v_inverted_matrix;
+
+        None
     }
 }

@@ -6,6 +6,7 @@ mod per_pass_resources;
 
 use defs::{
     SceneInfo,
+    Scene,
     EngineError,
     render::{
         DrawingDescription,
@@ -96,7 +97,7 @@ impl PerImageResources {
     pub unsafe fn on_pre_render(
         &mut self,
         render_core: &mut crate::vk_renderer::render_core::RenderCore,
-        scene_info: &dyn SceneInfo
+        scene_info: &dyn Scene
     ) {
         for (pass_index, resources) in self.resources.iter_mut().enumerate() {
             resources.renderpass_pipeline_set

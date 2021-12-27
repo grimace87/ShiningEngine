@@ -12,6 +12,7 @@ use crate::vk_renderer::{
 use defs::{
     EngineError,
     SceneInfo,
+    Scene,
     render::{
         RendererApi,
         PresentResult,
@@ -63,7 +64,7 @@ impl RendererApi for VkRenderer {
         })
     }
 
-    fn draw_next_frame(&mut self, scene_info: &dyn SceneInfo) -> Result<PresentResult, EngineError> {
+    fn draw_next_frame(&mut self, scene_info: &dyn Scene) -> Result<PresentResult, EngineError> {
         unsafe {
             let (swapchain_image_index, up_to_date) = self.render_core.acquire_next_image()?;
             if !up_to_date {

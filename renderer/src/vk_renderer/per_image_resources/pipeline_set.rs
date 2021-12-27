@@ -1,6 +1,7 @@
 
 use defs::{
     SceneInfo,
+    Scene,
     EngineError,
     render::{
         DrawingPass,
@@ -86,7 +87,7 @@ impl PipelineSet {
     pub unsafe fn update_uniform_buffer(
         &mut self,
         render_core: &mut crate::vk_renderer::render_core::RenderCore,
-        scene_info: &dyn SceneInfo,
+        scene_info: &dyn Scene,
         pass_index: usize
     ) -> Result<(), EngineError> {
         for (step_index, pipeline) in self.pipelines.iter_mut().enumerate() {

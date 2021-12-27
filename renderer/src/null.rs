@@ -1,6 +1,7 @@
 
 use defs::{
     SceneInfo,
+    Scene,
     EngineError,
     render::{
         RendererApi,
@@ -37,7 +38,7 @@ impl RendererApi for NullRenderer {
     }
 
     /// No-op; acts as if it succeeded
-    fn draw_next_frame(&mut self, _scene_info: &dyn SceneInfo) -> Result<PresentResult, EngineError> {
+    fn draw_next_frame(&mut self, _scene_info: &dyn Scene) -> Result<PresentResult, EngineError> {
         Ok(PresentResult::Ok)
     }
 

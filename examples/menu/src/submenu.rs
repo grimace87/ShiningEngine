@@ -1,6 +1,8 @@
 
 use defs::{
     SceneInfo,
+    SceneUpdates,
+    Scene,
     Camera,
     control::Control,
     render::{
@@ -41,6 +43,8 @@ pub struct SubMenuScene {
     camera_ubo: CameraUbo,
     text_paint_ubo: TextPaintUbo
 }
+
+impl Scene for SubMenuScene {}
 
 impl SubMenuScene {
     pub fn new() -> SubMenuScene {
@@ -116,18 +120,6 @@ impl SceneInfo for SubMenuScene {
         }
     }
 
-    fn update_aspect_ratio(&mut self, aspect_ratio: f32) {
-        self.camera.update_aspect(aspect_ratio);
-    }
-
-    fn update_camera(
-        &mut self,
-        _time_step_millis: u64,
-        _controller: &dyn Control
-    ) -> Option<Box<dyn SceneInfo>> {
-        None
-    }
-
     unsafe fn get_ubo_data_ptr_and_size(
         &self,
         pass_index: usize,
@@ -142,5 +134,20 @@ impl SceneInfo for SubMenuScene {
                 std::mem::size_of::<TextPaintUbo>()),
             _ => panic!("Cannot get UBO for SubMenuScene")
         }
+    }
+}
+
+impl SceneUpdates for SubMenuScene {
+
+    fn update_aspect_ratio(&mut self, aspect_ratio: f32) {
+        self.camera.update_aspect(aspect_ratio);
+    }
+
+    fn update_camera(
+        &mut self,
+        _time_step_millis: u64,
+        _controller: &dyn Control
+    ) -> Option<Box<dyn Scene>> {
+        None
     }
 }

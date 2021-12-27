@@ -146,7 +146,7 @@ pub trait RendererApi {
     /// operations have been performed already
     fn draw_next_frame(
         &mut self,
-        scene_info: &dyn crate::SceneInfo
+        scene_info: &dyn crate::Scene
     ) -> Result<PresentResult, crate::EngineError>;
 
     /// Instruct this implementation to recreate the drawing surface

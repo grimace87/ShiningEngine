@@ -1,6 +1,6 @@
 
 use defs::{
-    SceneInfo,
+    Scene,
     SceneManager,
     control::Control
 };
@@ -11,14 +11,14 @@ use std::mem::MaybeUninit;
 /// Manages scene objects, including holding on to the currently-active scene, and allowing new
 /// scenes to be queued up to be transitioned to as soon as possible.
 pub struct SceneHost {
-    scene_info: Box<dyn SceneInfo>,
-    scene_queue: Queue<MaybeUninit<Box<dyn SceneInfo>>>
+    scene_info: Box<dyn Scene>,
+    scene_queue: Queue<MaybeUninit<Box<dyn Scene>>>
 }
 
 impl SceneHost {
 
     /// Create a new instance, with an initial scene object and an empty queue of new scenes
-    pub fn new(scene_info: Box<dyn SceneInfo>) -> SceneHost {
+    pub fn new(scene_info: Box<dyn Scene>) -> SceneHost {
         SceneHost {
             scene_info,
             scene_queue: Queue::new()
@@ -26,7 +26,7 @@ impl SceneHost {
     }
 
     /// Get an immutable reference to the current scene
-    pub fn get_current(&self) -> &dyn SceneInfo {
+    pub fn get_current(&self) -> &dyn Scene {
         self.scene_info.as_ref()
     }
 
@@ -42,7 +42,7 @@ impl SceneHost {
         &mut self,
         time_step_millis: u64,
         controller: &dyn Control
-    ) -> Option<Box<dyn SceneInfo>> {
+    ) -> Option<Box<dyn Scene>> {
         self.scene_info.update_camera(time_step_millis, controller)
     }
 
@@ -60,7 +60,7 @@ impl SceneHost {
 impl SceneManager for SceneHost {
 
     /// Enqueue a new scene, to be activated on the next invocation of drain_queue
-    fn queue_scene(&self, new_scene: Box<dyn SceneInfo>) {
+    fn queue_scene(&self, new_scene: Box<dyn Scene>) {
         self.scene_queue.push(MaybeUninit::new(new_scene));
     }
 }

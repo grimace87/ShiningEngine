@@ -20,7 +20,7 @@ pub trait Camera {
 /// SceneManager trait
 /// Consumer of scenes.
 pub trait SceneManager {
-    fn queue_scene(&self, new_scene: Box<dyn SceneInfo>);
+    fn queue_scene(&self, new_scene: Box<dyn Scene>);
 }
 
 /// SceneInfo trait
@@ -34,6 +34,17 @@ pub trait SceneInfo {
     /// Make the description for how to render this scene
     fn make_description(&self) -> render::DrawingDescription;
 
+    /// Get a pointer to the uniform data, and the data size in bytes, ready for upload into the
+    /// renderer implementation
+    /// # Safety - should ensure size covers the actual data
+    unsafe fn get_ubo_data_ptr_and_size(
+        &self,
+        pass_index: usize,
+        step_index: usize) -> (*const u8, usize);
+}
+
+pub trait SceneUpdates {
+
     /// Notify this implementation of a changed in the client area aspect ratio
     fn update_aspect_ratio(&mut self, aspect_ratio: f32);
 
@@ -44,16 +55,10 @@ pub trait SceneInfo {
         &mut self,
         time_step_millis: u64,
         controller: &dyn control::Control
-        ) -> Option<Box<dyn SceneInfo>>;
-
-    /// Get a pointer to the uniform data, and the data size in bytes, ready for upload into the
-    /// renderer implementation
-    /// # Safety - should ensure size covers the actual data
-    unsafe fn get_ubo_data_ptr_and_size(
-        &self,
-        pass_index: usize,
-        step_index: usize) -> (*const u8, usize);
+    ) -> Option<Box<dyn Scene>>;
 }
+
+pub trait Scene: SceneInfo + SceneUpdates {}
 
 /// EngineError enum
 /// Error types used throughout the engine.

@@ -7,7 +7,7 @@ pub mod scene;
 
 use defs::{
     EngineError,
-    SceneInfo,
+    Scene,
     SceneManager,
     control::{
         Control,
@@ -44,7 +44,7 @@ impl<R: 'static> Engine<R> where R : RendererApi {
     /// Create a new instance, uninitialised except for having captured, but not yet used, the
     /// scene description
     pub fn new_uninitialised(
-        scene_info: Box<dyn SceneInfo>,
+        scene_info: Box<dyn Scene>,
         features: Vec<FeatureDeclaration>
     ) -> Engine<R> {
         Engine {

@@ -1,6 +1,8 @@
 
 use defs::{
     SceneInfo,
+    SceneUpdates,
+    Scene,
     control::Control,
     render::{
         DrawingDescription,
@@ -65,6 +67,8 @@ impl Default for StartMenuScene {
         }
     }
 }
+
+impl Scene for StartMenuScene {}
 
 impl SceneInfo for StartMenuScene {
 
@@ -152,25 +156,6 @@ impl SceneInfo for StartMenuScene {
         }
     }
 
-    fn update_aspect_ratio(&mut self, _aspect_ratio: f32) {}
-
-    fn update_camera(
-        &mut self,
-        _time_step_millis: u64,
-        _controller: &dyn Control
-    ) -> Option<Box<dyn SceneInfo>> {
-        let red: f32 = 1.0;
-        self.text_paint_ubo.paint_color.x = red;
-        self.text_paint_ubo.paint_color.z = 1.0 - red;
-
-        self.frame_counter += 1;
-        if self.frame_counter == 60 {
-            Some(Box::new(crate::submenu::SubMenuScene::new()))
-        } else {
-            None
-        }
-    }
-
     unsafe fn get_ubo_data_ptr_and_size(
         &self,
         pass_index: usize,
@@ -184,6 +169,28 @@ impl SceneInfo for StartMenuScene {
                 &self.text_paint_ubo as *const TextPaintUbo as *const u8,
                 std::mem::size_of::<TextPaintUbo>()),
             _ => panic!("Cannot get UBO for StartMenuScene")
+        }
+    }
+}
+
+impl SceneUpdates for StartMenuScene {
+
+    fn update_aspect_ratio(&mut self, _aspect_ratio: f32) {}
+
+    fn update_camera(
+        &mut self,
+        _time_step_millis: u64,
+        _controller: &dyn Control
+    ) -> Option<Box<dyn Scene>> {
+        let red: f32 = 1.0;
+        self.text_paint_ubo.paint_color.x = red;
+        self.text_paint_ubo.paint_color.z = 1.0 - red;
+
+        self.frame_counter += 1;
+        if self.frame_counter == 60 {
+            Some(Box::new(crate::submenu::SubMenuScene::new()))
+        } else {
+            None
         }
     }
 }
