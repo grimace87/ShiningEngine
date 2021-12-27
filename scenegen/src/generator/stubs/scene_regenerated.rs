@@ -23,9 +23,7 @@ pub fn generate_regenerated_scene_contents(config: &Scene) -> Result<String, Gen
 impl SceneInfo for {} {{
 
     {}
-
     {}
-
     {}
 }}
 ",

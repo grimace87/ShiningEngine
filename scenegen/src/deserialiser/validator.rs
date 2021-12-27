@@ -52,8 +52,8 @@ pub fn validate_app_spec(spec: &AppSpec) -> Result<(), String> {
 
         for texture in scene.resources.textures.iter() {
             if matches!(&texture.kind, Some(TextureKind::cubemap)) {
-                if texture.format != TextureFormat::rgb8 {
-                    return Err(format!("(Scene {}) Non-RGB8 cubemaps are not supported: {}", scene.id, texture.id));
+                if texture.format != TextureFormat::rgba8 {
+                    return Err(format!("(Scene {}) Non-RGBA8 cubemaps are not supported: {}", scene.id, texture.id));
                 }
             }
         }

@@ -54,14 +54,20 @@ pub fn generate_struct_definition(config: &Scene) -> Result<String, GeneratorErr
 
                 let ubo_type = match step.render {
                     RenderFunction::basic_textured => "MvpUbo",
+                    RenderFunction::basic_textured_clipped_y => "MvpClippingUbo",
                     RenderFunction::text_paint => "TextPaintUbo",
+                    RenderFunction::cube => "MvpUbo",
+                    RenderFunction::cube_clipped_y => "MvpClippingUbo",
                     RenderFunction::reflection_pre_render => "MvpClippingUbo"
                 };
                 decls = format!("{}\n    ubo_{}_{}: {},", decls, pass.name, step.name, ubo_type);
 
                 let ubo_constructor = match step.render {
                     RenderFunction::basic_textured => "MvpUbo { matrix: Matrix4::identity() }",
+                    RenderFunction::basic_textured_clipped_y => "MvpClippingUbo {\n                matrix: Matrix4::identity(),\n                y_bias: 0.0,\n                y_plane_normal: -1.0,\n                unused: [0.0, 0.0]\n            }",
                     RenderFunction::text_paint => "TextPaintUbo {\n                camera_matrix: Matrix4::identity(),\n                paint_color: Vector4 { x: 1.0, y: 0.0, z: 0.0, w: 1.0 }\n            }",
+                    RenderFunction::cube => "MvpUbo { matrix: Matrix4::identity() }",
+                    RenderFunction::cube_clipped_y => "MvpClippingUbo {\n                matrix: Matrix4::identity(),\n                y_bias: 0.0,\n                y_plane_normal: -1.0,\n                unused: [0.0, 0.0]\n            }",
                     RenderFunction::reflection_pre_render => "MvpClippingUbo {\n                matrix: Matrix4::identity(),\n                y_bias: 0.0,\n                y_plane_normal: -1.0,\n                unused: [0.0, 0.0]\n            }"
                 };
                 constructors = format!("{}\n            ubo_{}_{}: {},", constructors, pass.name, step.name, ubo_constructor);
@@ -106,7 +112,10 @@ pub fn generate_get_ubo_fn(config: &Scene) -> Result<String, GeneratorError> {
 
                 let ubo_type = match step.render {
                     RenderFunction::basic_textured => "MvpUbo",
+                    RenderFunction::basic_textured_clipped_y => "MvpClippingUbo",
                     RenderFunction::text_paint => "TextPaintUbo",
+                    RenderFunction::cube => "MvpUbo",
+                    RenderFunction::cube_clipped_y => "MvpClippingUbo",
                     RenderFunction::reflection_pre_render => "MvpClippingUbo"
                 };
 

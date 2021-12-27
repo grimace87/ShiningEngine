@@ -105,7 +105,10 @@ pub struct TextureTarget {
 #[derive(Debug, Deserialize)]
 pub enum RenderFunction {
     basic_textured,
+    basic_textured_clipped_y,
     text_paint,
+    cube,
+    cube_clipped_y,
     reflection_pre_render
 }
 

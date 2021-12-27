@@ -33,13 +33,13 @@
       },
       {
         "id": "skybox",
-        "format": "rgb8",
+        "format": "rgba8",
         "file": "bluecloud.jpg",
         "kind": "cubemap"
       },
       {
         "id": "reflection_colour",
-        "format": "rgb8",
+        "format": "rgba8",
         "kind": "uninitialised"
       },
       {
