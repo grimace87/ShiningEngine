@@ -1,0 +1,34 @@
+{
+  "id": "intro",
+  "camera": "player",
+  "resources": {
+    "models": [
+      {
+        "id": "terrain",
+        "file": "SceneTerrain.mdl"
+      }
+    ],
+    "textures": [
+      {
+        "id": "outdoors",
+        "format": "rgba8",
+        "file": "simple_outdoor_texture.jpg"
+      }
+    ],
+    "fonts": []
+  },
+  "passes": [
+    {
+      "name": "compose",
+      "kind": "default",
+      "steps": [
+        {
+          "name": "terrain",
+          "render": "basic_textured",
+          "model_id": "terrain",
+          "texture_ids": ["outdoors"]
+        }
+      ]
+    }
+  ]
+}

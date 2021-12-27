@@ -8,8 +8,9 @@ members = [
     "platform_desktop",
     "scenegen",
     "examples/scenery",
-    "examples/menu"
+    "examples/menu",
+    "examples/generated"
 ]
 default-members = [
-    "examples/scenery"
+    "examples/generated"
 ]

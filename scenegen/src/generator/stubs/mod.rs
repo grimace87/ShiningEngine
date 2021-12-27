@@ -1,5 +1,6 @@
 
 mod app;
+mod scenes_mod;
 mod scene_regenerated_top_level;
 mod scene_regenerated_struct;
 mod scene_regenerated_preloads;
@@ -8,6 +9,7 @@ mod scene_regenerated;
 mod scene_starter;
 
 use app::generate_app_root_content;
+use scenes_mod::generate_scenes_module_content;
 use scene_regenerated::generate_regenerated_scene_contents;
 use scene_starter::generate_starter_scene_contents;
 use crate::deserialiser::app::App;
@@ -19,6 +21,13 @@ use crate::GeneratorError;
 pub fn generate_app_stubs(config: &App) -> Result<String, GeneratorError> {
     let app_content = generate_app_root_content(config)?;
     Ok(app_content)
+}
+
+/// Generate stubs for an scenes module as a String of content. Should be saved to src/scenes/mod.rs.
+/// To start this process, call crate::generator::writer::process_spec_path from a build script.
+pub fn generate_scene_module_stubs(configs: &Vec<Scene>) -> Result<String, GeneratorError> {
+    let module_content = generate_scenes_module_content(configs)?;
+    Ok(module_content)
 }
 
 /// Generate stubs for a scene two Strings of content - one which should be saved to

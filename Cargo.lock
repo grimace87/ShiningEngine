@@ -652,6 +652,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "generated"
+version = "0.1.0"
+dependencies = [
+ "cgmath",
+ "collada",
+ "defs",
+ "engine",
+ "model",
+ "platform_windows",
+ "renderer",
+ "scenegen",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

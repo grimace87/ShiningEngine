@@ -1,0 +1,7 @@
+{
+  "name": "Simple generated app",
+  "features": [],
+  "platform": "windows",
+  "graphics": "vulkan",
+  "start_scene_id": "intro"
+}
