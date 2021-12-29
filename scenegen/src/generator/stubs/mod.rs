@@ -34,8 +34,11 @@ pub fn generate_scene_module_stubs(configs: &Vec<Scene>) -> Result<String, Gener
 /// src/scenes/<scene_name>/mod.rs, and another that should be saved to
 /// src/scenes/<scene_name>/details.rs but only if that file does not yet exist.
 /// To start this process, call crate::generator::writer::process_spec_path from a build script.
-pub fn generate_scene_stubs(config: &Scene) -> Result<(String, String), GeneratorError> {
-    let regenerated_scene_contents = generate_regenerated_scene_contents(config)?;
+pub fn generate_scene_stubs(
+    config: &Scene,
+    resources_dir_name: &'static str
+) -> Result<(String, String), GeneratorError> {
+    let regenerated_scene_contents = generate_regenerated_scene_contents(config, resources_dir_name)?;
     let starter_scene_contents = generate_starter_scene_contents(config)?;
     Ok((regenerated_scene_contents, starter_scene_contents))
 }

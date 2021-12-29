@@ -36,7 +36,7 @@ fn main() {
     convert_collada_files_in_directory(&collada_models_dir, &binary_models_dir);
 
     let project_dir = std::env::current_dir().unwrap();
-    process_spec_path(&project_dir, "spec")
+    process_spec_path(&project_dir, "spec", "resources")
         .map_err(|e| format!("Error processing spec directory: {:?}", e))
         .unwrap();
 }

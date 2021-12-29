@@ -21,20 +21,28 @@ pub struct AppSpec {
 /// <project_dir>
 /// - <spec_dir_name>
 ///   - app.json
-///   - somescene.json
-///   - anotherscene.json
+///   - some_scene.json
+///   - another_scene.json
+/// - <resources_dir_name>
+///   - textures
+///     - some_image.jpg
+///     - another_image.png
 /// - src
 ///   - app.rs*
 ///   - scenes
-///     - somescene
+///     - some_scene
 ///       - mod.rs*
 ///       - details.rs**
-///     - anotherscene
+///     - another_scene
 ///       - mod.rs*
 ///       - details.rs**
-pub fn process_spec_path(project_dir: &PathBuf, spec_dir_name: &'static str) -> Result<(), GeneratorError> {
+pub fn process_spec_path(
+    project_dir: &PathBuf,
+    spec_dir_name: &'static str,
+    resources_dir_name: &'static str
+) -> Result<(), GeneratorError> {
     let app_spec = parse_directory(project_dir, spec_dir_name)?;
-    write_app_files(project_dir, &app_spec)?;
+    write_app_files(project_dir, &app_spec, resources_dir_name)?;
     Ok(())
 }
 

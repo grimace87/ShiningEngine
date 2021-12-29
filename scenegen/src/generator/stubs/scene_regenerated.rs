@@ -7,9 +7,12 @@ use crate::generator::stubs::scene_regenerated_preloads::generate_preloads;
 use crate::generator::stubs::scene_regenerated_description::generate_description;
 use heck::CamelCase;
 
-pub fn generate_regenerated_scene_contents(config: &Scene) -> Result<String, GeneratorError> {
+pub fn generate_regenerated_scene_contents(
+    config: &Scene,
+    resources_dir_name: &'static str
+) -> Result<String, GeneratorError> {
 
-    let top_level_content = generate_top_level(config)?;
+    let top_level_content = generate_top_level(config, resources_dir_name)?;
     let struct_definition = generate_struct_definition(config)?;
     let preloads = generate_preloads(config)?;
     let description = generate_description(config)?;

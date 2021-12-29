@@ -72,8 +72,17 @@ pub fn generate_description(config: &Scene) -> Result<String, GeneratorError> {
         let mut steps = String::from("");
         for step in pass.steps.iter() {
 
-            let shader = "Shader::PlainPnt";
+            let shader = translate_shader(&step.render);
 
+            let mut texture_indices = String::new();
+            let texture_count = step.texture_ids.len();
+            for (index, texture) in step.texture_ids.iter().enumerate() {
+                if index < texture_count - 1 {
+                    texture_indices = format!("{}TEXTURE_INDEX_{}, ", texture_indices, texture.to_uppercase());
+                } else {
+                    texture_indices = format!("{}TEXTURE_INDEX_{}", texture_indices, texture.to_uppercase());
+                }
+            }
 
             let vbo_index = format!("VBO_INDEX_{}", step.model_id.to_uppercase());
             steps = format!("{}
@@ -82,9 +91,9 @@ pub fn generate_description(config: &Scene) -> Result<String, GeneratorError> {
                             vbo_index: {},
                             vbo_format: VertexFormat::PositionNormalTexture,
                             draw_indexed: false,
-                            texture_indices: vec![TEXTURE_INDEX_TERRAIN],
+                            texture_indices: vec![{}],
                             depth_test: true
-                        }},", steps, shader, vbo_index);
+                        }},", steps, shader, vbo_index, texture_indices);
         }
 
         passes = format!("{}

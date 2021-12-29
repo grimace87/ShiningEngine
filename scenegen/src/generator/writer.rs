@@ -3,7 +3,11 @@ use std::path::PathBuf;
 use crate::generator::{AppSpec, stubs};
 use crate::GeneratorError;
 
-pub fn write_app_files(project_dir: &PathBuf, app_spec: &AppSpec) -> Result<(), GeneratorError> {
+pub fn write_app_files(
+    project_dir: &PathBuf,
+    app_spec: &AppSpec,
+    resources_dir_name: &'static str
+) -> Result<(), GeneratorError> {
 
     let app_src_file = {
         let mut path = PathBuf::from(project_dir);
@@ -41,7 +45,8 @@ pub fn write_app_files(project_dir: &PathBuf, app_spec: &AppSpec) -> Result<(), 
             path
         };
 
-        let (forced_gen_content, only_if_missing_content) = stubs::generate_scene_stubs(&scene)?;
+        let (forced_gen_content, only_if_missing_content) =
+            stubs::generate_scene_stubs(&scene, resources_dir_name)?;
         scene_src_file.push("mod.rs");
         std::fs::write(&scene_src_file, forced_gen_content)
             .map_err(|_| GeneratorError::WriteError(scene_src_file.clone()))?;

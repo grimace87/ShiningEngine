@@ -2,7 +2,10 @@
 use crate::GeneratorError;
 use crate::deserialiser::scene::*;
 
-pub fn generate_top_level(config: &Scene) -> Result<String, GeneratorError> {
+pub fn generate_top_level(
+    config: &Scene,
+    resources_dir_name: &'static str
+) -> Result<String, GeneratorError> {
 
     let mut byte_decls = String::new();
     for model in config.resources.models.iter() {
@@ -15,7 +18,7 @@ pub fn generate_top_level(config: &Scene) -> Result<String, GeneratorError> {
         if let Some(src_file) = &texture.file {
             match texture.kind {
                 None => {
-                    let decl = format!("const {}_TEXTURE_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}\");", texture.id.to_uppercase(), src_file);
+                    let decl = format!("const {}_TEXTURE_BYTES: &[u8] = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/{}/textures/{}\"));", texture.id.to_uppercase(), resources_dir_name, src_file);
                     byte_decls = format!("{}\n{}", byte_decls, decl);
                 },
                 Some(TextureKind::cubemap) => {
@@ -52,9 +55,8 @@ pub fn generate_top_level(config: &Scene) -> Result<String, GeneratorError> {
 
     let gen_content = format!("\
 use defs::{{
-    Camera,
     SceneInfo,
-    control::Control,
+    Scene,
     render::{{
         Shader,
         VertexFormat,
@@ -62,8 +64,6 @@ use defs::{{
         ResourcePreloads,
         VboCreationData,
         TextureCreationData,
-        FramebufferCreationData,
-        TexturePixelFormat,
         ImageUsage,
         DrawingDescription,
         DrawingPass,
@@ -76,17 +76,11 @@ use engine::{{
     util::{{
         TextureCodec,
         decode_texture,
-        decode_texture_array,
-        make_skybox_vertices,
-        decode_model,
-        textbuffer::{{
-            TextGenerator,
-            TextAlignment
-        }}
+        decode_model
     }}
 }};
 
-use cgmath::{{Matrix4, Vector4, SquareMatrix}};
+use cgmath::{{Matrix4, SquareMatrix}};
 use std::collections::HashMap;
 {}
 {}

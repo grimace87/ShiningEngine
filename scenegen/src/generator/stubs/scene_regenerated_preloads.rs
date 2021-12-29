@@ -114,6 +114,7 @@ pub fn generate_preloads(config: &Scene) -> Result<String, GeneratorError> {
     let content = format!("\
     fn make_preloads(&self) -> ResourcePreloads {{
         let mut vbo_loads = HashMap::<usize, VboCreationData>::new();
+        let mut texture_loads = HashMap::<usize, TextureCreationData>::new();
 
 {}{}
 

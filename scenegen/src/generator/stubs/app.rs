@@ -1,10 +1,12 @@
 
 use crate::deserialiser::app::*;
 use crate::GeneratorError;
+use heck::CamelCase;
 
 pub fn generate_app_root_content(config: &App) -> Result<String, GeneratorError> {
 
     let start_scene = config.start_scene_id.as_str();
+    let struct_name = format!("{}Scene", config.start_scene_id.to_camel_case());
 
     let use_platform: &str = match config.platform {
         AppPlatform::windows => "use platform_windows::PlatformWindows;"
@@ -24,7 +26,7 @@ pub fn generate_app_root_content(config: &App) -> Result<String, GeneratorError>
     };
 
     let content = format!("
-use crate::scenes::{};
+use crate::scenes::{}::{};
 
 {}
 {}
@@ -50,7 +52,7 @@ impl App {{
             }});
 
         {} = Engine::new_uninitialised(
-            Box::from(SceneryScene::new()),
+            Box::from({}::new()),
             vec![FeatureDeclaration::ClipPlanes]);
 
         platform.run(engine)
@@ -60,6 +62,6 @@ impl App {{
             }});
     }}
 }}
-", start_scene, use_platform, use_graphics, title_def, platform_construct, engine_decl);
+", start_scene, struct_name, use_platform, use_graphics, title_def, platform_construct, engine_decl, struct_name);
     Ok(content)
 }
