@@ -3,7 +3,10 @@ use crate::GeneratorError;
 use crate::deserialiser::scene::*;
 use heck::CamelCase;
 
-pub fn generate_struct_definition(config: &Scene) -> Result<String, GeneratorError> {
+pub fn generate_struct_definition(
+    config: &Scene,
+    resources_dir_name: &'static str
+) -> Result<String, GeneratorError> {
     let struct_name = format!("{}Scene", config.id.to_camel_case());
 
     let (camera_type, camera_constructor) = match config.camera {
@@ -26,8 +29,8 @@ pub fn generate_struct_definition(config: &Scene) -> Result<String, GeneratorErr
         1 => (
             String::from("\n    text_generator: TextGenerator,"),
             format!(
-                "\n            text_generator: TextGenerator::from_resource(include_str!(\"../../resources/font/{}\")),",
-                config.resources.fonts[0].file
+                "\n            text_generator: TextGenerator::from_resource(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/{}/fonts/{}\"))),",
+                resources_dir_name, config.resources.fonts[0].file
             )
         ),
         _ => {
@@ -36,10 +39,10 @@ pub fn generate_struct_definition(config: &Scene) -> Result<String, GeneratorErr
             for (i, _) in config.resources.fonts.iter().enumerate() {
                 decls = format!("{}\n    text_generator_{}: TextGenerator,", decls, i);
                 constructors = format!(
-                    "{}\n            text_generator_{}: TextGenerator::from_resource(include_str!(\"../../resources/font/{}\")),",
+                    "{}\n            text_generator_{}: TextGenerator::from_resource(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/{}/fonts/{}\"))),",
                     constructors,
                     i,
-                    config.resources.fonts[i].file
+                    resources_dir_name, config.resources.fonts[i].file
                 );
             }
             (decls, constructors)

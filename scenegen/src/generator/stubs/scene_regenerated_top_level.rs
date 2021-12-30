@@ -7,6 +7,28 @@ pub fn generate_top_level(
     resources_dir_name: &'static str
 ) -> Result<String, GeneratorError> {
 
+    let mut additional_util_imports = String::new();
+    if config.resources.fonts.len() > 0 {
+        additional_util_imports = format!("{}
+        textbuffer::{{
+            TextGenerator,
+            TextAlignment
+        }},", additional_util_imports)
+    }
+
+    let mut additional_cgmath_imports = String::new();
+    let mut will_paint_text = false;
+    for pass in config.passes.iter() {
+        for step in pass.steps.iter() {
+            if step.render == RenderFunction::text_paint {
+                will_paint_text = true;
+            }
+        }
+    }
+    if will_paint_text {
+        additional_cgmath_imports = format!("{}, Vector4", additional_cgmath_imports);
+    }
+
     let mut byte_decls = String::new();
     for model in config.resources.models.iter() {
         if let Some(src_file) = &model.file {
@@ -27,12 +49,12 @@ pub fn generate_top_level(
                         None => panic!("Could not find an extension in a cubemap texture file name")
                     };
                     let decls = vec![
-                        format!("const {}_TEXTURE_LF_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_lf{}\");", texture.id.to_uppercase(), name_part, extension),
-                        format!("const {}_TEXTURE_RT_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_rt{}\");", texture.id.to_uppercase(), name_part, extension),
-                        format!("const {}_TEXTURE_UP_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_up{}\");", texture.id.to_uppercase(), name_part, extension),
-                        format!("const {}_TEXTURE_DN_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_dn{}\");", texture.id.to_uppercase(), name_part, extension),
-                        format!("const {}_TEXTURE_FT_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_ft{}\");", texture.id.to_uppercase(), name_part, extension),
-                        format!("const {}_TEXTURE_BK_BYTES: &[u8] = include_bytes!(\"../../resources/textures/{}_bk{}\");", texture.id.to_uppercase(), name_part, extension)
+                        format!("const {}_TEXTURE_LF_BYTES: &[u8] = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/{}/textures/{}_lf{}\"));", texture.id.to_uppercase(), resources_dir_name, name_part, extension),
+                        format!("const {}_TEXTURE_RT_BYTES: &[u8] = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/{}/textures/{}_rt{}\"));", texture.id.to_uppercase(), resources_dir_name, name_part, extension),
+                        format!("const {}_TEXTURE_UP_BYTES: &[u8] = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/{}/textures/{}_up{}\"));", texture.id.to_uppercase(), resources_dir_name, name_part, extension),
+                        format!("const {}_TEXTURE_DN_BYTES: &[u8] = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/{}/textures/{}_dn{}\"));", texture.id.to_uppercase(), resources_dir_name, name_part, extension),
+                        format!("const {}_TEXTURE_FT_BYTES: &[u8] = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/{}/textures/{}_ft{}\"));", texture.id.to_uppercase(), resources_dir_name, name_part, extension),
+                        format!("const {}_TEXTURE_BK_BYTES: &[u8] = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/{}/textures/{}_bk{}\"));", texture.id.to_uppercase(), resources_dir_name, name_part, extension)
                     ];
                     for decl in decls.iter() {
                         byte_decls = format!("{}\n{}", byte_decls, decl);
@@ -71,19 +93,17 @@ use defs::{{
     ubo::*
 }};
 use engine::{{
-    util::{{
-        TextureCodec,
-        decode_texture,
-        decode_model
+    util::{{{}
+        TextureCodec
     }}
 }};
 
-use cgmath::{{Matrix4, SquareMatrix}};
+use cgmath::{{Matrix4, SquareMatrix{}}};
 use std::collections::HashMap;
 {}
 {}
 {}
 
-const OFFSCREEN_RENDER_SIZE: u32 = 1024;", byte_decls, vbo_index_decls, texture_index_decls);
+const OFFSCREEN_RENDER_SIZE: u32 = 1024;", additional_util_imports, additional_cgmath_imports, byte_decls, vbo_index_decls, texture_index_decls);
     Ok(gen_content)
 }

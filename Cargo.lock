@@ -661,6 +661,7 @@ dependencies = [
  "engine",
  "model",
  "platform_windows",
+ "rand",
  "renderer",
  "scenegen",
 ]

@@ -22,7 +22,17 @@ impl SceneUpdates for IntroScene {
         time_step_millis: u64,
         controller: &dyn Control
     ) -> Option<Box<dyn Scene>> {
+
+        // TODO - Fix generation code such that second "default" pass does not clear the framebuffer
         self.camera.update(time_step_millis, controller);
+        let p_matrix = self.camera.get_projection_matrix();
+        let v_matrix = self.camera.get_view_matrix();
+        let pv_matrix = p_matrix * v_matrix;
+
+        self.ubo_compose_skybox.matrix = pv_matrix;
+        self.ubo_compose_terrain.matrix = pv_matrix;
+        self.ubo_hud_text_overlay.camera_matrix = Matrix4::identity();
+        self.ubo_hud_text_overlay.paint_color = Vector4 { x: 1.0, y: rand::random(), z: 0.0, w: 1.0 };
         None
     }
 }

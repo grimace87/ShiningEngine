@@ -28,7 +28,7 @@ pub fn generate_preloads(config: &Scene) -> Result<String, GeneratorError> {
     for model in config.resources.models.iter() {
         let load_op = match model.generator {
             None => format!(
-                "        let ({}_model_data, {}_vertex_count) = decode_model({}_MODEL_BYTES);",
+                "        let ({}_vertex_data, {}_vertex_count) = engine::util::decode_model({}_MODEL_BYTES);",
                 model.id, model.id, model.id.to_uppercase()
             ),
             Some(ModelGenerator::text) => format!(
@@ -39,18 +39,18 @@ pub fn generate_preloads(config: &Scene) -> Result<String, GeneratorError> {
             0.125,
             TextAlignment::Start,
             TextAlignment::Start);
-        let {}_data_vertex_count = {}_vertex_data.len();",
+        let {}_vertex_count = {}_vertex_data.len();",
                 model.id, model.id, model.id
             ),
             Some(ModelGenerator::skybox) => format!(
-                "        let ({}_vertex_data, {}_vertex_count) = make_skybox_vertices(20.0);",
+                "        let ({}_vertex_data, {}_vertex_count) = engine::util::make_skybox_vertices(20.0);",
                 model.id, model.id
             )
         };
         let insert_op = format!("
         vbo_loads.insert(VBO_INDEX_{}, VboCreationData {{
             vertex_format: VertexFormat::PositionNormalTexture,
-            vertex_data: {}_model_data,
+            vertex_data: {}_vertex_data,
             vertex_count: {}_vertex_count,
             draw_indexed: false,
             index_data: None
@@ -64,7 +64,7 @@ pub fn generate_preloads(config: &Scene) -> Result<String, GeneratorError> {
             None => {
                 let codec = get_codec_from_file_name(config, texture)?;
                 let load_op = format!("
-        let {}_texture = decode_texture(
+        let {}_texture = engine::util::decode_texture(
             {}_TEXTURE_BYTES,
             {},
             ImageUsage::TextureSampleOnly)
@@ -90,7 +90,7 @@ pub fn generate_preloads(config: &Scene) -> Result<String, GeneratorError> {
             Some(TextureKind::cubemap) => {
                 let codec = get_codec_from_file_name(config, texture)?;
                 let load_op = format!("
-        let {}_texture = decode_texture_array(
+        let {}_texture = engine::util::decode_texture_array(
             vec![
                 {}_TEXTURE_LF_BYTES,
                 {}_TEXTURE_RT_BYTES,

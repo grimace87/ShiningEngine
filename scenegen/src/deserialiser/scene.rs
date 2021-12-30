@@ -102,7 +102,7 @@ pub struct TextureTarget {
     pub depth_texture_id: Option<String>
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub enum RenderFunction {
     basic_textured,
     basic_textured_clipped_y,

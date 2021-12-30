@@ -6,6 +6,14 @@
       {
         "id": "terrain",
         "file": "SceneTerrain.mdl"
+      },
+      {
+        "id": "skybox",
+        "generator": "skybox"
+      },
+      {
+        "id": "hud",
+        "generator": "text"
       }
     ],
     "textures": [
@@ -13,9 +21,26 @@
         "id": "outdoors",
         "format": "rgba8",
         "file": "simple_outdoor_texture.jpg"
+      },
+      {
+        "id": "musica",
+        "format": "rgba8",
+        "file": "Musica.png"
+      },
+      {
+        "id": "skybox",
+        "format": "rgba8",
+        "file": "bluecloud.jpg",
+        "kind": "cubemap"
       }
     ],
-    "fonts": []
+    "fonts": [
+      {
+        "id": "musica",
+        "file": "Musica.fnt",
+        "texture_id": "musica"
+      }
+    ]
   },
   "passes": [
     {
@@ -23,10 +48,28 @@
       "kind": "default",
       "steps": [
         {
+          "name": "skybox",
+          "render": "cube",
+          "model_id": "skybox",
+          "texture_ids": ["skybox"]
+        },
+        {
           "name": "terrain",
           "render": "basic_textured",
           "model_id": "terrain",
           "texture_ids": ["outdoors"]
+        }
+      ]
+    },
+    {
+      "name": "hud",
+      "kind": "default",
+      "steps": [
+        {
+          "name": "text_overlay",
+          "render": "text_paint",
+          "model_id": "hud",
+          "texture_ids": ["musica"]
         }
       ]
     }

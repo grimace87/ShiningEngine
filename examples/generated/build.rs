@@ -37,7 +37,9 @@ fn main() {
 
     let project_dir = std::env::current_dir().unwrap();
     process_spec_path(&project_dir, "spec", "resources")
-        .map_err(|e| format!("Error processing spec directory: {:?}", e))
+        .map_err(|e| {
+            println!("Error processing spec directory: {:?}", e);
+        })
         .unwrap();
 }
 

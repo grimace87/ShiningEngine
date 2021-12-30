@@ -11,6 +11,7 @@ scenegen = { path = "../../scenegen" }
 
 [dependencies]
 cgmath = "0.18.0"
+rand = "0.8.4"
 defs = { path = "../../defs" }
 platform_windows = { path = "../../platform_desktop" }
 renderer = { path = "../../renderer" }
