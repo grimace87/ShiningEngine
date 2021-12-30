@@ -16,8 +16,10 @@ pub fn write_app_files(
         project_dir,
         vec!["src", "app"],
         "mod.rs")?;
-    std::fs::write(&app_module_file, app_module_file_contents)
-        .map_err(|_| GeneratorError::WriteError(app_module_file.clone()))?;
+    if !app_module_file.is_file() {
+        std::fs::write(&app_module_file, app_module_file_contents)
+            .map_err(|_| GeneratorError::WriteError(app_module_file.clone()))?;
+    }
     let app_regenerated_file = make_project_file(
         project_dir,
         vec!["src", "app"],
@@ -32,8 +34,10 @@ pub fn write_app_files(
         project_dir,
         vec!["src", "scenes"],
         "mod.rs")?;
-    std::fs::write(&scenes_list_module_file, scenes_list_module_file_contents)
-        .map_err(|_| GeneratorError::WriteError(scenes_list_module_file.clone()))?;
+    if !scenes_list_module_file.is_file() {
+        std::fs::write(&scenes_list_module_file, scenes_list_module_file_contents)
+            .map_err(|_| GeneratorError::WriteError(scenes_list_module_file.clone()))?;
+    }
     let scenes_list_regenerated_file = make_project_file(
         project_dir,
         vec!["src", "scenes"],
@@ -49,8 +53,10 @@ pub fn write_app_files(
             project_dir,
             vec!["src", "scenes", scene.id.as_str()],
             "mod.rs")?;
-        std::fs::write(&scene_module_file, scene_module_file_contents)
-            .map_err(|_| GeneratorError::WriteError(scene_module_file.clone()))?;
+        if !scene_module_file.is_file() {
+            std::fs::write(&scene_module_file, scene_module_file_contents)
+                .map_err(|_| GeneratorError::WriteError(scene_module_file.clone()))?;
+        }
 
         let scene_core_file = make_project_file(
             project_dir,

@@ -14,7 +14,7 @@ impl Scene for IntroScene {}
 impl SceneUpdates for IntroScene {
 
     fn update_aspect_ratio(&mut self, aspect_ratio: f32) {
-        // self.camera.update_aspect(aspect_ratio);
+        self.camera.update_aspect(aspect_ratio);
     }
 
     fn update_camera(
@@ -22,6 +22,7 @@ impl SceneUpdates for IntroScene {
         time_step_millis: u64,
         controller: &dyn Control
     ) -> Option<Box<dyn Scene>> {
+        self.camera.update(time_step_millis, controller);
         None
     }
 }
