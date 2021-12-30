@@ -23,7 +23,6 @@ pub fn generate_regenerated_scene_contents(
     let gen_content = format!("
 {}
 {}
-impl Scene for {} {{}}
 
 impl SceneInfo for {} {{
 
@@ -34,7 +33,6 @@ impl SceneInfo for {} {{
 ",
         top_level_content,
         struct_definition,
-        struct_name,
         struct_name,
         preloads,
         description,

@@ -14,6 +14,10 @@ use defs::{{
 }};
 use engine::camera::player::PlayerCamera;
 
+include!(\"descriptions.gen.rs\");
+
+impl Scene for {} {{}}
+
 impl SceneUpdates for {} {{
 
     fn update_aspect_ratio(&mut self, aspect_ratio: f32) {{
@@ -28,6 +32,6 @@ impl SceneUpdates for {} {{
         None
     }}
 }}
-", struct_name);
+", struct_name, struct_name);
     Ok(content)
 }

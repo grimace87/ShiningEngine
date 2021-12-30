@@ -134,7 +134,6 @@ pub fn generate_get_ubo_fn(config: &Scene) -> Result<String, GeneratorError> {
         match (pass_index, step_index) {{{}
             _ => panic!(\"Cannot get UBO for {}\")
         }}
-    }}
-    ", ubo_ptr_mappings, struct_name);
+    }}", ubo_ptr_mappings, struct_name);
     Ok(content)
 }

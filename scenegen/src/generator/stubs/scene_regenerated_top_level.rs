@@ -56,7 +56,6 @@ pub fn generate_top_level(
     let gen_content = format!("\
 use defs::{{
     SceneInfo,
-    Scene,
     render::{{
         Shader,
         VertexFormat,
@@ -72,7 +71,6 @@ use defs::{{
     ubo::*
 }};
 use engine::{{
-    camera::player::PlayerCamera,
     util::{{
         TextureCodec,
         decode_texture,

@@ -1,2 +1,2 @@
-/app.rs
-/scenes/
+
+*.gen.rs

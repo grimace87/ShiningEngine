@@ -3,7 +3,7 @@ use crate::deserialiser::app::*;
 use crate::GeneratorError;
 use heck::CamelCase;
 
-pub fn generate_app_root_content(config: &App) -> Result<String, GeneratorError> {
+pub fn generate_app_regenerated_content(config: &App) -> Result<String, GeneratorError> {
 
     let start_scene = config.start_scene_id.as_str();
     let struct_name = format!("{}Scene", config.start_scene_id.to_camel_case());
@@ -43,7 +43,7 @@ impl App {{
         App {{}}
     }}
 
-    pub fn main() {{
+    pub fn run(&self) {{
 
         let mut platform = {}
             .unwrap_or_else(|e| {{
