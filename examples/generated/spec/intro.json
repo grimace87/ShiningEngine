@@ -58,13 +58,7 @@
           "render": "basic_textured",
           "model_id": "terrain",
           "texture_ids": ["outdoors"]
-        }
-      ]
-    },
-    {
-      "name": "hud",
-      "kind": "default",
-      "steps": [
+        },
         {
           "name": "text_overlay",
           "render": "text_paint",
