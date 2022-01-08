@@ -61,6 +61,30 @@ impl PlayerCamera {
             0.0, 0.0, (-far_plane * near_plane) / (far_plane - near_plane), 0.0
         )
     }
+
+    pub fn get_x(&self) -> f32 {
+        self.position_x
+    }
+
+    pub fn get_y(&self) -> f32 {
+        self.position_y
+    }
+
+    pub fn get_z(&self) -> f32 {
+        self.position_z
+    }
+
+    pub fn get_rotation(&self) -> f32 {
+        self.rotation
+    }
+
+    pub fn get_speed(&self) -> f32 {
+        self.speed
+    }
+
+    pub fn get_angular_speed(&self) -> f32 {
+        self.angular_speed
+    }
 }
 
 impl Camera for PlayerCamera {
