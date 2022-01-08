@@ -143,11 +143,13 @@ impl SceneUpdates for SubMenuScene {
         self.camera.update_aspect(aspect_ratio);
     }
 
-    fn update_camera(
+    fn on_time_elapsed(
         &mut self,
         _time_step_millis: u64,
         _controller: &dyn Control
     ) -> Option<Box<dyn Scene>> {
         None
     }
+
+    fn on_pre_render(&mut self) {}
 }

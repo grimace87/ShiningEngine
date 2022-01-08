@@ -340,12 +340,16 @@ impl SceneUpdates for SceneryScene {
         self.camera.update_aspect(aspect_ratio);
     }
 
-    fn update_camera(
+    fn on_time_elapsed(
         &mut self,
         time_step_millis: u64,
         controller: &dyn Control
     ) -> Option<Box<dyn Scene>> {
         self.camera.update(time_step_millis, controller);
+        None
+    }
+
+    fn on_pre_render(&mut self) {
         let p_matrix = self.camera.get_projection_matrix();
         let mut v_matrix = self.camera.get_view_matrix();
         let mut v_inverted_matrix = self.camera.get_view_matrix();
@@ -369,7 +373,5 @@ impl SceneUpdates for SceneryScene {
         v_inverted_matrix.w.z = 0.0;
         self.skybox_pass_ubo.matrix = p_matrix * v_matrix;
         self.skybox_reflection_pass_ubo.matrix = p_matrix * v_inverted_matrix;
-
-        None
     }
 }

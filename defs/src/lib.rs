@@ -48,14 +48,18 @@ pub trait SceneUpdates {
     /// Notify this implementation of a changed in the client area aspect ratio
     fn update_aspect_ratio(&mut self, aspect_ratio: f32);
 
-    /// Instruct this implementation to update its camera, given the supplied time slice and
-    /// controller. If a new scene scene should be queued - given the update that occurred - it
-    /// will be returned.
-    fn update_camera(
+    /// Instruct this implementation to perform time-dependent operations, given the supplied time
+    /// slice and controller. This may include moving the camera or other physical processes.
+    /// If this determines that a new scene should be transitioned to it, return it here.
+    fn on_time_elapsed(
         &mut self,
         time_step_millis: u64,
         controller: &dyn control::Control
     ) -> Option<Box<dyn Scene>>;
+
+    /// Set up the current scene for rendering. If on_time_elapsed caused a screen transition,
+    /// this function will be called on the new scene.
+    fn on_pre_render(&mut self);
 }
 
 pub trait Scene: SceneInfo + SceneUpdates {}

@@ -24,12 +24,16 @@ impl SceneUpdates for {} {{
         // self.camera.update_aspect(aspect_ratio);
     }}
 
-    fn update_camera(
+    fn on_time_elapsed(
         &mut self,
         time_step_millis: u64,
         controller: &dyn Control
     ) -> Option<Box<dyn Scene>> {{
         None
+    }}
+
+    fn on_pre_render(&mut self) {{
+        // self.some_ubo.matrix = self.camera.get_projection_matrix();
     }}
 }}
 ", struct_name, struct_name);

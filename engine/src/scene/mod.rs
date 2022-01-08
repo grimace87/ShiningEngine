@@ -35,15 +35,21 @@ impl SceneHost {
         self.scene_info.update_aspect_ratio(aspect_ratio);
     }
 
-    /// Perform per-frame updates based on current camera position and the time step since the last
-    /// invocation. If a new scene scene should be queued - given the update that occurred - it
-    //  will be returned.
-    pub fn update_current(
+    /// Instruct current scene to perform per-frame updates based on its state and the time step
+    /// since the last invocation. If a new scene scene should be queued - given the update that
+    /// occurred - it will be returned.
+    pub fn on_time_elapsed(
         &mut self,
         time_step_millis: u64,
         controller: &dyn Control
     ) -> Option<Box<dyn Scene>> {
-        self.scene_info.update_camera(time_step_millis, controller)
+        self.scene_info.on_time_elapsed(time_step_millis, controller)
+    }
+
+    /// Instruct the current scene to prepare for rendering. This will be called straight after
+    /// on_time_elapsed, however will be called on the new scene if a scene transition took place.
+    pub fn on_pre_render(&mut self) {
+        self.scene_info.on_pre_render();
     }
 
     /// Flush the scene queue, activating any new scenes found as they replace the current scene

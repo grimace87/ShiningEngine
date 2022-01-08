@@ -104,7 +104,7 @@ impl<R: 'static> Engine<R> where R : RendererApi {
     pub fn update(&mut self, time_step_millis: u64) {
         self.controller.update();
         let next_scene =
-            self.scene_host.update_current(time_step_millis, self.controller.as_ref());
+            self.scene_host.on_time_elapsed(time_step_millis, self.controller.as_ref());
         if let Some(new_scene) = next_scene {
             self.scene_host.queue_scene(new_scene);
         }
@@ -113,6 +113,7 @@ impl<R: 'static> Engine<R> where R : RendererApi {
             let description = self.scene_host.get_current().make_description();
             self.renderer.recreate_scene_resources(&resource_preloads, &description).unwrap();
         }
+        self.scene_host.on_pre_render();
     }
 
     /// Perform the render event. Instructs the renderer to draw the frame and then does some

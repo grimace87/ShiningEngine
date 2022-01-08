@@ -177,20 +177,22 @@ impl SceneUpdates for StartMenuScene {
 
     fn update_aspect_ratio(&mut self, _aspect_ratio: f32) {}
 
-    fn update_camera(
+    fn on_time_elapsed(
         &mut self,
         _time_step_millis: u64,
         _controller: &dyn Control
     ) -> Option<Box<dyn Scene>> {
-        let red: f32 = 1.0;
-        self.text_paint_ubo.paint_color.x = red;
-        self.text_paint_ubo.paint_color.z = 1.0 - red;
-
         self.frame_counter += 1;
         if self.frame_counter == 60 {
             Some(Box::new(crate::submenu::SubMenuScene::new()))
         } else {
             None
         }
+    }
+
+    fn on_pre_render(&mut self) {
+        let red: f32 = 1.0;
+        self.text_paint_ubo.paint_color.x = red;
+        self.text_paint_ubo.paint_color.z = 1.0 - red;
     }
 }
