@@ -71,26 +71,6 @@ pub unsafe fn create_swapchain_image_views(
         .map_err(|e| {
             EngineError::RenderError(format!("{:?}", e))
         })?;
-    let mut image_views = Vec::with_capacity(swapchain_images.len());
-    for image in swapchain_images.iter() {
-        let subresource_range = vk::ImageSubresourceRange::builder()
-            .aspect_mask(vk::ImageAspectFlags::COLOR)
-            .base_mip_level(0)
-            .level_count(1)
-            .base_array_layer(0)
-            .layer_count(1);
-        let image_view_create_info = vk::ImageViewCreateInfo::builder()
-            .image(*image)
-            .view_type(vk::ImageViewType::TYPE_2D)
-            .format(vk::Format::B8G8R8A8_UNORM)
-            .subresource_range(*subresource_range);
-        let image_view = device.create_image_view(&image_view_create_info, None)
-            .map_err(|e| {
-                EngineError::RenderError(format!("{:?}", e))
-            })?;
-        image_views.push(image_view);
-    }
-
     let image_views: Vec<_> = swapchain_images.iter()
         .map(|image| {
             let subresource_range = vk::ImageSubresourceRange::builder()
@@ -105,7 +85,10 @@ pub unsafe fn create_swapchain_image_views(
                 .format(vk::Format::B8G8R8A8_UNORM)
                 .subresource_range(*subresource_range);
             device.create_image_view(&image_view_create_info, None)
-                .map_err(|e| format!("Error creating image views for swapchain: {:?}", e))
+                .map_err(|e| {
+                    format!("Error creating image views for swapchain: {:?}", e);
+                    EngineError::RenderError(format!("{:?}", e))
+                })
                 .unwrap()
         })
         .collect();
