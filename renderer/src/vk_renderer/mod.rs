@@ -103,19 +103,24 @@ impl RendererApi for VkRenderer {
 
     fn recreate_scene_resources(&mut self, resource_preloads: &ResourcePreloads, description: &DrawingDescription) -> Result<(), EngineError> {
         self.render_core.wait_until_idle().unwrap();
+
+        // Load image and buffer resources
         unsafe {
             self.render_core.load_new_resources(resource_preloads).unwrap();
         }
 
+        // Destroy existing pipelines and render passes
         for resources in self.per_image_resources.iter_mut() {
             resources.destroy_resources(&self.render_core);
         }
         self.per_image_resources.clear();
 
+        // Release existing command buffers and allocate new ones
         let command_buffers = unsafe {
             self.render_core.regenerate_command_buffers()?
         };
 
+        // Create new render passes and pipelines, and record command buffers
         assert_eq!(command_buffers.len(), self.render_core.image_views.len());
         for (swapchain_image_index, command_buffer) in command_buffers.iter().enumerate() {
             let resources = PerImageResources::new(&self.render_core, swapchain_image_index, description, *command_buffer)?;

@@ -204,6 +204,9 @@ impl RenderCore {
 
         // VBOs
         for (vbo_index, creation_data) in resource_preloads.vbo_preloads.iter() {
+            if self.vbo_objects.contains_key(vbo_index) {
+                continue;
+            }
             let vertex_size_bytes: usize = match creation_data.vertex_format {
                 VertexFormat::PositionNormalTexture => 32
             };
@@ -225,6 +228,9 @@ impl RenderCore {
 
         // Textures
         for (texture_index, creation_data) in resource_preloads.texture_preloads.iter() {
+            if self.texture_objects.contains_key(texture_index) {
+                continue;
+            }
             let texture = match creation_data.layer_data.as_ref() {
                 Some(data) => crate::vk_renderer::images::ImageWrapper::new(
                     self,
