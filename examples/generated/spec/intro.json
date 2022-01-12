@@ -4,39 +4,12 @@
   "resources": {
     "models": [
       {
-        "id": "skybox",
-        "generator": "skybox"
-      },
-      {
         "id": "hud",
         "generator": "text"
       }
     ],
-    "textures": [
-      {
-        "id": "outdoors",
-        "format": "rgba8",
-        "file": "simple_outdoor_texture.jpg"
-      },
-      {
-        "id": "musica",
-        "format": "rgba8",
-        "file": "Musica.png"
-      },
-      {
-        "id": "skybox",
-        "format": "rgba8",
-        "file": "bluecloud.jpg",
-        "kind": "cubemap"
-      }
-    ],
-    "fonts": [
-      {
-        "id": "musica",
-        "file": "Musica.fnt",
-        "texture_id": "musica"
-      }
-    ]
+    "textures": [],
+    "fonts": []
   },
   "passes": [
     {

@@ -45,9 +45,9 @@ pub fn write_app_files(
     std::fs::write(&scenes_list_regenerated_file, scenes_list_regenerated_file_contents)
         .map_err(|_| GeneratorError::WriteError(scenes_list_regenerated_file.clone()))?;
 
-    for scene in complete_spec.scenes.iter() {
+    for (scene_index, scene) in complete_spec.scenes.iter().enumerate() {
         let (scene_module_file_contents, scene_core_file_contents) =
-            stubs::generate_scene_stubs(&scene, resources_dir_name)?;
+            stubs::generate_scene_stubs(scene_index + 1, &complete_spec.app.shared_resources, &scene, resources_dir_name)?;
 
         let scene_module_file = make_project_file(
             project_dir,

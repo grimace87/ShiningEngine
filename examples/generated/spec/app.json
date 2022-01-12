@@ -3,5 +3,33 @@
   "features": [],
   "platform": "windows",
   "graphics": "vulkan",
-  "start_scene_id": "intro"
+  "start_scene_id": "intro",
+  "shared_resources": {
+    "models": [
+      {
+        "id": "skybox",
+        "generator": "skybox"
+      }
+    ],
+    "textures": [
+      {
+        "id": "musica",
+        "format": "rgba8",
+        "file": "Musica.png"
+      },
+      {
+        "id": "skybox",
+        "format": "rgba8",
+        "file": "bluecloud.jpg",
+        "kind": "cubemap"
+      }
+    ],
+    "fonts": [
+      {
+        "id": "musica",
+        "file": "Musica.fnt",
+        "texture_id": "musica"
+      }
+    ]
+  }
 }

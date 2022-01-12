@@ -1,6 +1,6 @@
 
 use crate::GeneratorError;
-use crate::deserialiser::types::{TextureFormat, scene::*};
+use crate::deserialiser::types::{*, app::*, scene::*};
 
 fn translate_texture_format(format: &TextureFormat) -> Result<String, GeneratorError> {
     match format {
@@ -25,7 +25,7 @@ fn translate_shader(shader: &RenderFunction) -> String {
     String::from(function)
 }
 
-pub fn generate_description(config: &Scene) -> Result<String, GeneratorError> {
+pub fn generate_description(shared_resources: &Resources, config: &Scene) -> Result<String, GeneratorError> {
     let mut passes = String::new();
     for pass in config.passes.iter() {
 
@@ -33,28 +33,27 @@ pub fn generate_description(config: &Scene) -> Result<String, GeneratorError> {
             None => String::from("target: FramebufferTarget::DefaultFramebuffer"),
             Some(texture_ids) => {
 
-                let colour_texture_resource = config.resources.textures.iter()
-                    .find(|texture| &texture.id == &texture_ids.colour_texture_id);
-                let colour_texture = match colour_texture_resource {
-                    Some(texture) => texture,
-                    None => return Err(GeneratorError::InvalidSpec(
-                        format!("(Scene {}) Texture doesn't exist: {}", config.id, texture_ids.colour_texture_id)))
+                let (colour_format, colour_texture_index) = {
+                    if let Some(resource) = config.resources.textures.iter().find(|texture| &texture.id == &texture_ids.colour_texture_id) {
+                        (translate_texture_format(&resource.format)?, format!("TEXTURE_INDEX_{}", texture_ids.colour_texture_id.to_uppercase()))
+                    } else if let Some(resource) = shared_resources.textures.iter().find(|texture| &texture.id == &texture_ids.colour_texture_id) {
+                        (translate_texture_format(&resource.format)?, format!("shared_indices::TEXTURE_INDEX_{}", texture_ids.colour_texture_id.to_uppercase()))
+                    } else {
+                        return Err(GeneratorError::InvalidSpec(
+                            format!("(Scene {}) Texture doesn't exist: {}", config.id, texture_ids.colour_texture_id)))
+                    }
                 };
-                let colour_name = format!("TEXTURE_INDEX_{}", colour_texture.id.to_uppercase());
-                let colour_format = translate_texture_format(&colour_texture.format)?;
 
-                let (depth_name, depth_format) = match &texture_ids.depth_texture_id {
+                let (depth_format, depth_texture_index) = match &texture_ids.depth_texture_id {
                     Some(id) => {
-                        let resource = config.resources.textures.iter()
-                            .find(|texture| &texture.id == id);
-                        let texture = match resource {
-                            Some(texture) => texture,
-                            None => return Err(GeneratorError::InvalidSpec(
+                        if let Some(resource) = config.resources.textures.iter().find(|texture| &texture.id == id) {
+                            (translate_texture_format(&resource.format)?, format!("TEXTURE_INDEX_{}", id.to_uppercase()))
+                        } else if let Some(resource) = shared_resources.textures.iter().find(|texture| &texture.id == id) {
+                            (translate_texture_format(&resource.format)?, format!("shared_indices::TEXTURE_INDEX_{}", id.to_uppercase()))
+                        } else {
+                            return Err(GeneratorError::InvalidSpec(
                                 format!("(Scene {}) Texture doesn't exist: {}", config.id, texture_ids.colour_texture_id)))
-                        };
-                        let name = format!("TEXTURE_INDEX_{}", texture.id.to_uppercase());
-                        let format = translate_texture_format(&texture.format)?;
-                        (name, format)
+                        }
                     },
                     None => ("None".to_string(), "TexturePixelFormat::None".to_string())
                 };
@@ -65,7 +64,7 @@ pub fn generate_description(config: &Scene) -> Result<String, GeneratorError> {
                         height: OFFSCREEN_RENDER_SIZE as usize,
                         color_format: {},
                         depth_format: {}
-                    }})", colour_name, depth_name, colour_format, depth_format)
+                    }})", colour_texture_index, depth_texture_index, colour_format, depth_format)
             }
         };
 
@@ -77,14 +76,33 @@ pub fn generate_description(config: &Scene) -> Result<String, GeneratorError> {
             let mut texture_indices = String::new();
             let texture_count = step.texture_ids.len();
             for (index, texture) in step.texture_ids.iter().enumerate() {
+                let texture_index_name = {
+                    if let Some(_) = config.resources.textures.iter().find(|t| texture == &t.id) {
+                        format!("TEXTURE_INDEX_{}", texture.to_uppercase())
+                    } else if let Some(_) = shared_resources.textures.iter().find(|t| texture == &t.id) {
+                        format!("shared_indices::TEXTURE_INDEX_{}", texture.to_uppercase())
+                    } else {
+                        return Err(GeneratorError::InvalidSpec(
+                            format!("(Scene {}) Texture doesn't exist: {}", config.id, texture)))
+                    }
+                };
                 if index < texture_count - 1 {
-                    texture_indices = format!("{}TEXTURE_INDEX_{}, ", texture_indices, texture.to_uppercase());
+                    texture_indices = format!("{}{}, ", texture_indices, texture_index_name);
                 } else {
-                    texture_indices = format!("{}TEXTURE_INDEX_{}", texture_indices, texture.to_uppercase());
+                    texture_indices = format!("{}{}", texture_indices, texture_index_name);
                 }
             }
 
-            let vbo_index = format!("VBO_INDEX_{}", step.model_id.to_uppercase());
+            let vbo_index_name = {
+                if let Some(_) = config.resources.models.iter().find(|m| &step.model_id == &m.id) {
+                    format!("VBO_INDEX_{}", step.model_id.to_uppercase())
+                } else if let Some(_) = shared_resources.models.iter().find(|m| &step.model_id == &m.id) {
+                    format!("shared_indices::VBO_INDEX_{}", step.model_id.to_uppercase())
+                } else {
+                    return Err(GeneratorError::InvalidSpec(
+                        format!("(Scene {}) Model doesn't exist: {}", config.id, step.model_id)))
+                }
+            };
             steps = format!("{}
                         DrawingStep {{
                             shader: {},
@@ -93,7 +111,7 @@ pub fn generate_description(config: &Scene) -> Result<String, GeneratorError> {
                             draw_indexed: false,
                             texture_indices: vec![{}],
                             depth_test: true
-                        }},", steps, shader, vbo_index, texture_indices);
+                        }},", steps, shader, vbo_index_name, texture_indices);
         }
 
         passes = format!("{}

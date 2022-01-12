@@ -16,6 +16,7 @@ use scenes_list_module::generate_scenes_list_root_content;
 use scenes_list_regenerated::generate_scenes_list_regenerated_content;
 use scene_regenerated::generate_regenerated_scene_contents;
 use scene_starter::generate_starter_scene_contents;
+use crate::deserialiser::types::Resources;
 use crate::deserialiser::types::app::App;
 use crate::deserialiser::types::scene::Scene;
 use crate::GeneratorError;
@@ -41,10 +42,12 @@ pub fn generate_scene_listing_stubs(configs: &Vec<Scene>) -> Result<(String, Str
 /// src/scenes/<scene_name>/details.rs but only if that file does not yet exist.
 /// To start this process, call crate::generator::writer::process_spec_path from a build script.
 pub fn generate_scene_stubs(
+    scene_number_one_based: usize,
+    shared_resources: &Resources,
     config: &Scene,
     resources_dir_name: &'static str
 ) -> Result<(String, String), GeneratorError> {
     let scene_module_contents = generate_starter_scene_contents(config)?;
-    let scene_generated_contents = generate_regenerated_scene_contents(config, resources_dir_name)?;
+    let scene_generated_contents = generate_regenerated_scene_contents(scene_number_one_based, shared_resources, config, resources_dir_name)?;
     Ok((scene_module_contents, scene_generated_contents))
 }

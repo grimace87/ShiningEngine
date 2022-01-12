@@ -3,12 +3,13 @@ use crate::GeneratorError;
 use crate::deserialiser::types::{TextureKind, scene::*};
 
 pub fn generate_top_level(
+    scene_number_one_based: usize,
     config: &Scene,
     resources_dir_name: &'static str
 ) -> Result<String, GeneratorError> {
 
     let mut additional_util_imports = String::new();
-    if config.resources.fonts.len() > 0 {
+    if let Some(_) = config.resources.models.iter().find(|model| matches!(&model.generator, Some(_))) {
         additional_util_imports = format!("{}
         textbuffer::{{
             TextGenerator,
@@ -67,12 +68,12 @@ pub fn generate_top_level(
 
     let mut vbo_index_decls = String::new();
     for (i, model) in config.resources.models.iter().enumerate() {
-        vbo_index_decls = format!("{}\nconst VBO_INDEX_{}: usize = {};", vbo_index_decls, model.id.to_uppercase(), i);
+        vbo_index_decls = format!("{}\nconst VBO_INDEX_{}: usize = 0x{:08}{:08};", vbo_index_decls, model.id.to_uppercase(), scene_number_one_based, i);
     }
 
     let mut texture_index_decls = String::new();
     for (i, texture) in config.resources.textures.iter().enumerate() {
-        texture_index_decls = format!("{}\nconst TEXTURE_INDEX_{}: usize = {};", texture_index_decls, texture.id.to_uppercase(), i);
+        texture_index_decls = format!("{}\nconst TEXTURE_INDEX_{}: usize = 0x{:08}{:08};", texture_index_decls, texture.id.to_uppercase(), scene_number_one_based, i);
     }
 
     let gen_content = format!("\
@@ -97,6 +98,7 @@ use engine::{{
         TextureCodec
     }}
 }};
+use crate::app::shared_indices;
 
 use cgmath::{{Matrix4, SquareMatrix{}}};
 use std::collections::HashMap;
