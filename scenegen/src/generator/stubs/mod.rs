@@ -16,8 +16,8 @@ use scenes_list_module::generate_scenes_list_root_content;
 use scenes_list_regenerated::generate_scenes_list_regenerated_content;
 use scene_regenerated::generate_regenerated_scene_contents;
 use scene_starter::generate_starter_scene_contents;
-use crate::deserialiser::app::App;
-use crate::deserialiser::scene::Scene;
+use crate::deserialiser::types::app::App;
+use crate::deserialiser::types::scene::Scene;
 use crate::GeneratorError;
 
 /// Generate stubs for an app spec as a String of content. Should be saved to src/app.rs.

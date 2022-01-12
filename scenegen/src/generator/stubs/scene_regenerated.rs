@@ -1,6 +1,6 @@
 
 use crate::GeneratorError;
-use crate::deserialiser::scene::*;
+use crate::deserialiser::types::scene::*;
 use crate::generator::stubs::scene_regenerated_top_level::generate_top_level;
 use crate::generator::stubs::scene_regenerated_struct::{generate_struct_definition, generate_get_ubo_fn};
 use crate::generator::stubs::scene_regenerated_preloads::generate_preloads;

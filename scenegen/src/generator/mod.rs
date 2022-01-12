@@ -3,13 +3,13 @@ pub mod writer;
 mod stubs;
 
 use std::path::PathBuf;
-use crate::deserialiser::app::App;
-use crate::deserialiser::scene::Scene;
+use crate::deserialiser::types::app::App;
+use crate::deserialiser::types::scene::Scene;
 use crate::deserialiser::parse_directory;
 use crate::generator::writer::write_app_files;
 use crate::GeneratorError;
 
-pub struct AppSpec {
+pub struct CompleteSpec {
     pub app: App,
     pub scenes: Vec<Scene>
 }
@@ -41,8 +41,8 @@ pub fn process_spec_path(
     spec_dir_name: &'static str,
     resources_dir_name: &'static str
 ) -> Result<(), GeneratorError> {
-    let app_spec = parse_directory(project_dir, spec_dir_name)?;
-    write_app_files(project_dir, &app_spec, resources_dir_name)?;
+    let complete_spec = parse_directory(project_dir, spec_dir_name)?;
+    write_app_files(project_dir, &complete_spec, resources_dir_name)?;
     Ok(())
 }
 
@@ -71,35 +71,35 @@ mod test {
     #[test]
     fn json_file_with_text_rejected() {
         let test_dir = get_test_dir("json_file_with_text");
-        let process_result = process_spec_path(&test_dir, "spec");
+        let process_result = process_spec_path(&test_dir, "spec", "resources");
         assert!(matches!(process_result, Err(GeneratorError::BadJson(_, _))));
     }
 
     #[test]
     fn invalid_spec_rejected() {
         let test_dir = get_test_dir("features_bad");
-        let process_result = process_spec_path(&test_dir, "spec");
+        let process_result = process_spec_path(&test_dir, "spec", "resources");
         assert!(matches!(process_result, Err(GeneratorError::InvalidSchema(_, _))));
     }
 
     #[test]
     fn missing_initial_scene_fails_validation() {
         let test_dir = get_test_dir("missing_initial_scene");
-        let process_result = process_spec_path(&test_dir, "spec");
+        let process_result = process_spec_path(&test_dir, "spec", "resources");
         assert!(matches!(process_result, Err(GeneratorError::InvalidSpec(_))));
     }
 
     #[test]
     fn bad_generated_texture_format_fails_validation() {
         let test_dir = get_test_dir("bad_generator_format");
-        let process_result = process_spec_path(&test_dir, "spec");
+        let process_result = process_spec_path(&test_dir, "spec", "resources");
         assert!(matches!(process_result, Err(GeneratorError::InvalidSpec(_))));
     }
 
     #[test]
     fn valid_files_in_directory_processed() {
         let test_dir = get_test_dir("full_featured_app");
-        let process_result = process_spec_path(&test_dir, "spec");
+        let process_result = process_spec_path(&test_dir, "spec", "resources");
         assert!(process_result.is_ok());
     }
 }

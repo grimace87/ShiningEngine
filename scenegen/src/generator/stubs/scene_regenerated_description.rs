@@ -1,6 +1,6 @@
 
 use crate::GeneratorError;
-use crate::deserialiser::scene::*;
+use crate::deserialiser::types::{TextureFormat, scene::*};
 
 fn translate_texture_format(format: &TextureFormat) -> Result<String, GeneratorError> {
     match format {

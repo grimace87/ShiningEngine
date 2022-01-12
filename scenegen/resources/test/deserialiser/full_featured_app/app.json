@@ -5,5 +5,37 @@
   ],
   "platform": "windows",
   "graphics": "vulkan",
-  "start_scene_id": "scene"
+  "start_scene_id": "scene",
+  "shared_resources": {
+    "models": [
+      {
+        "id": "skybox",
+        "generator": "skybox"
+      },
+      {
+        "id": "hud",
+        "generator": "text"
+      }
+    ],
+    "textures": [
+      {
+        "id": "musica",
+        "format": "rgba8",
+        "file": "Musica.png"
+      },
+      {
+        "id": "skybox",
+        "format": "rgb8",
+        "file": "bluecloud.jpg",
+        "kind": "cubemap"
+      }
+    ],
+    "fonts": [
+      {
+        "id": "musica",
+        "file": "Musica.fnt",
+        "texture_id": "musica"
+      }
+    ]
+  }
 }

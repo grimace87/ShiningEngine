@@ -1,6 +1,6 @@
 
 use crate::GeneratorError;
-use crate::deserialiser::scene::*;
+use crate::deserialiser::types::{TextureKind, scene::*};
 
 pub fn generate_top_level(
     config: &Scene,

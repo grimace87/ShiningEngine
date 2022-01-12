@@ -10,14 +10,6 @@
       {
         "id": "river",
         "file": "River.mdl"
-      },
-      {
-        "id": "skybox",
-        "generator": "skybox"
-      },
-      {
-        "id": "hud",
-        "generator": "text"
       }
     ],
     "textures": [
@@ -25,17 +17,6 @@
         "id": "outdoors",
         "format": "rgba8",
         "file": "simple_outdoor_texture.jpg"
-      },
-      {
-        "id": "musica",
-        "format": "rgba8",
-        "file": "Musica.png"
-      },
-      {
-        "id": "skybox",
-        "format": "rgb8",
-        "file": "bluecloud.jpg",
-        "kind": "cubemap"
       },
       {
         "id": "reflection_colour",
@@ -48,13 +29,7 @@
         "kind": "uninitialised"
       }
     ],
-    "fonts": [
-      {
-        "id": "musica",
-        "file": "Musica.fnt",
-        "texture_id": "musica"
-      }
-    ]
+    "fonts": []
   },
   "passes": [
     {

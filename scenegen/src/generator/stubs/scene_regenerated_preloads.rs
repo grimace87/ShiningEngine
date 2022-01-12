@@ -1,6 +1,6 @@
 
 use crate::GeneratorError;
-use crate::deserialiser::scene::*;
+use crate::deserialiser::types::{*, scene::*};
 
 fn get_codec_from_file_name(config: &Scene, texture: &Texture) -> Result<String, GeneratorError> {
     let file_as_lower = match &texture.file {

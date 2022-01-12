@@ -12,10 +12,6 @@
         "file": "River.mdl"
       },
       {
-        "id": "skybox",
-        "generator": "skybox"
-      },
-      {
         "id": "hud",
         "generator": "text"
       }
@@ -30,12 +26,6 @@
         "id": "musica",
         "format": "rgba8",
         "file": "Musica.png"
-      },
-      {
-        "id": "skybox",
-        "format": "rgba8",
-        "file": "bluecloud.jpg",
-        "kind": "cubemap"
       },
       {
         "id": "reflection_colour",

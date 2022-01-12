@@ -2,20 +2,8 @@
   "id": "cutscene",
   "camera": "flight_path",
   "resources": {
-    "models": [
-      {
-        "id": "skybox",
-        "generator": "skybox"
-      }
-    ],
-    "textures": [
-      {
-        "id": "skybox",
-        "format": "rgb8",
-        "file": "bluecloud.jpg",
-        "kind": "cubemap"
-      }
-    ],
+    "models": [],
+    "textures": [],
     "fonts": []
   },
   "passes": [

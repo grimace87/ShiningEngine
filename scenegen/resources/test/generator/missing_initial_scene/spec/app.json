@@ -3,5 +3,10 @@
   "features": [],
   "platform": "windows",
   "graphics": "vulkan",
-  "start_scene_id": "unscene"
+  "start_scene_id": "unscene",
+  "shared_resources": {
+    "models": [],
+    "textures": [],
+    "fonts": []
+  }
 }

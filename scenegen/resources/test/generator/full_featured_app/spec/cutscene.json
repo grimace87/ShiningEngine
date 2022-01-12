@@ -2,20 +2,8 @@
   "id": "cutscene",
   "camera": "player",
   "resources": {
-    "models": [
-      {
-        "id": "skybox",
-        "generator": "skybox"
-      }
-    ],
-    "textures": [
-      {
-        "id": "skybox",
-        "format": "rgba8",
-        "file": "bluecloud.jpg",
-        "kind": "cubemap"
-      }
-    ],
+    "models": [],
+    "textures": [],
     "fonts": []
   },
   "passes": [

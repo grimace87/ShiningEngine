@@ -1,6 +1,6 @@
 
 use crate::GeneratorError;
-use crate::deserialiser::scene::*;
+use crate::deserialiser::types::scene::*;
 use heck::CamelCase;
 
 pub fn generate_struct_definition(

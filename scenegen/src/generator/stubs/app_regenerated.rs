@@ -1,5 +1,5 @@
 
-use crate::deserialiser::app::*;
+use crate::deserialiser::types::app::*;
 use crate::GeneratorError;
 use heck::CamelCase;
 

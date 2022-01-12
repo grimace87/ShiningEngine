@@ -1,9 +1,14 @@
 {
-  "name": "Test spec for known features passing",
+  "name": "Test spec for bad generated texture format failing",
   "features": [
     "clip_planes"
   ],
   "platform": "windows",
   "graphics": "vulkan",
-  "start_scene_id": "scene"
+  "start_scene_id": "scene",
+  "shared_resources": {
+    "models": [],
+    "textures": [],
+    "fonts": []
+  }
 }

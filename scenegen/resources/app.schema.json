@@ -7,7 +7,8 @@
     "features",
     "platform",
     "graphics",
-    "start_scene_id"
+    "start_scene_id",
+    "shared_resources"
   ],
   "properties": {
     "name": {
@@ -33,6 +34,93 @@
       "enum": [
         "vulkan"
       ]
+    },
+    "shared_resources": {
+      "type": "object",
+      "required": [
+        "models",
+        "textures",
+        "fonts"
+      ],
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "id": {
+              "type": "string"
+            },
+            "file": {
+              "type": "string"
+            },
+            "generator": {
+              "type": "string",
+              "enum": [
+                "skybox",
+                "text"
+              ]
+            }
+          }
+        },
+        "textures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "r8",
+                  "rgb8",
+                  "rgba8",
+                  "d16"
+                ]
+              },
+              "file": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "cubemap",
+                  "uninitialised"
+                ]
+              }
+            }
+          }
+        },
+        "fonts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "file",
+              "texture_id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "file": {
+                "type": "string"
+              },
+              "texture_id": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

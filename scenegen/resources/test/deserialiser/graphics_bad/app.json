@@ -5,5 +5,10 @@
   ],
   "platform": "windows",
   "graphics": "glide",
-  "start_scene_id": "scene"
+  "start_scene_id": "scene",
+  "shared_resources": {
+    "models": [],
+    "textures": [],
+    "fonts": []
+  }
 }

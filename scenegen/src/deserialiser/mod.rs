@@ -1,19 +1,18 @@
 
-pub mod app;
-pub mod scene;
 pub mod validator;
+pub mod types;
 
 use crate::GeneratorError;
-use app::App;
-use scene::*;
+use types::*;
+use types::app::{App, AppGraphicsApi, AppPlatform};
+use types::scene::*;
 use validator::validate_app_file;
 use validator::validate_scene_file;
 use std::path::PathBuf;
-use crate::deserialiser::app::{AppGraphicsApi, AppPlatform};
-use crate::deserialiser::validator::validate_app_spec;
-use crate::generator::AppSpec;
+use crate::deserialiser::validator::validate_complete_spec;
+use crate::generator::CompleteSpec;
 
-pub fn parse_directory(project_dir: &PathBuf, spec_dir_name: &'static str) -> Result<AppSpec, GeneratorError> {
+pub fn parse_directory(project_dir: &PathBuf, spec_dir_name: &'static str) -> Result<CompleteSpec, GeneratorError> {
     if !project_dir.is_dir() {
         return Err(GeneratorError::NotADirectory(
             format!("Not a project directory: {:?}", project_dir.as_os_str())));
@@ -28,13 +27,14 @@ pub fn parse_directory(project_dir: &PathBuf, spec_dir_name: &'static str) -> Re
             format!("Not a spec directory: {:?}", spec_dir.as_os_str())));
     }
 
-    let mut app_spec = AppSpec {
+    let mut complete_spec = CompleteSpec {
         app: App {
             name: "unset".to_string(),
             features: vec![],
             platform: AppPlatform::windows,
             graphics: AppGraphicsApi::vulkan,
-            start_scene_id: "unset".to_string()
+            start_scene_id: "unset".to_string(),
+            shared_resources: Resources::default()
         },
         scenes: vec![]
     };
@@ -48,17 +48,17 @@ pub fn parse_directory(project_dir: &PathBuf, spec_dir_name: &'static str) -> Re
         }
         if path.file_name().unwrap().to_str().unwrap() == "app.json" {
             let app_config = parse_app_file(&path)?;
-            app_spec.app = app_config;
+            complete_spec.app = app_config;
         } else {
             let scene_config = parse_scene_file(&path)?;
-            app_spec.scenes.push(scene_config);
+            complete_spec.scenes.push(scene_config);
         }
     }
 
-    validate_app_spec(&app_spec)
+    validate_complete_spec(&complete_spec)
         .map_err(|e| GeneratorError::InvalidSpec(e))?;
 
-    Ok(app_spec)
+    Ok(complete_spec)
 }
 
 fn is_json_file(file_path: &PathBuf) -> bool {
@@ -100,8 +100,9 @@ mod test {
     use std::path::PathBuf;
     use crate::deserialiser::parse_app_file;
     use crate::deserialiser::parse_scene_file;
-    use crate::deserialiser::app::{App, AppFeature, AppGraphicsApi, AppPlatform};
-    use crate::deserialiser::scene::*;
+    use crate::deserialiser::types::*;
+    use crate::deserialiser::types::app::{App, AppFeature, AppGraphicsApi, AppPlatform};
+    use crate::deserialiser::types::scene::*;
     use crate::GeneratorError;
 
     fn get_test_app_file(app_name: &'static str, file_name: &'static str) -> PathBuf {
@@ -176,7 +177,42 @@ mod test {
             ],
             platform: AppPlatform::windows,
             graphics: AppGraphicsApi::vulkan,
-            start_scene_id: "scene".to_string()
+            start_scene_id: "scene".to_string(),
+            shared_resources: Resources {
+                models: vec![
+                    Model {
+                        id: "skybox".to_string(),
+                        file: None,
+                        generator: Some(ModelGenerator::skybox)
+                    },
+                    Model {
+                        id: "hud".to_string(),
+                        file: None,
+                        generator: Some(ModelGenerator::text)
+                    }
+                ],
+                textures: vec![
+                    Texture {
+                        id: "musica".to_string(),
+                        format: TextureFormat::rgba8,
+                        file: Some("Musica.png".to_string()),
+                        kind: None
+                    },
+                    Texture {
+                        id: "skybox".to_string(),
+                        format: TextureFormat::rgb8,
+                        file: Some("bluecloud.jpg".to_string()),
+                        kind: Some(TextureKind::cubemap)
+                    }
+                ],
+                fonts: vec![
+                    Font {
+                        id: "musica".to_string(),
+                        file: "Musica.fnt".to_string(),
+                        texture_id: "musica".to_string()
+                    }
+                ]
+            }
         };
         assert_eq!(format!("{:?}", app_object), format!("{:?}", expected_app));
 
@@ -196,16 +232,6 @@ mod test {
                         id: "river".to_string(),
                         file: Some("River.mdl".to_string()),
                         generator: None
-                    },
-                    Model {
-                        id: "skybox".to_string(),
-                        file: None,
-                        generator: Some(ModelGenerator::skybox)
-                    },
-                    Model {
-                        id: "hud".to_string(),
-                        file: None,
-                        generator: Some(ModelGenerator::text)
                     }
                 ],
                 textures: vec![
@@ -214,18 +240,6 @@ mod test {
                         format: TextureFormat::rgba8,
                         file: Some("simple_outdoor_texture.jpg".to_string()),
                         kind: None
-                    },
-                    Texture {
-                        id: "musica".to_string(),
-                        format: TextureFormat::rgba8,
-                        file: Some("Musica.png".to_string()),
-                        kind: None
-                    },
-                    Texture {
-                        id: "skybox".to_string(),
-                        format: TextureFormat::rgb8,
-                        file: Some("bluecloud.jpg".to_string()),
-                        kind: Some(TextureKind::cubemap)
                     },
                     Texture {
                         id: "reflection_colour".to_string(),
@@ -240,13 +254,7 @@ mod test {
                         kind: Some(TextureKind::uninitialised)
                     }
                 ],
-                fonts: vec![
-                    Font {
-                        id: "musica".to_string(),
-                        file: "Musica.fnt".to_string(),
-                        texture_id: "musica".to_string()
-                    }
-                ]
+                fonts: vec![]
             },
             passes: vec![
                 Pass {
@@ -319,21 +327,8 @@ mod test {
             id: "cutscene".to_string(),
             camera: Camera::flight_path,
             resources: Resources {
-                models: vec![
-                    Model {
-                        id: "skybox".to_string(),
-                        file: None,
-                        generator: Some(ModelGenerator::skybox)
-                    }
-                ],
-                textures: vec![
-                    Texture {
-                        id: "skybox".to_string(),
-                        format: TextureFormat::rgb8,
-                        file: Some("bluecloud.jpg".to_string()),
-                        kind: Some(TextureKind::cubemap)
-                    }
-                ],
+                models: vec![],
+                textures: vec![],
                 fonts: vec![]
             },
             passes: vec![

@@ -1,17 +1,17 @@
 use std::path::PathBuf;
 
-use crate::generator::{AppSpec, stubs};
+use crate::generator::{CompleteSpec, stubs};
 use crate::GeneratorError;
 
 pub fn write_app_files(
     project_dir: &PathBuf,
-    app_spec: &AppSpec,
+    complete_spec: &CompleteSpec,
     resources_dir_name: &'static str
 ) -> Result<(), GeneratorError> {
 
     // App files - src/app/mod.rs and src/app/struct.gen.rs
     let (app_module_file_contents, app_regenerated_file_contents) =
-        stubs::generate_app_stubs(&app_spec.app)?;
+        stubs::generate_app_stubs(&complete_spec.app)?;
     let app_module_file = make_project_file(
         project_dir,
         vec!["src", "app"],
@@ -29,7 +29,7 @@ pub fn write_app_files(
 
     // Scenes module - src/scenes/mod.rs and src/scenes/list.gen.rs
     let (scenes_list_module_file_contents, scenes_list_regenerated_file_contents) =
-        stubs::generate_scene_listing_stubs(&app_spec.scenes)?;
+        stubs::generate_scene_listing_stubs(&complete_spec.scenes)?;
     let scenes_list_module_file = make_project_file(
         project_dir,
         vec!["src", "scenes"],
@@ -45,7 +45,7 @@ pub fn write_app_files(
     std::fs::write(&scenes_list_regenerated_file, scenes_list_regenerated_file_contents)
         .map_err(|_| GeneratorError::WriteError(scenes_list_regenerated_file.clone()))?;
 
-    for scene in app_spec.scenes.iter() {
+    for scene in complete_spec.scenes.iter() {
         let (scene_module_file_contents, scene_core_file_contents) =
             stubs::generate_scene_stubs(&scene, resources_dir_name)?;
 
